@@ -48,6 +48,7 @@ PanelWindow {
     property bool imageLoaded: false
     property bool manuallyMoved: false
     property bool isTop: false
+    property bool isScaling: false
 
     onTargetWidthChanged: if (!manuallyMoved) updatePosition()
     onTargetHeightChanged: if (!manuallyMoved) updatePosition()
@@ -70,6 +71,30 @@ PanelWindow {
     WlrLayershell.margins {
         left: xPos
         top: yPos
+    }
+
+    Timer {
+        id: scaleTimer
+        interval: 200
+        repeat: false
+        onTriggered: window.isScaling = false
+    }
+
+    Behavior on targetWidth {
+        enabled: window.isScaling
+        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+    }
+    Behavior on targetHeight {
+        enabled: window.isScaling
+        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+    }
+    Behavior on xPos {
+        enabled: window.isScaling
+        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
+    }
+    Behavior on yPos {
+        enabled: window.isScaling
+        NumberAnimation { duration: 150; easing.type: Easing.OutCubic }
     }
 
     implicitWidth: isMinimized ? minimizedSize : targetWidth
@@ -452,6 +477,9 @@ PanelWindow {
 
             onWheel: (wheel) => {
                 if (window.isMinimized || img.implicitWidth <= 0 || img.implicitHeight <= 0) return;
+
+                window.isScaling = true;
+                scaleTimer.restart();
 
                 let scaleFactor = Math.pow(1.1, wheel.angleDelta.y / 120.0);
                 let oldWidth = window.targetWidth;
