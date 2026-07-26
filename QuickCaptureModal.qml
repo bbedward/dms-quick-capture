@@ -432,13 +432,15 @@ DankModal {
         if (window.hasActiveCropSelection) {
             return window.cropRect.width;
         }
-        return window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
+        if (!window.bgImageItem) return 1;
+        return (window.bgRotation % 180 === 0) ? window.bgImageItem.sourceSize.width : window.bgImageItem.sourceSize.height;
     }
     readonly property real screenshotHeight: {
         if (window.hasActiveCropSelection) {
             return window.cropRect.height;
         }
-        return window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
+        if (!window.bgImageItem) return 1;
+        return (window.bgRotation % 180 === 0) ? window.bgImageItem.sourceSize.height : window.bgImageItem.sourceSize.width;
     }
 
     function getTargetRatio(ratioStr) {
@@ -678,11 +680,27 @@ DankModal {
         ctx.closePath();
         ctx.clip();
         
+        const rawW = imgSource.sourceSize.width;
+        const rawH = imgSource.sourceSize.height;
+        const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
+        const uncroppedW = isRotated90 ? rawH : rawW;
+        const uncroppedH = isRotated90 ? rawW : rawH;
+
         if (window.hasSelection) {
-            ctx.drawImage(imgSource, window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height, x, y, w, h);
-        } else {
-            ctx.drawImage(imgSource, x, y, w, h);
+            ctx.translate(-window.cropRect.x, -window.cropRect.y);
         }
+
+        ctx.translate(x + uncroppedW / 2, y + uncroppedH / 2);
+        if (window.bgRotation !== 0) {
+            ctx.rotate(window.bgRotation * Math.PI / 180);
+        }
+        const sx = window.bgFlipH ? -1 : 1;
+        const sy = window.bgFlipV ? -1 : 1;
+        if (sx !== 1 || sy !== 1) {
+            ctx.scale(sx, sy);
+        }
+
+        ctx.drawImage(imgSource, -rawW / 2, -rawH / 2, rawW, rawH);
         ctx.restore();
     }
 
@@ -800,106 +818,78 @@ DankModal {
 
     function rotateScreenshot(direction) {
         const isLeft = (direction === "left");
-        const originalW = window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
-        const originalH = window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
+        const rawW = window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
+        const rawH = window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
+        const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
+        const uncroppedW = isRotated90 ? rawH : rawW;
+        const uncroppedH = isRotated90 ? rawW : rawH;
 
-        let bgPath = "";
-        if (window.bgImageSource) {
-            let srcStr = window.bgImageSource.toString();
-            const qIdx = srcStr.indexOf("?");
-            if (qIdx !== -1) {
-                srcStr = srcStr.substring(0, qIdx);
-            }
-            if (srcStr.startsWith("file://")) {
-                bgPath = srcStr.substring(7);
-            } else if (srcStr.startsWith("/")) {
-                bgPath = srcStr;
+        if (window.hasSelection) {
+            const cx = window.cropRect.x;
+            const cy = window.cropRect.y;
+            const cw = window.cropRect.width;
+            const ch = window.cropRect.height;
+            if (isLeft) {
+                window.cropRect = Qt.rect(cy, uncroppedW - (cx + cw), ch, cw);
+            } else {
+                window.cropRect = Qt.rect(uncroppedH - (cy + ch), cx, ch, cw);
             }
         }
 
-        if (!bgPath) return;
-        const degrees = isLeft ? "270" : "90";
-        Proc.runCommand("rotate-image", ["mogrify", "-rotate", degrees, bgPath], (stdout, exitCode) => {
-            if (exitCode === 0) {
-                if (window.hasSelection) {
-                    const cx = window.cropRect.x;
-                    const cy = window.cropRect.y;
-                    const cw = window.cropRect.width;
-                    const ch = window.cropRect.height;
-                    if (isLeft) {
-                        window.cropRect = Qt.rect(cy, originalW - (cx + cw), ch, cw);
-                    } else {
-                        window.cropRect = Qt.rect(originalH - (cy + ch), cx, ch, cw);
-                    }
-                }
-
-                const list = [...window.strokes];
-                for (let s of list) {
-                    if (s.points) {
-                        s.points = s.points.map(p => ({
-                            x: isLeft ? p.y : originalH - p.y,
-                            y: isLeft ? originalW - p.x : p.x
-                        }));
-                    }
-                }
-                window.strokes = list;
-
-                window.bgImageSource = "";
-                window.bgImageSource = "file://" + bgPath + "?t=" + Date.now();
+        const list = [...window.strokes];
+        for (let s of list) {
+            if (s.points) {
+                s.points = s.points.map(p => ({
+                    x: isLeft ? p.y : uncroppedH - p.y,
+                    y: isLeft ? uncroppedW - p.x : p.x
+                }));
             }
-        });
+        }
+        window.strokes = list;
+        window.bgRotation = (window.bgRotation + (isLeft ? 270 : 90)) % 360;
+        window.requestPaintAll();
     }
 
     function mirrorScreenshot(direction) {
         const isVertical = (direction === "vertical" || direction === "v");
-        const originalW = window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
-        const originalH = window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
+        const rawW = window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
+        const rawH = window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
+        const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
+        const uncroppedW = isRotated90 ? rawH : rawW;
+        const uncroppedH = isRotated90 ? rawW : rawH;
 
-        let bgPath = "";
-        if (window.bgImageSource) {
-            let srcStr = window.bgImageSource.toString();
-            const qIdx = srcStr.indexOf("?");
-            if (qIdx !== -1) {
-                srcStr = srcStr.substring(0, qIdx);
-            }
-            if (srcStr.startsWith("file://")) {
-                bgPath = srcStr.substring(7);
-            } else if (srcStr.startsWith("/")) {
-                bgPath = srcStr;
+        if (window.hasSelection) {
+            const cx = window.cropRect.x;
+            const cy = window.cropRect.y;
+            const cw = window.cropRect.width;
+            const ch = window.cropRect.height;
+            if (isVertical) {
+                window.cropRect = Qt.rect(cx, uncroppedH - (cy + ch), cw, ch);
+            } else {
+                window.cropRect = Qt.rect(uncroppedW - (cx + cw), cy, cw, ch);
             }
         }
 
-        if (!bgPath) return;
-        const flag = isVertical ? "-flip" : "-flop";
-        Proc.runCommand("mirror-image", ["mogrify", flag, bgPath], (stdout, exitCode) => {
-            if (exitCode === 0) {
-                if (window.hasSelection) {
-                    const cx = window.cropRect.x;
-                    const cy = window.cropRect.y;
-                    const cw = window.cropRect.width;
-                    const ch = window.cropRect.height;
-                    if (isVertical) {
-                        window.cropRect = Qt.rect(cx, originalH - (cy + ch), cw, ch);
-                    } else {
-                        window.cropRect = Qt.rect(originalW - (cx + cw), cy, cw, ch);
-                    }
-                }
-
-                const list = [...window.strokes];
-                for (let s of list) {
-                    if (s.points) {
-                        s.points = s.points.map(p => ({
-                            x: isVertical ? p.x : originalW - p.x,
-                            y: isVertical ? originalH - p.y : p.y
-                        }));
-                    }
-                }
-                window.strokes = list;
-
-                window.bgImageSource = "";
-                window.bgImageSource = "file://" + bgPath + "?t=" + Date.now();
+        const list = [...window.strokes];
+        for (let s of list) {
+            if (s.points) {
+                s.points = s.points.map(p => ({
+                    x: isVertical ? p.x : uncroppedW - p.x,
+                    y: isVertical ? uncroppedH - p.y : p.y
+                }));
             }
-        });
+        }
+        window.strokes = list;
+
+        if (window.bgRotation === 0 || window.bgRotation === 180) {
+            if (isVertical) window.bgFlipV = !window.bgFlipV;
+            else window.bgFlipH = !window.bgFlipH;
+        } else {
+            if (isVertical) window.bgFlipH = !window.bgFlipH;
+            else window.bgFlipV = !window.bgFlipV;
+        }
+
+        window.requestPaintAll();
     }
 
     function runOcr() {
@@ -1090,6 +1080,9 @@ DankModal {
 
     // Component scope bridging properties
     property string bgImageSource: ""
+    property int bgRotation: 0
+    property bool bgFlipH: false
+    property bool bgFlipV: false
     property var activeCanvas: null
     property var bakedCanvas: null
     property var bgImageItem: null
@@ -1963,6 +1956,9 @@ DankModal {
         window.copiedStroke = null;
         window.stampCounter = 1;
         window.stampIdCounter = 1;
+        window.bgRotation = 0;
+        window.bgFlipH = false;
+        window.bgFlipV = false;
         window.bgImageSource = "";
         if (window.restoreSource) {
             window.bgImageSource = window.restoreSource;
@@ -2019,6 +2015,15 @@ DankModal {
             }
             if (data.stampCounter !== undefined) {
                 window.stampCounter = data.stampCounter;
+            }
+            if (data.bgRotation !== undefined) {
+                window.bgRotation = data.bgRotation;
+            }
+            if (data.bgFlipH !== undefined) {
+                window.bgFlipH = data.bgFlipH;
+            }
+            if (data.bgFlipV !== undefined) {
+                window.bgFlipV = data.bgFlipV;
             }
             if (data.cropRect) {
                 window.cropRect = Qt.rect(data.cropRect.x, data.cropRect.y, data.cropRect.width, data.cropRect.height);
@@ -2583,20 +2588,37 @@ DankModal {
                         clip: true
                         visible: window.effectiveBackdropMode === "none"
 
-                        Image {
-                            id: staticBgImage
-                            source: window.bgImageSource
-                            cache: false
-                            smooth: true
-                            mipmap: true
+                        Item {
+                            id: transformedBgContainer
+                            readonly property bool isRotated90: (window.bgRotation === 90 || window.bgRotation === 270)
+                            readonly property real rawW: window.bgImageItem ? window.bgImageItem.sourceSize.width : 1
+                            readonly property real rawH: window.bgImageItem ? window.bgImageItem.sourceSize.height : 1
 
-                            // Handle crop positioning
+                            width: (isRotated90 ? rawH : rawW) * window.editScale
+                            height: (isRotated90 ? rawW : rawH) * window.editScale
+
                             x: window.hasActiveCropSelection ? -window.cropRect.x * window.editScale : 0
                             y: window.hasActiveCropSelection ? -window.cropRect.y * window.editScale : 0
 
-                            // Scale to original size if cropped, otherwise fit to canvas
-                            width: window.hasActiveCropSelection ? window.bgImageItem.sourceSize.width * window.editScale : parent.width
-                            height: window.hasActiveCropSelection ? window.bgImageItem.sourceSize.height * window.editScale : parent.height
+                            Image {
+                                id: staticBgImage
+                                source: window.bgImageSource
+                                cache: false
+                                smooth: true
+                                mipmap: true
+
+                                anchors.centerIn: parent
+                                width: transformedBgContainer.rawW * window.editScale
+                                height: transformedBgContainer.rawH * window.editScale
+
+                                rotation: window.bgRotation
+                                transform: Scale {
+                                    origin.x: staticBgImage.width / 2
+                                    origin.y: staticBgImage.height / 2
+                                    xScale: window.bgFlipH ? -1 : 1
+                                    yScale: window.bgFlipV ? -1 : 1
+                                }
+                            }
                         }
                     }
 
@@ -3147,13 +3169,29 @@ DankModal {
                             window.drawScreenshotImage(ctx, bgImage);
                         } else {
                             if (bgImage.status === Image.Ready) {
-                                 if (window.hasSelection) {
-                                     // Draw the cropped portion of the raw background
-                                     ctx.drawImage(bgImage, window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height, 0, 0, window.cropRect.width, window.cropRect.height);
-                                 } else {
-                                     // Fullscreen background
-                                     ctx.drawImage(bgImage, 0, 0);
-                                 }
+                                ctx.save();
+                                const rawW = bgImage.sourceSize.width;
+                                const rawH = bgImage.sourceSize.height;
+                                const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
+                                const uncroppedW = isRotated90 ? rawH : rawW;
+                                const uncroppedH = isRotated90 ? rawW : rawH;
+
+                                if (window.hasSelection) {
+                                    ctx.translate(-window.cropRect.x, -window.cropRect.y);
+                                }
+
+                                ctx.translate(uncroppedW / 2, uncroppedH / 2);
+                                if (window.bgRotation !== 0) {
+                                    ctx.rotate(window.bgRotation * Math.PI / 180);
+                                }
+                                const sx = window.bgFlipH ? -1 : 1;
+                                const sy = window.bgFlipV ? -1 : 1;
+                                if (sx !== 1 || sy !== 1) {
+                                    ctx.scale(sx, sy);
+                                }
+
+                                ctx.drawImage(bgImage, -rawW / 2, -rawH / 2, rawW, rawH);
+                                ctx.restore();
                             }
                         }
 
