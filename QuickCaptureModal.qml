@@ -1924,6 +1924,9 @@ DankModal {
     }
 
     onOpened: {
+        if (window.floatService) {
+            window.floatService.hideAllWindows();
+        }
         window.updateRadialPresets();
 
         let startTool = "pen";
@@ -3698,6 +3701,9 @@ DankModal {
     }
 
     onDialogClosed: {
+        if (window.floatService) {
+            window.floatService.showAllWindows();
+        }
         // Reset path state here (not in onOpened) so re-fires during layout/screen changes
         // don't wipe bgImageSource before the image has a chance to render.
         window.currentCapturePath = "";

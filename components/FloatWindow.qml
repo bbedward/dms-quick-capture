@@ -49,6 +49,8 @@ PanelWindow {
     property bool manuallyMoved: false
     property bool isTop: false
     property bool isScaling: false
+    property bool temporarilyHidden: false
+    visible: !temporarilyHidden
 
     onTargetWidthChanged: if (!manuallyMoved) updatePosition()
     onTargetHeightChanged: if (!manuallyMoved) updatePosition()
@@ -489,33 +491,28 @@ PanelWindow {
                 let newWidth = Math.round(Math.max(window.resizeMin, Math.min(window.resizeMax, oldWidth * scaleFactor)));
                 let newHeight = Math.round(((newWidth - 2 * b) / ratio) + 2 * b);
 
-                // Keep window on screen (clamp to screen/work area edges)
-                let workArea = window.getWorkArea();
-                let edgeSpacing = window.edgeSpacing;
+                // Directional resize logic:
+                // We keep the corner closest to the screen edge fixed.
+                let centerX = window.xPos + oldWidth / 2;
+                let centerY = window.yPos + oldHeight / 2;
+                let screenWidth = window.screen.width;
+                let screenHeight = window.screen.height;
 
-                let rightLimit = workArea.x + workArea.width - edgeSpacing;
-                let bottomLimit = workArea.y + workArea.height - edgeSpacing;
+                // Adjust X: if center is in right half, keep right edge fixed (move x left)
+                if (centerX > screenWidth / 2) {
+                    window.xPos -= (newWidth - oldWidth);
+                } 
+                // else: center is in left half, keep left edge fixed (do nothing to x)
 
-                let newX = window.xPos;
-                let newY = window.yPos;
+                // Adjust Y: if center is in bottom half, keep bottom edge fixed (move y up)
+                if (centerY > screenHeight / 2) {
+                    window.yPos -= (newHeight - oldHeight);
+                }
+                // else: center is in top half, keep top edge fixed (do nothing to y)
 
-                if (newX + newWidth > rightLimit) {
-                    newX = rightLimit - newWidth;
-                }
-                if (newY + newHeight > bottomLimit) {
-                    newY = bottomLimit - newHeight;
-                }
-                if (newX < workArea.x + edgeSpacing) {
-                    newX = workArea.x + edgeSpacing;
-                }
-                if (newY < workArea.y + edgeSpacing) {
-                    newY = workArea.y + edgeSpacing;
-                }
-
-                window.xPos = newX;
-                window.yPos = newY;
                 window.targetWidth = newWidth;
                 window.targetHeight = newHeight;
+                window.manuallyMoved = true;
             }
         }
 

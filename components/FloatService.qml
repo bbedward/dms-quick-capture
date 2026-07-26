@@ -87,4 +87,22 @@ Item {
         }
         root.restoreRequested(imageSource, null);
     }
+
+    function hideAllWindows() {
+        for (var i = 0; i < root.openWindows.length; i++) {
+            var w = root.openWindows[i];
+            if (w && typeof w.temporarilyHidden !== 'undefined') {
+                w.temporarilyHidden = true;
+            }
+        }
+    }
+
+    function showAllWindows() {
+        for (var i = 0; i < root.openWindows.length; i++) {
+            var w = root.openWindows[i];
+            if (w && typeof w.temporarilyHidden !== 'undefined') {
+                w.temporarilyHidden = false;
+            }
+        }
+    }
 }
