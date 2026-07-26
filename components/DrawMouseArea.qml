@@ -23,7 +23,6 @@ MouseArea {
     required property var arrowOptionsToolbar
     required property var redactOptionsToolbar
     required property var calloutOptionsToolbar
-    required property var pixelateOptionsToolbar
 
     property string activeHandle: "none"
     property string hoveredHandle: "none"
@@ -530,9 +529,6 @@ MouseArea {
                 } else if (window.currentTool === "callout") {
                     calloutOptionsToolbar.open(mapped.x, mapped.y);
                     return;
-                } else if (window.currentTool === "pixelate") {
-                    pixelateOptionsToolbar.open(mapped.x, mapped.y);
-                    return;
                 }
             }
             radialMenu.open(mapped.x, mapped.y);
@@ -656,8 +652,7 @@ MouseArea {
                 if (stroke.tool === "text") window.textFontSize = stroke.width;
                 else if (stroke.tool === "pixelate") {
                     window.pixelateIntensity = stroke.width;
-                    window.pixelateRandomize = stroke.randomize === true;
-                    if (window.pixelateRandomize && stroke.randomSeed === undefined) {
+                    if (stroke.randomSeed === undefined) {
                         stroke.randomSeed = Math.floor(Math.random() * 2147483647);
                     }
                 }
@@ -824,7 +819,7 @@ MouseArea {
               redactShape: window.currentTool === "redact" ? window.activeRedactShape : "rect",
               calloutLinkLines: window.currentTool === "callout" ? window.calloutLinkLines : 1,
               calloutShape: window.currentTool === "callout" ? window.calloutShape : "rect",
-              randomize: window.currentTool === "pixelate" ? window.pixelateRandomize : false,
+              randomize: window.currentTool === "pixelate" ? true : false,
               randomSeed: window.currentTool === "pixelate" ? Math.floor(Math.random() * 2147483647) : 0
           };
          drawingCanvas.requestPaint();

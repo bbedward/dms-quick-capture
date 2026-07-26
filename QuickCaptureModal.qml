@@ -290,22 +290,7 @@ DankModal {
     property real penSmoothingAlpha: 0.4
     property int strokeWidth: 8
     property int pixelateIntensity: 8
-    property bool pixelateRandomize: true
-    onPixelateRandomizeChanged: {
-        if (window.selectedStroke && window.selectedStroke.tool === "pixelate") {
-            window.selectedStroke.randomize = window.pixelateRandomize;
-            if (window.pixelateRandomize && window.selectedStroke.randomSeed === undefined) {
-                window.selectedStroke.randomSeed = Math.floor(Math.random() * 2147483647);
-            }
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                const list = [...window.strokes];
-                list[idx] = window.selectedStroke;
-                window.strokes = list;
-            }
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
-        }
-    }
+
     property int spotlightIntensity: 50
     onSpotlightIntensityChanged: {
         preGrabSpotlightIntensity = spotlightIntensity;
@@ -3065,7 +3050,6 @@ DankModal {
                             arrowOptionsToolbar: arrowOptionsToolbar
                             redactOptionsToolbar: redactOptionsToolbar
                              calloutOptionsToolbar: calloutOptionsToolbar
-                             pixelateOptionsToolbar: pixelateOptionsToolbar
                          }
 
                         SizePreviewCard {
@@ -3384,12 +3368,7 @@ DankModal {
                     onShapeSelected: (shape) => window.calloutShape = shape
                 }
 
-                PixelateOptionsToolbar {
-                    id: pixelateOptionsToolbar
-                    toolbarPosition: window.toolbarPosition
-                    randomizeActive: window.pixelateRandomize
-                    onRandomizeToggled: window.pixelateRandomize = !window.pixelateRandomize
-                }
+
 
                 MoreToolsMenu {
                     id: moreToolsMenu
