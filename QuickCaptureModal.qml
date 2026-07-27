@@ -330,6 +330,19 @@ DankModal {
 
         if (selectedStroke) {
             selectedStroke.width = val;
+            if (selectedStroke.tool === "callout" && selectedStroke.points && selectedStroke.points.length === 4) {
+                const srcP0 = selectedStroke.points[0];
+                const srcP1 = selectedStroke.points[1];
+                const dstP0 = selectedStroke.points[2];
+                const rw = srcP1.x - srcP0.x;
+                const rh = srcP1.y - srcP0.y;
+                const zoom = val / 100.0;
+                const dw = rw * zoom;
+                const dh = rh * zoom;
+                const newPoints = [...selectedStroke.points];
+                newPoints[3] = Qt.point(dstP0.x + dw, dstP0.y + dh);
+                selectedStroke.points = newPoints;
+            }
             const idx = window.strokes.indexOf(selectedStroke);
             if (idx !== -1) {
                 window.strokes[idx] = selectedStroke;

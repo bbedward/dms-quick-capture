@@ -277,6 +277,7 @@ Rectangle {
                     id: hSlider
                     minimum: root.activeToolType === "pixelate" ? 2 : (root.activeToolType === "spotlight" ? 10 : (root.activeToolType === "callout" ? 100 : 1))
                     maximum: root.activeToolType === "pixelate" ? 12 : (root.activeToolType === "text" ? 120 : (root.activeToolType === "spotlight" ? 95 : (root.activeToolType === "callout" ? 500 : 50)))
+                    step: root.activeToolType === "callout" ? 10 : 1
                     width: Constants.sliderWidth
                     height: Constants.btnSize
                     showValue: false
