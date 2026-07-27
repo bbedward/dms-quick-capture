@@ -1952,6 +1952,7 @@ DankModal {
         window.recordPresetUsage({ tool: startTool, color: startColor, thickness: startThickness });
 
         window.strokes = [];
+        window.showAnnotations = true;
         window.selectedStroke = null;
         window.copiedStroke = null;
         window.stampCounter = 1;
