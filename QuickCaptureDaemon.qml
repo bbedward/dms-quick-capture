@@ -32,12 +32,7 @@ PluginComponent {
         return "/tmp/dms_capture_" + Date.now() + ".png";
     }
 
-    function screenshotMode() {
-        return root.pendingCaptureMode !== "" ? root.pendingCaptureMode : root.middleClickAction;
-    }
-
-    function modeFlags() {
-        const mode = root.screenshotMode();
+    function modeFlags(mode) {
         const flags = [];
 
         if (mode === "region" && pluginData.skipConfirm !== false)
@@ -59,25 +54,28 @@ PluginComponent {
         return flags;
     }
 
-    function screenshotArgs(filename) {
+    function screenshotArgs(mode, filename) {
         const cursorVal = pluginData.includeCursor ? "on" : "off";
-        return ["dms", "screenshot", root.screenshotMode(), "--no-clipboard", "--dir", "/tmp",
+        return ["dms", "screenshot", mode, "--no-clipboard", "--dir", "/tmp",
                 "--filename", filename, "--format", "png", "--cursor", cursorVal,
-                "--no-notify", "--json"].concat(root.modeFlags());
+                "--no-notify", "--json"].concat(root.modeFlags(mode));
     }
 
     function triggerCaptureWithAction(mode, action) {
-        if (mode && !root.allowedModes.includes(mode)) {
-            console.warn("Invalid screenshot mode rejected: " + mode);
+        const finalMode = mode || root.middleClickAction;
+        const finalAction = action || "edit";
+
+        if (!root.allowedModes.includes(finalMode)) {
+            console.warn("Invalid screenshot mode rejected: " + finalMode);
             return;
         }
 
-        root.pendingCaptureMode = mode || "";
-        root.pendingCaptureAction = action || "edit";
-
         if (root.isCapturing || modal.shouldBeVisible)
             return;
+
         root.isCapturing = true;
+        root.pendingCaptureAction = finalAction;
+        root.pendingCaptureMode = finalMode;
         root.closeControlCenter();
         captureDelayTimer.start();
     }
@@ -101,13 +99,13 @@ PluginComponent {
     }
 
     function startActualCapture() {
+        const mode = root.pendingCaptureMode;
         const action = root.pendingCaptureAction;
-        const mode = root.screenshotMode();
         const timeout = mode === "scroll" ? root.scrollCaptureTimeoutMs : root.captureTimeoutMs;
 
         root.currentCapturePath = root.capturePath();
         const filename = root.currentCapturePath.split("/").pop();
-        const cmdStr = root.screenshotArgs(filename).map(root.escShell).join(" ");
+        const cmdStr = root.screenshotArgs(mode, filename).map(root.escShell).join(" ");
         Proc.runCommand("screenshot-trigger", ["sh", "-c", cmdStr], (stdout, exitCode) => {
             root.isCapturing = false;
             root.pendingCaptureMode = "";
@@ -135,21 +133,36 @@ PluginComponent {
 
     function fromClipboardWithAction(action) {
         root.closeControlCenter();
-        root.currentCapturePath = root.capturePath();
-        const checkCmd = "if dms cl paste > " + root.currentCapturePath + " 2>/dev/null && file -b " + root.currentCapturePath + " | grep -qi \"image\"; then echo \"IMAGE\"; else TEXT=$(dms cl paste 2>/dev/null); if [ -n \"$TEXT\" ]; then echo \"TEXT:$TEXT\"; else echo \"EMPTY\"; fi; fi";
-        Proc.runCommand("smart-paste", ["sh", "-c", checkCmd], (stdout, exitCode) => {
-            const output = stdout.trim();
-            if (output === "IMAGE") {
-                root.openCapturedImageUnknown(root.currentCapturePath, action);
-            } else if (output.startsWith("TEXT:")) {
-                let text = output.substring(5).trim();
-                if (text === "")
-                    root.toastError("Clipboard text is not a valid URL or path.");
-                else
-                    root.loadImageFromUriWithAction(text, action);
+        const destPath = root.capturePath();
+        root.currentCapturePath = destPath;
+
+        // Step 1: Try to paste clipboard as a file.
+        Proc.runCommand("clipboard-paste-file", ["sh", "-c", `dms cl paste > ${root.escShell(destPath)} 2>/dev/null`], (stdout, exitCode) => {
+            if (exitCode === 0) {
+                // Step 2a: Confirm the pasted file is actually an image.
+                Proc.runCommand("clipboard-check-image", ["file", "-b", destPath], (fileOut, fileExit) => {
+                    if (fileExit === 0 && fileOut.toLowerCase().includes("image")) {
+                        root.openCapturedImageUnknown(destPath, action);
+                    } else {
+                        // Pasted file exists but isn't an image — try reading as text URI.
+                        root.tryClipboardAsText(action);
+                    }
+                });
             } else {
-                root.toastError("No valid image, URL, or path in clipboard.");
+                // Step 2b: Paste failed entirely — try reading clipboard as text URI.
+                root.tryClipboardAsText(action);
             }
+        });
+    }
+
+    function tryClipboardAsText(action) {
+        Proc.runCommand("clipboard-paste-text", ["dms", "cl", "paste"], (stdout, exitCode) => {
+            const text = stdout.trim();
+            if (exitCode !== 0 || text === "") {
+                root.toastError("No valid image, URL, or path in clipboard.");
+                return;
+            }
+            root.loadImageFromUriWithAction(text, action);
         });
     }
 
