@@ -2,7 +2,21 @@
 .import "Constants.js" as Constants
 
 /**
- * Converts a hex color string to an RGB object { r, g, b } with values 0-1.
+ * Helpers.js
+ * Pure utility library for Quick Capture. No QML context — all state is passed as arguments.
+ *
+ * Sections:
+ *   1. Color utilities     — hexToRgb, getLuminance, getContrastingColor, formatHexColor, colorEquals, toHex6
+ *   2. UI / formatting     — formatCounter, shortcutToken, formatWatermarkText, findByKey
+ *   3. Geometry            — constrainSquarePoint, distance, clamp, isInsideCropRect, smoothStrokePoints
+ *   4. Color analysis      — extractDominantColors, getBoundaryColorOrGradient
+ *   5. Text measurement    — estimateTextWidth
+ *   6. Stroke geometry     — getStrokeBBox, findStrokeAt, getStrokeHandleAt
+ *   7. Stroke data         — copyStrokeProperties
+ */
+
+// ─── 1. Color utilities ────────────────────────────────────────────────────────
+
  * @param {string} hex - The hex color string.
  * @param {object} Qt - The Qt object.
  * @returns {object} { r, g, b }
@@ -33,6 +47,8 @@ function getContrastingColor(hex, Qt) {
     const lum = getLuminance(rgb);
     return lum > 0.5 ? "#000000" : "#ffffff";
 }
+
+// ─── 2. UI / formatting ───────────────────────────────────────────────────────
 
 /**
  * Formats a number according to the specified format.
@@ -118,6 +134,8 @@ function shortcutToken(key, Qt) {
     default: return "";
     }
 }
+
+// ─── 3. Geometry ──────────────────────────────────────────────────────────────
 
 /**
  * Constrains a point to form a square relative to a start point.
@@ -210,6 +228,8 @@ function formatWatermarkText(pattern, Quickshell) {
         .replace(/\{mm\}/g, mm)
         .replace(/\{ss\}/gi, ss);
 }
+
+// ─── 4. Color analysis ────────────────────────────────────────────────────────
 
 /**
  * Downsamples screenshot pixels to extract a matching backdrop gradient.
@@ -371,6 +391,8 @@ function extractDominantColors(imgData, Qt) {
     };
 }
 
+// ─── 5. Text measurement ──────────────────────────────────────────────────────
+
 /**
  * Estimates text width based on characters and properties.
  * @param {string} text - The text string.
@@ -430,15 +452,10 @@ function estimateTextWidth(text, fontSize, isBold, isMonospace) {
     return maxWidth;
 }
 
+// ─── 6. Stroke geometry & hit-testing ────────────────────────────────────────
+
 /**
  * Finds the index of the stroke under coordinate (mx, my).
- * @param {number} mx - X coordinate.
- * @param {number} my - Y coordinate.
- * @param {array} strokes - List of strokes.
- * @param {function} estimateTextWidthFn - Text width estimation function.
- * @returns {number} Stroke index or -1.
- */
-function getStrokeBBox(stroke, estimateTextWidthFn) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const pts = stroke.points;
     const len = pts.length;
@@ -989,6 +1006,8 @@ function toHex6(c, Qt) {
 function colorEquals(c1, c2, Qt) {
     return toHex6(c1, Qt) === toHex6(c2, Qt);
 }
+
+// ─── 7. Stroke data ───────────────────────────────────────────────────────────
 
 function copyStrokeProperties(source, target) {
     if (!source || !target) return;

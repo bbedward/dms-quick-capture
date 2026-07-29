@@ -36,7 +36,7 @@ DankModal {
                     p = home + p.substring(1);
                 }
                 if (p.indexOf("/") === 0) {
-                    p = "file://" + p;
+                    p = `file://${p}`;
                 }
                 return p;
             }
@@ -155,19 +155,9 @@ DankModal {
             lastActiveTool = currentTool;
         }
         if (currentTool !== "select" && window.selectedStroke) {
-            const restoreColor = window.preGrabColor;
             window.selectedStroke = null;
             window.originalPoints = [];
-            window.strokeWidth = window.preGrabStrokeWidth;
-            window.textFontSize = window.preGrabTextFontSize;
-            window.pixelateIntensity = window.preGrabPixelateIntensity;
-            window.spotlightIntensity = window.preGrabSpotlightIntensity;
-            window.calloutZoom = window.preGrabCalloutZoom;
-            window.currentColor = restoreColor;
-            window.activeRedactMode = window.preGrabRedactMode;
-            window.activeRedactShape = window.preGrabRedactShape;
-            window.calloutLinkLines = window.preGrabCalloutLinkLines;
-            window.calloutShape = window.preGrabCalloutShape;
+            window.restorePreGrabState();
             if (window.activeCanvas) window.activeCanvas.requestPaint();
         }
         if (currentTool === "colorpicker") {
@@ -183,16 +173,7 @@ DankModal {
         }
         if (currentTool === "select" && !window.selectedStroke && window.strokes.length > 0) {
             const s = window.strokes[window.strokes.length - 1];
-            window.preGrabStrokeWidth = window.strokeWidth;
-            window.preGrabTextFontSize = window.textFontSize;
-            window.preGrabPixelateIntensity = window.pixelateIntensity;
-            window.preGrabSpotlightIntensity = window.spotlightIntensity;
-            window.preGrabCalloutZoom = window.calloutZoom;
-            window.preGrabColor = window.currentColor;
-            window.preGrabRedactMode = window.activeRedactMode;
-            window.preGrabRedactShape = window.activeRedactShape;
-            window.preGrabCalloutLinkLines = window.calloutLinkLines;
-            window.preGrabCalloutShape = window.calloutShape;
+            window.savePreGrabState();
             window.selectedStroke = s;
             window.currentColor = s.color;
             if (s.tool === "text") window.textFontSize = s.width;
@@ -586,7 +567,7 @@ DankModal {
                 const gComp = Math.round(sg * (1 - t) + eg * t);
                 const bComp = Math.round(sb * (1 - t) + eb * t);
                 const aComp = sa * (1 - t) + ea * t;
-                ctx.fillStyle = "rgba(" + rComp + "," + gComp + "," + bComp + "," + aComp + ")";
+                ctx.fillStyle = `rgba(${rComp},${gComp},${bComp},${aComp})`;
                 ctx.beginPath();
                 ctx.moveTo(0, 0);
                 ctx.arc(0, 0, r, angle1, angle2);
@@ -756,6 +737,33 @@ DankModal {
     property string preGrabRedactShape: "rect"
     property int preGrabCalloutLinkLines: 1
     property string preGrabCalloutShape: "rect"
+
+    function savePreGrabState() {
+        window.preGrabStrokeWidth = window.strokeWidth;
+        window.preGrabTextFontSize = window.textFontSize;
+        window.preGrabPixelateIntensity = window.pixelateIntensity;
+        window.preGrabSpotlightIntensity = window.spotlightIntensity;
+        window.preGrabCalloutZoom = window.calloutZoom;
+        window.preGrabColor = window.currentColor;
+        window.preGrabRedactMode = window.activeRedactMode;
+        window.preGrabRedactShape = window.activeRedactShape;
+        window.preGrabCalloutLinkLines = window.calloutLinkLines;
+        window.preGrabCalloutShape = window.calloutShape;
+    }
+
+    function restorePreGrabState() {
+        const restoreColor = window.preGrabColor;
+        window.strokeWidth = window.preGrabStrokeWidth;
+        window.textFontSize = window.preGrabTextFontSize;
+        window.pixelateIntensity = window.preGrabPixelateIntensity;
+        window.spotlightIntensity = window.preGrabSpotlightIntensity;
+        window.calloutZoom = window.preGrabCalloutZoom;
+        window.currentColor = restoreColor;
+        window.activeRedactMode = window.preGrabRedactMode;
+        window.activeRedactShape = window.preGrabRedactShape;
+        window.calloutLinkLines = window.preGrabCalloutLinkLines;
+        window.calloutShape = window.preGrabCalloutShape;
+    }
     property point pressCoords: Qt.point(0, 0)
     property var originalPoints: []
 
@@ -936,9 +944,9 @@ DankModal {
         if (qIdx !== -1) bgPath = bgPath.substring(0, qIdx);
         let ocrLang = "eng";
 
-        const uniqueId = Date.now() + "_" + Math.floor(Math.random() * 1000000);
-        const tempCropPath = "/tmp/dms_ocr_crop_" + uniqueId + ".png";
-        Proc.runCommand("crop-ocr-temp", ["magick", bgPath, "-crop", iw + "x" + ih + "+" + ix + "+" + iy, tempCropPath], (stdout1, exitCode1) => {
+        const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+        const tempCropPath = `/tmp/dms_ocr_crop_${uniqueId}.png`;
+        Proc.runCommand("crop-ocr-temp", ["magick", bgPath, "-crop", `${iw}x${ih}+${ix}+${iy}`, tempCropPath], (stdout1, exitCode1) => {
             if (exitCode1 === 0) {
                 Proc.runCommand("run-ocr", ["tesseract", tempCropPath, "-", "-l", ocrLang], (stdout2, exitCode2) => {
                     Proc.runCommand("cleanup-ocr-temp", ["rm", "-f", tempCropPath]);
@@ -1003,9 +1011,9 @@ DankModal {
         const qIdx = bgPath.indexOf("?");
         if (qIdx !== -1) bgPath = bgPath.substring(0, qIdx);
 
-        const uniqueId = Date.now() + "_" + Math.floor(Math.random() * 1000000);
-        const tempCropPath = "/tmp/dms_qr_crop_" + uniqueId + ".png";
-        Proc.runCommand("crop-qr-temp", ["magick", bgPath, "-crop", iw + "x" + ih + "+" + ix + "+" + iy, tempCropPath], (stdout1, exitCode1) => {
+        const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+        const tempCropPath = `/tmp/dms_qr_crop_${uniqueId}.png`;
+        Proc.runCommand("crop-qr-temp", ["magick", bgPath, "-crop", `${iw}x${ih}+${ix}+${iy}`, tempCropPath], (stdout1, exitCode1) => {
             if (exitCode1 === 0) {
                 Proc.runCommand("run-qr-scan", ["zbarimg", "--raw", "-q", tempCropPath], (stdout2, exitCode2) => {
                     Proc.runCommand("cleanup-qr-temp", ["rm", "-f", tempCropPath]);
@@ -1199,12 +1207,7 @@ DankModal {
         window.pushStroke(pasted);
         
         if (window.currentTool === "select") {
-            window.preGrabStrokeWidth = window.strokeWidth;
-            window.preGrabColor = window.currentColor;
-            window.preGrabRedactMode = window.activeRedactMode;
-            window.preGrabRedactShape = window.activeRedactShape;
-            window.preGrabCalloutLinkLines = window.calloutLinkLines;
-            window.preGrabCalloutShape = window.calloutShape;
+            window.savePreGrabState();
             window.strokeWidth = pasted.width;
             window.currentColor = pasted.color;
             if (pasted.tool === "redact" && pasted.redactMode) window.activeRedactMode = pasted.redactMode;
@@ -1219,20 +1222,22 @@ DankModal {
     }
 
     function getPresetTool(index) {
-        const val = window.pluginData["preset_" + index + "_tool"];
+        const val = window.pluginData[`preset_${index}_tool`];
         return val !== undefined ? val : (Constants.defaultRadialTools[index] || "none");
     }
 
     function getPresetColor(index) {
-        const val = window.pluginData["preset_" + index + "_color"];
+        const val = window.pluginData[`preset_${index}_color`];
         if (val !== undefined) return val;
         const defaultColors = ["primary", "primary", "primary", "primary", "primary", "primary", "#000000", "#ffffff"];
         return defaultColors[index] || "primary";
     }
 
     function getPresetThickness(index) {
-        const val = window.pluginData["preset_" + index + "_thickness"];
-        return val !== undefined ? (parseInt(val, 10) || Constants.getToolMeta("pen").defaultValue) : Constants.getToolMeta("pen").defaultValue;
+        const val = window.pluginData[`preset_${index}_thickness`];
+        if (val === undefined) return Constants.getToolMeta("pen").defaultValue;
+        const parsed = parseInt(val, 10);
+        return isNaN(parsed) ? Constants.getToolMeta("pen").defaultValue : parsed;
     }
 
     function updateRadialPresets() {
@@ -1480,7 +1485,7 @@ DankModal {
             window.parentWidget.pluginService.savePluginData("quickCapture", "toolbar_color_primary", pData["toolbar_color_primary"]);
             
             for (let i = 0; i < 7; i++) {
-                const key = "toolbar_color_" + i;
+                const key = `toolbar_color_${i}`;
                 pData[key] = window.formatHexColor(currentPalette[i + 1]).toUpperCase();
                 window.parentWidget.pluginService.savePluginData("quickCapture", key, pData[key]);
             }
@@ -1980,7 +1985,7 @@ DankModal {
         if (window.restoreSource) {
             window.bgImageSource = window.restoreSource;
         } else if (window.currentCapturePath) {
-            window.bgImageSource = "file://" + window.currentCapturePath;
+            window.bgImageSource = `file://${window.currentCapturePath}`;
             // currentCapturePath is consumed in onDialogClosed to survive re-fires during screen changes
         }
         window.isScreenshotDark = false;
@@ -2108,8 +2113,8 @@ DankModal {
     function saveCurrentBackdropAsPreset() {
         const idx = window.customBackdropPresets.length + 1;
         const newPreset = {
-            id: "custom_" + Date.now(),
-            name: "Custom " + idx,
+            id: `custom_${Date.now()}`,
+            name: `Custom ${idx}`,
             mode: window.backdropMode,
             solidColor: window.backdropSolidColor.toString(),
             gradientStart: window.backdropGradientStart.toString(),
@@ -2714,65 +2719,17 @@ DankModal {
                                 const isEditingSpotlight = selectedStroke && selectedStroke.tool === "spotlight";
                                 const spotlightStrokes = strokes.filter(s => s.tool === "spotlight" && s !== selectedStroke);
                                 if (spotlightStrokes.length > 0 && !isDrawingSpotlight && !isEditingSpotlight) {
-                                    ctx.save();
-                                    const sw = window.screenshotWidth;
-                                    const sh = window.screenshotHeight;
-
-                                    const spotlightOpacity = window.spotlightIntensity / 100.0;
-
-                                    const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                                    const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-
-                                    ctx.beginPath();
-                                    if (window.effectiveBackdropMode !== "none" && window.backdropCornerRadius > 0) {
-                                        const r = Math.min(window.backdropCornerRadius, sw / 2, sh / 2);
-                                        ctx.moveTo(cropX + r, cropY);
-                                        ctx.lineTo(cropX + sw - r, cropY);
-                                        ctx.arcTo(cropX + sw, cropY, cropX + sw, cropY + r, r);
-                                        ctx.lineTo(cropX + sw, cropY + sh - r);
-                                        ctx.arcTo(cropX + sw, cropY + sh, cropX + sw - r, cropY + sh, r);
-                                        ctx.lineTo(cropX + r, cropY + sh);
-                                        ctx.arcTo(cropX, cropY + sh, cropX, cropY + sh - r, r);
-                                        ctx.lineTo(cropX, cropY + r);
-                                        ctx.arcTo(cropX, cropY, cropX + r, cropY, r);
-                                        ctx.closePath();
-                                    } else {
-                                        ctx.rect(cropX, cropY, sw, sh);
-                                    }
-
-                                    for (let s of spotlightStrokes) {
-                                        if (s.points.length >= 2) {
-                                            const p0 = s.points[0];
-                                            const p1 = s.points[s.points.length - 1];
-                                            const rx = Math.min(p0.x, p1.x);
-                                            const ry = Math.min(p0.y, p1.y);
-                                            const rw = Math.abs(p1.x - p0.x);
-                                            const rh = Math.abs(p1.y - p0.y);
-
-                                            if (rw > 0 && rh > 0) {
-                                                const radius = window.roundRect ? Math.min(Theme.cornerRadius, Math.min(rw, rh) / 2) : 0;
-                                                if (radius > 0) {
-                                                    ctx.moveTo(rx + radius, ry);
-                                                    ctx.lineTo(rx + rw - radius, ry);
-                                                    ctx.arcTo(rx + rw, ry, rx + rw, ry + radius, radius);
-                                                    ctx.lineTo(rx + rw, ry + rh - radius);
-                                                    ctx.arcTo(rx + rw, ry + rh, rx + rw - radius, ry + rh, radius);
-                                                    ctx.lineTo(rx + radius, ry + rh);
-                                                    ctx.arcTo(rx, ry + rh, rx, ry + rh - radius, radius);
-                                                    ctx.lineTo(rx, ry + radius);
-                                                    ctx.arcTo(rx, ry, rx + radius, ry, radius);
-                                                    ctx.closePath();
-                                                } else {
-                                                    ctx.rect(rx, ry, rw, rh);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    ctx.clip("evenodd");
-                                    ctx.fillStyle = "rgba(0, 0, 0, " + spotlightOpacity + ")";
-                                    ctx.fillRect(cropX, cropY, sw, sh);
-                                    ctx.restore();
+                                    DrawingRenderer.drawSpotlightOverlay(ctx, spotlightStrokes, {
+                                        screenshotWidth: window.screenshotWidth,
+                                        screenshotHeight: window.screenshotHeight,
+                                        spotlightIntensity: window.spotlightIntensity,
+                                        hasActiveCropSelection: window.hasActiveCropSelection,
+                                        cropRect: window.cropRect,
+                                        effectiveBackdropMode: window.effectiveBackdropMode,
+                                        backdropCornerRadius: window.backdropCornerRadius,
+                                        roundRect: window.roundRect,
+                                        cornerRadius: Theme.cornerRadius
+                                    });
                                 }
 
                                 for (let i = 0; i < strokes.length; i++) {
@@ -2881,65 +2838,17 @@ DankModal {
                                     if (isDrawingSpotlight) activeSpotlights.push(window.currentStroke);
                                     if (isEditingSpotlight) activeSpotlights.push(selectedStroke);
 
-                                    ctx.save();
-                                    const sw = window.screenshotWidth;
-                                    const sh = window.screenshotHeight;
-
-                                    const spotlightOpacity = window.spotlightIntensity / 100.0;
-
-                                    const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                                    const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-
-                                    ctx.beginPath();
-                                    if (window.effectiveBackdropMode !== "none" && window.backdropCornerRadius > 0) {
-                                        const r = Math.min(window.backdropCornerRadius, sw / 2, sh / 2);
-                                        ctx.moveTo(cropX + r, cropY);
-                                        ctx.lineTo(cropX + sw - r, cropY);
-                                        ctx.arcTo(cropX + sw, cropY, cropX + sw, cropY + r, r);
-                                        ctx.lineTo(cropX + sw, cropY + sh - r);
-                                        ctx.arcTo(cropX + sw, cropY + sh, cropX + sw - r, cropY + sh, r);
-                                        ctx.lineTo(cropX + r, cropY + sh);
-                                        ctx.arcTo(cropX, cropY + sh, cropX, cropY + sh - r, r);
-                                        ctx.lineTo(cropX, cropY + r);
-                                        ctx.arcTo(cropX, cropY, cropX + r, cropY, r);
-                                        ctx.closePath();
-                                    } else {
-                                        ctx.rect(cropX, cropY, sw, sh);
-                                    }
-
-                                    for (let s of activeSpotlights) {
-                                        if (s.points.length >= 2) {
-                                            const p0 = s.points[0];
-                                            const p1 = s.points[s.points.length - 1];
-                                            const rx = Math.min(p0.x, p1.x);
-                                            const ry = Math.min(p0.y, p1.y);
-                                            const rw = Math.abs(p1.x - p0.x);
-                                            const rh = Math.abs(p1.y - p0.y);
-
-                                            if (rw > 0 && rh > 0) {
-                                                const radius = window.roundRect ? Math.min(Theme.cornerRadius, Math.min(rw, rh) / 2) : 0;
-                                                if (radius > 0) {
-                                                    ctx.moveTo(rx + radius, ry);
-                                                    ctx.lineTo(rx + rw - radius, ry);
-                                                    ctx.arcTo(rx + rw, ry, rx + rw, ry + radius, radius);
-                                                    ctx.lineTo(rx + rw, ry + rh - radius);
-                                                    ctx.arcTo(rx + rw, ry + rh, rx + rw - radius, ry + rh, radius);
-                                                    ctx.lineTo(rx + radius, ry + rh);
-                                                    ctx.arcTo(rx, ry + rh, rx, ry + rh - radius, radius);
-                                                    ctx.lineTo(rx, ry + radius);
-                                                    ctx.arcTo(rx, ry, rx + radius, ry, radius);
-                                                    ctx.closePath();
-                                                } else {
-                                                    ctx.rect(rx, ry, rw, rh);
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    ctx.clip("evenodd");
-                                    ctx.fillStyle = "rgba(0, 0, 0, " + spotlightOpacity + ")";
-                                    ctx.fillRect(cropX, cropY, sw, sh);
-                                    ctx.restore();
+                                    DrawingRenderer.drawSpotlightOverlay(ctx, activeSpotlights, {
+                                        screenshotWidth: window.screenshotWidth,
+                                        screenshotHeight: window.screenshotHeight,
+                                        spotlightIntensity: window.spotlightIntensity,
+                                        hasActiveCropSelection: window.hasActiveCropSelection,
+                                        cropRect: window.cropRect,
+                                        effectiveBackdropMode: window.effectiveBackdropMode,
+                                        backdropCornerRadius: window.backdropCornerRadius,
+                                        roundRect: window.roundRect,
+                                        cornerRadius: Theme.cornerRadius
+                                    });
 
                                     if (window.currentStroke && (window.currentStroke.tool === "spotlight" || window.currentStroke.tool === "pixelate") && window.currentStroke.points.length >= 2) {
                                         const p0 = window.currentStroke.points[0];
@@ -2976,7 +2885,7 @@ DankModal {
                                     if (window.textItalic) styleStr += "italic ";
                                     if (window.textBold) styleStr += "bold ";
                                     
-                                    ctx.font = styleStr + Math.round(window.textFontSize) + "px " + window.textFontFamily;
+                                    ctx.font = `${styleStr}${Math.round(window.textFontSize)}px ${window.textFontFamily}`;
                                     ctx.textAlign = "left";
                                     ctx.textBaseline = "middle";
 
@@ -3241,67 +3150,17 @@ DankModal {
                                 }
 
                                 if (spotlights.length > 0) {
-                                    ctx.save();
-                                    
-                                    const sw = window.screenshotWidth;
-                                    const sh = window.screenshotHeight;
-                                    
-                                    const spotlightOpacity = window.spotlightIntensity / 100.0;
-
-                                    const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                                    const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-
-                                    ctx.beginPath();
-                                    // Outer rectangle covering the whole view (rounded if backdrop active)
-                                    if (window.effectiveBackdropMode !== "none" && window.backdropCornerRadius > 0) {
-                                        const r = Math.min(window.backdropCornerRadius, sw / 2, sh / 2);
-                                        ctx.moveTo(cropX + r, cropY);
-                                        ctx.lineTo(cropX + sw - r, cropY);
-                                        ctx.arcTo(cropX + sw, cropY, cropX + sw, cropY + r, r);
-                                        ctx.lineTo(cropX + sw, cropY + sh - r);
-                                        ctx.arcTo(cropX + sw, cropY + sh, cropX + sw - r, cropY + sh, r);
-                                        ctx.lineTo(cropX + r, cropY + sh);
-                                        ctx.arcTo(cropX, cropY + sh, cropX, cropY + sh - r, r);
-                                        ctx.lineTo(cropX, cropY + r);
-                                        ctx.arcTo(cropX, cropY, cropX + r, cropY, r);
-                                        ctx.closePath();
-                                    } else {
-                                        ctx.rect(cropX, cropY, sw, sh);
-                                    }
-                                    
-                                    for (let s of spotlights) {
-                                        if (s.points.length >= 2) {
-                                            const p0 = s.points[0];
-                                            const p1 = s.points[s.points.length - 1];
-                                            const rx = Math.min(p0.x, p1.x);
-                                            const ry = Math.min(p0.y, p1.y);
-                                            const rw = Math.abs(p1.x - p0.x);
-                                            const rh = Math.abs(p1.y - p0.y);
-                                            
-                                             if (rw > 0 && rh > 0) {
-                                                 const radius = window.roundRect ? Math.min(Theme.cornerRadius, Math.min(rw, rh) / 2) : 0;
-                                                 if (radius > 0) {
-                                                     ctx.moveTo(rx + radius, ry);
-                                                     ctx.lineTo(rx + rw - radius, ry);
-                                                     ctx.arcTo(rx + rw, ry, rx + rw, ry + radius, radius);
-                                                     ctx.lineTo(rx + rw, ry + rh - radius);
-                                                     ctx.arcTo(rx + rw, ry + rh, rx + rw - radius, ry + rh, radius);
-                                                     ctx.lineTo(rx + radius, ry + rh);
-                                                     ctx.arcTo(rx, ry + rh, rx, ry + rh - radius, radius);
-                                                     ctx.lineTo(rx, ry + radius);
-                                                     ctx.arcTo(rx, ry, rx + radius, ry, radius);
-                                                     ctx.closePath();
-                                                 } else {
-                                                     ctx.rect(rx, ry, rw, rh);
-                                                 }
-                                             }
-                                        }
-                                    }
-                                    
-                                    ctx.clip("evenodd");
-                                    ctx.fillStyle = "rgba(0, 0, 0, " + spotlightOpacity + ")";
-                                    ctx.fillRect(cropX, cropY, sw, sh);
-                                    ctx.restore();
+                                    DrawingRenderer.drawSpotlightOverlay(ctx, spotlights, {
+                                        screenshotWidth: window.screenshotWidth,
+                                        screenshotHeight: window.screenshotHeight,
+                                        spotlightIntensity: window.spotlightIntensity,
+                                        hasActiveCropSelection: window.hasActiveCropSelection,
+                                        cropRect: window.cropRect,
+                                        effectiveBackdropMode: window.effectiveBackdropMode,
+                                        backdropCornerRadius: window.backdropCornerRadius,
+                                        roundRect: window.roundRect,
+                                        cornerRadius: Theme.cornerRadius
+                                    });
                                 }
                             }
 
@@ -3338,7 +3197,7 @@ DankModal {
 
                         ctx.restore();
 
-                        const tempOut = "/tmp/dms_capture_" + Date.now() + ".png";
+                        const tempOut = `/tmp/dms_capture_${Date.now()}.png`;
                         exportCanvas.save(tempOut);
 
                         if (window.exportCallback) {
@@ -3459,7 +3318,7 @@ DankModal {
                         const primaryColor = primaryRaw === "primary" ? Theme.primary : primaryRaw;
                         customList.push(typeof primaryColor === "string" ? Qt.color(primaryColor) : primaryColor);
                         for (let i = 0; i < 7; i++) {
-                            const val = config.pluginData["toolbar_color_" + i] || config.adaptiveColors[i];
+                            const val = config.pluginData[`toolbar_color_${i}`] || config.adaptiveColors[i];
                             customList.push(typeof val === "string" ? Qt.color(val) : val);
                         }
                         return customList;
@@ -3692,16 +3551,7 @@ DankModal {
             window.undoneStrokes = [...window.undoneStrokes, popped];
             if (window.selectedStroke === popped) {
                 window.selectedStroke = null;
-                window.strokeWidth = window.preGrabStrokeWidth;
-                window.textFontSize = window.preGrabTextFontSize;
-                window.pixelateIntensity = window.preGrabPixelateIntensity;
-                window.spotlightIntensity = window.preGrabSpotlightIntensity;
-                window.calloutZoom = window.preGrabCalloutZoom;
-                window.currentColor = window.preGrabColor;
-                window.activeRedactMode = window.preGrabRedactMode;
-                window.activeRedactShape = window.preGrabRedactShape;
-                window.calloutLinkLines = window.preGrabCalloutLinkLines;
-                window.calloutShape = window.preGrabCalloutShape;
+                window.restorePreGrabState();
             }
             if (window.activeCanvas) window.activeCanvas.requestPaint();
         }
@@ -3715,17 +3565,7 @@ DankModal {
             window.strokes = [...window.strokes, strokeToRedo];
 
             if (window.currentTool === "select") {
-                window.preGrabStrokeWidth = window.strokeWidth;
-                window.preGrabTextFontSize = window.textFontSize;
-                window.preGrabPixelateIntensity = window.pixelateIntensity;
-                window.preGrabSpotlightIntensity = window.spotlightIntensity;
-                window.preGrabCalloutZoom = window.calloutZoom;
-                window.preGrabColor = window.currentColor;
-                window.preGrabRedactMode = window.activeRedactMode;
-                window.preGrabRedactShape = window.activeRedactShape;
-                window.preGrabCalloutLinkLines = window.calloutLinkLines;
-                window.preGrabCalloutShape = window.calloutShape;
-
+                window.savePreGrabState();
                 window.selectedStroke = strokeToRedo;
                 window.currentColor = strokeToRedo.color;
                 if (strokeToRedo.tool === "text") window.textFontSize = strokeToRedo.width;

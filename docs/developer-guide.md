@@ -1,6 +1,6 @@
 # Developer & Contributor Guide
 
-Welcome to the Quick Capture contributor guide! This document explains how the code is structured, our coding style conventions, and how to add new vector annotation tools.
+Welcome to the Quick Capture contributor guide. This document covers the actual file layout, coding conventions, and step-by-step instructions for adding a new annotation tool.
 
 ---
 
@@ -8,122 +8,207 @@ Welcome to the Quick Capture contributor guide! This document explains how the c
 
 ```
 dms-quick-capture/
-├── components/                 # Reusable UI widgets and custom menus
-│   ├── DankActionButton.qml    # Base action button
-│   ├── MoreToolsMenu.qml       # Secondary dropdown actions (Rotate/Mirror)
-│   └── QuickCaptureToolbar.qml # Annotator top toolbar
-├── dms-common/                 # DMS core icons and styling helpers
-├── translations/               # Localization (TS/QM) files
-├── CaptureConfig.qml           # In-memory session configurations
-├── plugin.json                 # DMS Plugin Manifest
-├── QuickCaptureDaemon.qml      # Main headless process (IPC listener)
-├── QuickCaptureModal.qml       # Main canvas/drawing overlays
-├── QuickCaptureSettings.qml    # Settings Manager UI panels
-└── QuickCaptureWidget.qml      # Panel-Bar icon widget
+├── components/
+│   ├── Constants.js                 # All shared constants, ToolMetadata, default values
+│   ├── Helpers.js                   # Pure utility functions (color, geometry, hit-testing, export)
+│   ├── DrawingRenderer.js           # All Canvas 2D drawing logic — drawStroke(), drawSelectionHandles(), etc.
+│   ├── DrawMouseArea.qml            # All mouse/touch input handling for the canvas
+│   ├── QuickCaptureToolbar.qml      # Main toolbar (tool buttons, color swatches, slider)
+│   ├── QuickCaptureActions.qml      # Export pipeline (save, copy, float, notifications)
+│   ├── RadialMenu.qml               # Right-click preset pie menu
+│   ├── MagnifierLoupe.qml           # G-key loupe overlay
+│   ├── SizePreviewCard.qml          # Hover size preview badge
+│   ├── FloatService.qml             # Manages always-on-top float windows
+│   ├── FloatWindow.qml              # A single float window instance
+│   ├── RecentEditsCarousel.qml      # History carousel overlay
+│   ├── MoreToolsMenu.qml            # Secondary actions menu (rotate, mirror, OCR, QR)
+│   ├── TextInputDialog.qml          # Inline text editing dialog
+│   ├── BackdropPresetsPopover.qml   # Backdrop preset picker
+│   ├── BackdropModeSelectors.qml    # Backdrop mode toggle buttons
+│   ├── BackdropColorSelectors.qml   # Backdrop color pickers
+│   ├── BackdropAspectRatioPopover.qml
+│   ├── *OptionsToolbar.qml          # Per-tool sub-toolbars (Arrow, Line, Text, Stamp, Redact, Callout)
+│   └── AlignmentControl.qml / AspectRatioControl.qml / HoverSliderPopover.qml
+├── dms-common/                      # Shared DMS UI primitives (sliders, toggles, settings cards)
+├── docs/                            # Documentation
+├── scripts/                         # Dev utilities (palette generator, i18n extractor)
+├── translations/                    # Localization files
+├── CaptureConfig.qml                # Tool list, shortcut table, color palette data, i18n strings
+├── QuickCaptureDaemon.qml           # Background daemon — IPC listener, screenshot portal
+├── QuickCaptureModal.qml            # Main editor window — canvas layers, state, keyboard handler
+├── QuickCaptureSettings.qml         # DMS Settings panel UI
+├── QuickCaptureWidget.qml           # DankBar widget — click/drag triggers
+└── plugin.json                      # DMS plugin manifest
 ```
 
 ---
 
-## 2. QML Coding Style Conventions
+## 2. Where To Find Things (Quick Reference)
 
-- **ID Naming:** Use camelCase names ending with the component description (e.g., `moreActionsBtn`, `drawingCanvas`).
-- **Property Bindings:** Ensure bindings are clean and direct. Avoid javascript heavy code inside inline bindings; delegate to helper functions if logic exceeds 3 lines.
-- **Component Separation:** If a widget grows beyond 150 lines or needs to be instantiated multiple times, move it into a standalone file under `components/`.
-- **Keyboard Shortcut Handling:** Intercept key actions at the root Modal level via the `Keys.onPressed` handler, checking the active tool to prevent side effects.
+| What you want to change | Where to look |
+|---|---|
+| Add/rename a tool | `CaptureConfig.qml` → `toolButtons` array |
+| Tool slider range / step / unit | `components/Constants.js` → `ToolMetadata` |
+| Add a keyboard shortcut | `CaptureConfig.qml` → shortcut table + `QuickCaptureModal.qml` → `handleShortcutKey()` |
+| Drawing logic for a tool | `components/DrawingRenderer.js` → `drawStroke()` |
+| Mouse press/drag/release behavior | `components/DrawMouseArea.qml` |
+| Hit-testing / selection geometry | `components/Helpers.js` → `findStrokeAt()`, `getStrokeHandleAt()` |
+| Stroke bounding box | `components/Helpers.js` → `getStrokeBBox()` |
+| Export / copy / save pipeline | `components/QuickCaptureActions.qml` |
+| Color utilities | `components/Helpers.js` → `formatHexColor()`, `colorEquals()`, `getContrastingColor()` |
+| Shared layout/sizing constants | `components/Constants.js` |
+| Add a toolbar button | `components/QuickCaptureToolbar.qml` |
+| Per-tool sub-toolbar (options) | `components/*OptionsToolbar.qml` |
+| i18n string | `CaptureConfig.qml` or component → wrap with `I18n.tr(...)` |
 
 ---
 
-## 3. How to Add a New Annotation Tool (e.g. "Double Arrow")
+## 3. Key Architectural Patterns
 
-Follow this step-by-step workflow to introduce a new vector drawing tool:
+### The `window` prefix in JS files
 
-### Step A: Define the Tool Constant
-In `CaptureConfig.qml` or at the top of `QuickCaptureModal.qml`, declare the new tool identity:
-```qml
-readonly property string TOOL_DOUBLE_ARROW: "double_arrow"
+All `.js` library files (Helpers, DrawingRenderer, DrawMouseArea) use `.pragma library`, which means they are stateless singletons — they have no access to QML context. State is passed in explicitly via function arguments, typically as a `window` object reference or a `config` object.
+
+When you see `window.currentTool` or `window.strokes` in DrawMouseArea.qml, `window` is a `required property var window` pointing to the root `QuickCaptureModal.qml` item. Never access parent properties by traversing up the tree — always pass them explicitly.
+
+### Immutable array updates
+
+QML's engine cannot detect in-place mutations on lists. Always reassign the array to trigger reactive updates:
+
+```js
+// ✅ correct
+window.strokes = [...window.strokes, newStroke];
+
+// ❌ wrong — no change notification fired
+window.strokes.push(newStroke);
 ```
 
-### Step B: Add Button to the Toolbar
-In `components/QuickCaptureToolbar.qml`, add a new `DankActionButton` in the tools column/row:
+### Signal-up, never write-down
+
+Children must not mutate parent state directly. Instead, emit a signal and let the root Modal handle it:
+
 ```qml
-DankActionButton {
-    iconName: "double_arrow"
-    tooltipText: qsTr("Double Arrow")
-    isSelected: activeTool === TOOL_DOUBLE_ARROW
-    onClicked: selectTool(TOOL_DOUBLE_ARROW)
-}
+// ❌ wrong — breaks QML binding
+toolbarCard.showAnnotations = false;
+
+// ✅ correct — child signals, parent handles
+onAnnotationsToggled: window.showAnnotations = !window.showAnnotations
 ```
 
-### Step C: Define Drawing Logic (Coordinates Tracking)
-In `QuickCaptureModal.qml`'s mouse area handlers (`onPressed`, `onPositionChanged`, `onReleased`):
+### Popout clipping
+
+Floating overlays (menus, popovers) must be instantiated as direct children of the fullscreen `contentRoot`, not inside a toolbar button. Use `mapToItem(contentRoot, 0, 0)` to position them relative to the trigger button.
+
+---
+
+## 4. QML Coding Style
+
+- **IDs:** camelCase, descriptive noun (`drawingCanvas`, `moreActionsBtn`, `previewTimer`)
+- **Property bindings:** Keep inline bindings simple. If logic exceeds 3 lines, move it to a named function.
+- **Component size:** If a component grows past ~150 lines or is reused, extract it to `components/`.
+- **Keyboard handling:** All key events are intercepted at the root Modal via `modalFocusScope.Keys.onPressed` → `handleShortcutKey()`. Do not add `Keys.onPressed` handlers in child components.
+- **Colors:** Always use `Helpers.formatHexColor()` before storing colors to `pluginData`. Always use `Helpers.colorEquals(c1, c2, Qt)` for comparison — never raw `===` on color objects.
+
+---
+
+## 5. How To Add a New Annotation Tool
+
+This is the canonical flow. Follow every step in order.
+
+### Step 1 — Register the tool in `CaptureConfig.qml`
+
+Add an entry to the `toolButtons` array. The `id` is the string used everywhere as the tool identifier:
+
 ```qml
-if (activeTool === TOOL_DOUBLE_ARROW) {
-    // Save starting point on press, update end point on drag,
-    // and append finished vector parameters into drawModel on release.
-}
+// CaptureConfig.qml — toolButtons array
+{ id: "double_arrow", icon: "sync_alt", shortcut: "X", tooltip: I18n.tr("Double Arrow (X)") }
 ```
 
-### Step D: Add Painting/Drawing Logic
-In the QML `Canvas` `onPaint` block, add drawing context path directives:
-```qml
-function drawDoubleArrow(ctx, startX, startY, endX, endY) {
+### Step 2 — Define slider metadata in `Constants.js`
+
+Every tool that has a thickness/intensity slider needs an entry in `ToolMetadata`. If your tool reuses an existing behavior (e.g. thickness like a pen), copy an existing entry:
+
+```js
+// components/Constants.js — ToolMetadata object
+double_arrow: { min: 1, max: 50, step: 1, unit: "px", defaultValue: 8, label: "Thickness", previewType: "thickness" },
+```
+
+### Step 3 — Add the drawing logic in `DrawingRenderer.js`
+
+Inside `drawStroke()`, add a new `else if` branch for your tool. The function receives `ctx` (Canvas 2D context), `stroke` (the stroke data object), and a `config` object with all render-time state:
+
+```js
+// components/DrawingRenderer.js — inside drawStroke()
+} else if (stroke.tool === "double_arrow") {
+    // stroke.points[0] = start, stroke.points[last] = end
+    const p0 = stroke.points[0];
+    const p1 = stroke.points[stroke.points.length - 1];
     ctx.beginPath();
-    // Draw the shaft
-    ctx.moveTo(startX, startY);
-    ctx.lineTo(endX, endY);
+    ctx.moveTo(p0.x, p0.y);
+    ctx.lineTo(p1.x, p1.y);
+    ctx.strokeStyle = stroke.color;
+    ctx.lineWidth = stroke.width;
     ctx.stroke();
-    
-    // Draw arrowhead at start
-    drawArrowHead(ctx, startX, startY, endX, endY);
-    // Draw arrowhead at end
-    drawArrowHead(ctx, endX, endY, startX, startY);
+    drawArrowHead(ctx, p0, p1, stroke);
+    drawArrowHead(ctx, p1, p0, stroke);
 }
 ```
 
+### Step 4 — Handle mouse input in `DrawMouseArea.qml`
+
+The mouse area already handles start/drag/release generically for two-point tools (line, arrow, rect, etc.). If your tool follows the same two-point pattern, it may work automatically. If it needs custom drag behavior, add a branch in `onPositionChanged` and `onReleased`.
+
+Also add your tool's ID to the `effectiveTool` computed property guard in `QuickCaptureModal.qml` if it needs special cursor or preview treatment.
+
+### Step 5 — Define hit-testing in `Helpers.js`
+
+For the Select tool to work with your new stroke, add a branch in `getStrokeBBox()` and `findStrokeAt()` so the user can click and select it:
+
+```js
+// components/Helpers.js — inside getStrokeBBox()
+if (stroke.tool === "double_arrow") {
+    // same as arrow bounding box
+    return getArrowBBox(stroke);
+}
+```
+
+### Step 6 — Add a toolbar button in `QuickCaptureToolbar.qml`
+
+Find the tools section in the toolbar and add a `DankActionButton`. The toolbar reads tool metadata from `CaptureConfig.toolButtons`, so in many cases just adding the `CaptureConfig` entry (Step 1) is enough if the toolbar iterates the array. Check whether the toolbar uses the array directly or has hardcoded entries.
+
+### Step 7 — (Optional) Add a per-tool options sub-toolbar
+
+If your tool has style variants (e.g. dashed/dotted, head shapes), create a new `components/YourToolOptionsToolbar.qml` following the pattern of `ArrowOptionsToolbar.qml`. Mount it in `QuickCaptureToolbar.qml` and show/hide it based on `effectiveTool`.
+
 ---
 
-## 4. Debugging & Reloading
+## 6. Debugging & Reloading
 
-Since restarting your Linux desktop shell to test a QML modification is slow, we use dynamic reloading:
+### Reload the plugin without restarting the shell
 
-### IPC Plugin Reload
-Reload the plugin dynamically using the DMS CLI:
 ```bash
 dms plugins reload quickCapture
 ```
 
-### Inspecting Console Logs
-View output logs from DMS in a terminal:
+### View live logs
+
 ```bash
 journalctl --user -f -u dank-material-shell
 ```
-Or run DMS in a verbose terminal session to capture standard output directly:
+
+Or in a verbose DMS session:
+
 ```bash
 dms-session-launch --verbose
 ```
 
----
+### Common mistakes
 
-## 5. Color Selection, Management & Verification
-
-When working with color palette swatches, backdrop colors, or custom RGB inputs, follow these guidelines to prevent type mismatch bugs and system warnings.
-
-### A. Saving & Formatting Custom Colors
-* Custom palette colors are stored in the user settings dictionary (`pluginData`) as 6-character uppercase hex strings (e.g., `"#FF5252"`).
-* **Rule**: Always convert QML color objects using `Helpers.formatHexColor(color)` before writing them to the settings storage:
-  ```javascript
-  const hex = Helpers.formatHexColor(colorValue).toUpperCase();
-  ```
-
-### B. Safe Color Comparison
-* **Problem**: QML's V4 JS engine represents native colors as `V4ReferenceObject`. Calling string formatting like `.toString()` or `Qt.colorEqual()` directly on them can cause crashes, capitalization mismatches (`#ff5252` vs `#FF5252`), or type warnings (`[object V4ReferenceObject] is not a valid color`).
-* **Rule**: **Never** compare colors using direct `===` on string representations or raw `Qt.colorEqual()`.
-* **Solution**: Always use the centralized `Helpers.colorEquals(c1, c2, Qt)` function located in `components/Helpers.js`. This function normalizes all types of inputs (strings, objects, alpha channels) into 6-character lowercase strings safely before performing the comparison:
-  ```qml
-  border.color: Helpers.colorEquals(root.currentColor, modelData, Qt) ? Theme.primary : Theme.outline
-  ```
-
-### C. Integrating Color Picker Modal
-* Rather than instantiating custom color picker menus, use DMS's native modal service: `PopoutService.colorPickerModal`.
-* **Rule**: Always call the centralized `window.openColorPickerModal()` helper in `QuickCaptureModal.qml`. This function handles the DBus modal invocation and automatically falls back to the canvas eyedropper tool if the modal service is unavailable in the environment.
-
+| Symptom | Likely cause |
+|---|---|
+| New tool draws nothing | Missing branch in `DrawingRenderer.drawStroke()` |
+| Select tool can't grab new strokes | Missing branch in `Helpers.findStrokeAt()` or `getStrokeBBox()` |
+| Slider doesn't appear for new tool | Missing entry in `Constants.ToolMetadata` |
+| Tool button not in toolbar | `CaptureConfig.toolButtons` entry missing, or toolbar doesn't iterate the array |
+| Shortcut key does nothing | Not added to `handleShortcutKey()` in `QuickCaptureModal.qml` |
+| Canvas doesn't update after state change | Array was mutated in-place — use spread: `[...arr, newItem]` |
