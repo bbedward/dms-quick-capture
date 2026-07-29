@@ -29,6 +29,27 @@ const stampTextOffsetMultiplier = 0.1;
 const textPaddingMultiplierX = 0.3;
 const textPaddingMultiplierY = 0.15;
 
+// Tool intensity metadata
+// Each tool defines: min, max, step, unit, default, and optional multipliers
+const ToolMetadata = {
+    pen:         { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
+    line:        { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
+    arrow:       { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
+    rect:        { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
+    ellipse:     { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
+    highlighter: { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness", previewMultiplier: 4 },
+    redact:      { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
+    stamp:       { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Stamp Size", previewType: "thickness", previewMultiplier: 10 },
+    text:        { min: 12, max: 120, step: 1,  unit: "px", defaultValue: 36, label: "Font Size", previewType: "none" },
+    pixelate:    { min: 2,  max: 12,  step: 1,  unit: "px", defaultValue: 8,  label: "Pixel Intensity", previewType: "none", previewMultiplier: 3, previewClampMin: 8, previewClampMax: 36 },
+    spotlight:   { min: 10, max: 100, step: 1,  unit: "%",  defaultValue: 50, label: "Dimming Opacity", previewType: "none", previewFixedWidth: 100 },
+    callout:     { min: 100,max: 500, step: 10, unit: "%",  defaultValue: 150, label: "Zoom Level", previewType: "none", previewFixedWidth: 40, borderWidthMin: 1, borderWidthMax: 10 },
+};
+
+function getToolMeta(tool) {
+    return ToolMetadata[tool] || ToolMetadata.pen;
+}
+
 // Default radial menu preset tools
 const defaultRadialTools = ["pen", "arrow", "rect", "highlighter", "ellipse", "stamp", "redact", "pixelate"];
 

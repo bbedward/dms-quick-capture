@@ -263,21 +263,17 @@ Rectangle {
             // Thickness Section
             Row {
                 spacing: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
+                readonly property var toolMeta: Constants.getToolMeta(root.activeToolType)
                 Text {
-                    text: {
-                        if (root.activeToolType === "spotlight" || root.activeToolType === "callout") {
-                            return root.strokeWidth + "%";
-                        }
-                        return root.strokeWidth + "px";
-                    }
+                    text: root.strokeWidth + parent.toolMeta.unit
                     width: Constants.btnSize; horizontalAlignment: Text.AlignRight
                     color: Theme.surfaceText; font.pixelSize: 11; font.bold: true; anchors.verticalCenter: parent.verticalCenter
                 }
                 DankSlider {
                     id: hSlider
-                    minimum: root.activeToolType === "pixelate" ? 2 : (root.activeToolType === "spotlight" ? 10 : (root.activeToolType === "callout" ? 100 : 1))
-                    maximum: root.activeToolType === "pixelate" ? 12 : (root.activeToolType === "text" ? 120 : (root.activeToolType === "spotlight" ? 95 : (root.activeToolType === "callout" ? 500 : 50)))
-                    step: root.activeToolType === "callout" ? 10 : 1
+                    minimum: parent.toolMeta.min
+                    maximum: parent.toolMeta.max
+                    step: parent.toolMeta.step
                     width: Constants.sliderWidth
                     height: Constants.btnSize
                     showValue: false

@@ -1407,11 +1407,11 @@ PluginSettings {
             id: defaultThickness
             label: I18n.tr("Default Stroke Thickness")
             settingKey: "defaultThickness"
-            defaultValue: 6
-            minimum: 1
-            maximum: 20
-            leftLabel: "1"
-            rightLabel: "20"
+            defaultValue: Constants.getToolMeta("pen").defaultValue
+            minimum: Constants.getToolMeta("pen").min
+            maximum: Constants.getToolMeta("pen").max
+            leftLabel: Constants.getToolMeta("pen").min.toString()
+            rightLabel: Constants.getToolMeta("pen").max.toString()
             previewType: "thickness"
             visible: defaultToolMode.value === "custom"
         }
@@ -1463,11 +1463,11 @@ PluginSettings {
             id: textFontSize
             label: I18n.tr("Default Text Font Size")
             settingKey: "textFontSize"
-            defaultValue: 36
-            minimum: 8
-            maximum: 72
-            leftLabel: "8"
-            rightLabel: "72"
+            defaultValue: Constants.getToolMeta("text").defaultValue
+            minimum: Constants.getToolMeta("text").min
+            maximum: Constants.getToolMeta("text").max
+            leftLabel: Constants.getToolMeta("text").min.toString()
+            rightLabel: Constants.getToolMeta("text").max.toString()
             previewType: "fontSize"
         }
 
@@ -2443,7 +2443,7 @@ PluginSettings {
             for (let i = 0; i < 8; i++) {
                 const tool = radialMenuCard.activePresetTools[i] || "none";
                 const color = radialMenuCard.activePresetColors[i] || "primary";
-                const thickness = radialMenuCard.activePresetThicknesses[i] ?? 6;
+                const thickness = radialMenuCard.activePresetThicknesses[i] ?? Constants.getToolMeta("pen").defaultValue;
                 list.push({ tool: tool, color: color, thickness: thickness });
             }
             return list;
@@ -2950,9 +2950,9 @@ PluginSettings {
                     id: presetThicknessSetting
                     settingKey: "preset_" + index + "_thickness"
                     label: I18n.tr("Preset Thickness")
-                    defaultValue: 6
-                    minimum: 1
-                    maximum: 50
+                    defaultValue: Constants.getToolMeta("pen").defaultValue
+                    minimum: Constants.getToolMeta("pen").min
+                    maximum: Constants.getToolMeta("pen").max
                     unit: "px"
                     leftLabel: String(minimum)
                     rightLabel: String(maximum)
@@ -2962,50 +2962,23 @@ PluginSettings {
 
                 function refreshThicknessConstraints() {
                     const t = presetToolSetting.value;
-                    let defVal = 6;
-                    if (t === "text") {
-                        presetThicknessSetting.label = I18n.tr("Font Size");
-                        presetThicknessSetting.minimum = 12;
-                        presetThicknessSetting.maximum = 120;
-                        presetThicknessSetting.unit = "px";
-                        presetThicknessSetting.previewType = "none";
-                        defVal = 36;
-                    } else if (t === "pixelate") {
-                        presetThicknessSetting.label = I18n.tr("Pixel Intensity");
-                        presetThicknessSetting.minimum = 2;
-                        presetThicknessSetting.maximum = 12;
-                        presetThicknessSetting.unit = "px";
-                        presetThicknessSetting.previewType = "none";
-                        defVal = 8;
-                    } else if (t === "spotlight") {
-                        presetThicknessSetting.label = I18n.tr("Dimming Opacity");
-                        presetThicknessSetting.minimum = 10;
-                        presetThicknessSetting.maximum = 95;
-                        presetThicknessSetting.unit = "%";
-                        presetThicknessSetting.previewType = "none";
-                        defVal = 50;
-                    } else if (t === "callout") {
-                        presetThicknessSetting.label = I18n.tr("Zoom Level");
-                        presetThicknessSetting.minimum = 100;
-                        presetThicknessSetting.maximum = 500;
-                        presetThicknessSetting.unit = "%";
-                        presetThicknessSetting.previewType = "none";
-                        defVal = 150;
-                    } else if (t === "stamp") {
-                        presetThicknessSetting.label = I18n.tr("Stamp Size");
-                        presetThicknessSetting.minimum = 1;
-                        presetThicknessSetting.maximum = 50;
-                        presetThicknessSetting.unit = "px";
-                        presetThicknessSetting.previewType = "thickness";
-                        defVal = 6;
-                    } else {
-                        presetThicknessSetting.label = I18n.tr("Preset Thickness");
-                        presetThicknessSetting.minimum = 1;
-                        presetThicknessSetting.maximum = 50;
-                        presetThicknessSetting.unit = "px";
-                        presetThicknessSetting.previewType = "thickness";
-                        defVal = 6;
-                    }
+                    const meta = Constants.getToolMeta(t);
+                    // Localized labels map - required because I18n.tr() needs string literals for extraction tools.
+                    // Keys must match ToolMetadata.label values for consistency.
+                    const toolLabels = {
+                        pen: I18n.tr("Thickness"), line: I18n.tr("Thickness"),
+                        arrow: I18n.tr("Thickness"), rect: I18n.tr("Thickness"),
+                        ellipse: I18n.tr("Thickness"), highlighter: I18n.tr("Thickness"),
+                        redact: I18n.tr("Thickness"), stamp: I18n.tr("Stamp Size"),
+                        text: I18n.tr("Font Size"), pixelate: I18n.tr("Pixel Intensity"),
+                        spotlight: I18n.tr("Dimming Opacity"), callout: I18n.tr("Zoom Level")
+                    };
+                    presetThicknessSetting.label = toolLabels[t] || I18n.tr("Preset Thickness");
+                    presetThicknessSetting.minimum = meta.min;
+                    presetThicknessSetting.maximum = meta.max;
+                    presetThicknessSetting.unit = meta.unit;
+                    presetThicknessSetting.previewType = meta.previewType;
+                    const defVal = meta.defaultValue;
                     
                     const oldDefVal = presetThicknessSetting.defaultValue;
                     presetThicknessSetting.defaultValue = defVal;

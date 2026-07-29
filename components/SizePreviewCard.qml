@@ -4,6 +4,7 @@ import qs.Widgets
 import qs.Modals.Common
 import qs.Services
 import "../dms-common"
+import "Constants.js" as Constants
 
 Rectangle {
     id: sizePreviewItem
@@ -28,20 +29,21 @@ Rectangle {
     readonly property real shapeWidth: {
         let base = window.activeIntensity;
         const tool = window.effectiveTool;
-        if (tool === "highlighter") {
-            base = window.activeIntensity * 4;
-        } else if (tool === "stamp") {
-            base = window.activeIntensity * 10;
-        } else if (tool === "pixelate") {
-            base = Math.max(8, Math.min(36, window.activeIntensity * 3));
-        } else if (tool === "spotlight") {
-            base = 100;
-        } else if (tool === "callout") {
+        const meta = Constants.getToolMeta(tool);
+
+        if (meta.previewFixedWidth !== undefined) {
+            base = meta.previewFixedWidth;
+        } else if (meta.previewMultiplier) {
+            base = window.activeIntensity * meta.previewMultiplier;
+        }
+        if (meta.previewClampMin !== undefined) {
+            base = Math.max(meta.previewClampMin, Math.min(meta.previewClampMax, base));
+        }
+
+        if (tool === "callout") {
             if (window.currentTool === "select" && !window.calloutDestDragging && window.selectedStroke) {
                 const bw = window.selectedStroke.borderWidth !== undefined ? window.selectedStroke.borderWidth : 2;
                 base = bw * 2;
-            } else {
-                base = 40;
             }
         }
         return base * window.editScale;
@@ -87,10 +89,8 @@ Rectangle {
                 }
             }
             const tool = window.effectiveTool;
-            if (tool === "spotlight" || tool === "callout") {
-                return window.activeIntensity + "%";
-            }
-            return window.activeIntensity + "px";
+            const meta = Constants.getToolMeta(tool);
+            return window.activeIntensity + meta.unit;
         }
 
         color: Theme.primary

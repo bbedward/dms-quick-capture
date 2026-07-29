@@ -380,7 +380,8 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                 ctx.imageSmoothingEnabled = false;
 
                 if (config.bgImageItem && config.bgImageItem.status === 1 /* Image.Ready */) {
-                    const blockSize = Math.max(8, Math.min(36, stroke.width * 3));
+                    const pixelateMeta = Constants.getToolMeta("pixelate");
+                    const blockSize = Math.max(pixelateMeta.previewClampMin, Math.min(pixelateMeta.previewClampMax, stroke.width * 3));
                     const imgW = config.bgImageItem.sourceSize.width;
                     const imgH = config.bgImageItem.sourceSize.height;
                     for (let y = ry; y < ry + rh; y += blockSize) {
