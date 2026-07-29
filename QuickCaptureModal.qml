@@ -1439,6 +1439,127 @@ DankModal {
         ctx.restore();
     }
 
+    function getWatermarkRenderConfig(enabled) {
+        const pData = (window.parentWidget && window.parentWidget.pluginData) || {};
+        return {
+            enabled: enabled && pData.enableWatermark,
+            type: pData.watermarkType || "text",
+            opacity: (pData.watermarkOpacity !== undefined ? pData.watermarkOpacity : 20) / 100.0,
+            position: pData.watermarkPosition || "bottom_right",
+            text: pData.watermarkText || "© {user}",
+            textScale: (pData.watermarkTextSize !== undefined ? pData.watermarkTextSize : 5) / 100.0,
+            imageScale: (pData.watermarkSize !== undefined ? pData.watermarkSize : 5) / 100.0,
+            canvasWidth: window.canvasWidth,
+            canvasHeight: window.canvasHeight,
+            imageLoader: watermarkImageLoader,
+            imageReady: watermarkImageLoader.status === Image.Ready,
+            imageSourceSize: watermarkImageLoader.sourceSize
+        };
+    }
+
+    function drawWatermarkLayer(ctx, enabled) {
+        DrawingRenderer.drawWatermark(ctx, window.getWatermarkRenderConfig(enabled), config);
+    }
+
+    function drawEditorBackgroundLayer(ctx, imgSource, isBackdropActive) {
+        if (isBackdropActive) {
+            window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
+            window.drawScreenshotShadow(ctx, window.editScale);
+            window.drawScreenshotImage(ctx, imgSource);
+            return;
+        }
+
+        if (window.currentTool !== "colorpicker" || imgSource.status !== Image.Ready) return;
+
+        if (window.hasSelection) {
+            ctx.drawImage(imgSource, window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height, 0, 0, window.canvasWidth, window.canvasHeight);
+        } else {
+            ctx.drawImage(imgSource, 0, 0, window.canvasWidth, window.canvasHeight);
+        }
+    }
+
+    function drawExportBackgroundLayer(ctx, imgSource, isBackdropActive) {
+        if (isBackdropActive) {
+            window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
+            window.drawScreenshotShadow(ctx, 1 / window.dpr);
+            window.drawScreenshotImage(ctx, imgSource);
+            return;
+        }
+
+        if (imgSource.status !== Image.Ready) return;
+
+        ctx.save();
+        const rawW = imgSource.sourceSize.width;
+        const rawH = imgSource.sourceSize.height;
+        const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
+        const uncroppedW = isRotated90 ? rawH : rawW;
+        const uncroppedH = isRotated90 ? rawW : rawH;
+
+        if (window.hasSelection) {
+            ctx.translate(-window.cropRect.x, -window.cropRect.y);
+        }
+
+        ctx.translate(uncroppedW / 2, uncroppedH / 2);
+        if (window.bgRotation !== 0) {
+            ctx.rotate(window.bgRotation * Math.PI / 180);
+        }
+        const sx = window.bgFlipH ? -1 : 1;
+        const sy = window.bgFlipV ? -1 : 1;
+        if (sx !== 1 || sy !== 1) {
+            ctx.scale(sx, sy);
+        }
+
+        ctx.drawImage(imgSource, -rawW / 2, -rawH / 2, rawW, rawH);
+        ctx.restore();
+    }
+
+    function renderBakedCanvas(canvas, imgSource) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(window.editScale, window.editScale);
+
+        const isBackdropActive = window.effectiveBackdropMode !== "none";
+        window.drawEditorBackgroundLayer(ctx, imgSource, isBackdropActive);
+
+        ctx.save();
+        window.applyEditorAnnotationTransform(ctx, isBackdropActive);
+        window.drawBakedAnnotationLayer(ctx);
+        ctx.restore();
+
+        window.drawWatermarkLayer(ctx, window.currentTool !== "crop");
+
+        ctx.restore();
+    }
+
+    function finishExportCanvas(canvas) {
+        const tempOut = `/tmp/dms_capture_${Date.now()}.png`;
+        canvas.save(tempOut);
+
+        if (window.exportCallback) {
+            const cb = window.exportCallback;
+            window.exportCallback = null;
+            Qt.callLater(() => {
+                cb(tempOut);
+            });
+        }
+    }
+
+    function renderExportCanvas(canvas, imgSource) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(1 / window.dpr, 1 / window.dpr);
+
+        const isBackdropActive = window.effectiveBackdropMode !== "none";
+        window.drawExportBackgroundLayer(ctx, imgSource, isBackdropActive);
+        window.drawExportAnnotationLayer(ctx, isBackdropActive);
+        window.drawWatermarkLayer(ctx, true);
+
+        ctx.restore();
+        window.finishExportCanvas(canvas);
+    }
+
     // Radial Menu Presets & History
     property var radialPresets: []
     property var presetHistory: []
@@ -3002,53 +3123,7 @@ DankModal {
                         }
 
                         onPaint: {
-                            var ctx = bakedCanvas.getContext("2d");
-                            ctx.clearRect(0, 0, bakedCanvas.width, bakedCanvas.height);
-                            ctx.save();
-                            ctx.scale(window.editScale, window.editScale);
-
-                            // 0. Paint Backdrop (if active)
-                            const isBackdropActive = window.effectiveBackdropMode !== "none";
-                            if (isBackdropActive) {
-                                window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
-                                window.drawScreenshotShadow(ctx, window.editScale);
-                                window.drawScreenshotImage(ctx, bgImage);
-                            } else if (window.currentTool === "colorpicker") {
-                                if (bgImage.status === Image.Ready) {
-                                    if (window.hasSelection) {
-                                        ctx.drawImage(bgImage, window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height, 0, 0, window.canvasWidth, window.canvasHeight);
-                                    } else {
-                                        ctx.drawImage(bgImage, 0, 0, window.canvasWidth, window.canvasHeight);
-                                    }
-                                }
-                            }
-
-                            // 2. Draw annotations (translated in edit mode, or clipped in crop mode)
-                            ctx.save();
-                            window.applyEditorAnnotationTransform(ctx, isBackdropActive);
-
-                            window.drawBakedAnnotationLayer(ctx);
-
-                            ctx.restore();
-
-                            // 5. Draw Watermark Preview in Editor
-                            const pData = (window.parentWidget && window.parentWidget.pluginData) || {};
-                            DrawingRenderer.drawWatermark(ctx, {
-                                enabled: pData.enableWatermark && window.currentTool !== "crop",
-                                type: pData.watermarkType || "text",
-                                opacity: (pData.watermarkOpacity !== undefined ? pData.watermarkOpacity : 20) / 100.0,
-                                position: pData.watermarkPosition || "bottom_right",
-                                text: pData.watermarkText || "© {user}",
-                                textScale: (pData.watermarkTextSize !== undefined ? pData.watermarkTextSize : 5) / 100.0,
-                                imageScale: (pData.watermarkSize !== undefined ? pData.watermarkSize : 5) / 100.0,
-                                canvasWidth: window.canvasWidth,
-                                canvasHeight: window.canvasHeight,
-                                imageLoader: watermarkImageLoader,
-                                imageReady: watermarkImageLoader.status === Image.Ready,
-                                imageSourceSize: watermarkImageLoader.sourceSize
-                            }, config);
-
-                            ctx.restore();
+                            window.renderBakedCanvas(bakedCanvas, bgImage);
                         }
                     }
 
@@ -3202,76 +3277,7 @@ DankModal {
                     }
 
                     onPaint: {
-                        var ctx = exportCanvas.getContext("2d");
-                        ctx.clearRect(0, 0, exportCanvas.width, exportCanvas.height);
-                        ctx.save();
-                        ctx.scale(1 / window.dpr, 1 / window.dpr);
-                        
-                        // 0. Paint Backdrop (if active)
-                        const isBackdropActive = window.effectiveBackdropMode !== "none";
-                        if (isBackdropActive) {
-                            window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
-                            window.drawScreenshotShadow(ctx, 1 / window.dpr);
-                            window.drawScreenshotImage(ctx, bgImage);
-                        } else {
-                            if (bgImage.status === Image.Ready) {
-                                ctx.save();
-                                const rawW = bgImage.sourceSize.width;
-                                const rawH = bgImage.sourceSize.height;
-                                const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
-                                const uncroppedW = isRotated90 ? rawH : rawW;
-                                const uncroppedH = isRotated90 ? rawW : rawH;
-
-                                if (window.hasSelection) {
-                                    ctx.translate(-window.cropRect.x, -window.cropRect.y);
-                                }
-
-                                ctx.translate(uncroppedW / 2, uncroppedH / 2);
-                                if (window.bgRotation !== 0) {
-                                    ctx.rotate(window.bgRotation * Math.PI / 180);
-                                }
-                                const sx = window.bgFlipH ? -1 : 1;
-                                const sy = window.bgFlipV ? -1 : 1;
-                                if (sx !== 1 || sy !== 1) {
-                                    ctx.scale(sx, sy);
-                                }
-
-                                ctx.drawImage(bgImage, -rawW / 2, -rawH / 2, rawW, rawH);
-                                ctx.restore();
-                            }
-                        }
-
-                        window.drawExportAnnotationLayer(ctx, isBackdropActive);
-
-                        // 3. Overlay custom watermark if enabled
-                        const pData = (window.parentWidget && window.parentWidget.pluginData) || {};
-                        DrawingRenderer.drawWatermark(ctx, {
-                            enabled: pData.enableWatermark,
-                            type: pData.watermarkType || "text",
-                            opacity: (pData.watermarkOpacity !== undefined ? pData.watermarkOpacity : 20) / 100.0,
-                            position: pData.watermarkPosition || "bottom_right",
-                            text: pData.watermarkText || "© {user}",
-                            textScale: (pData.watermarkTextSize !== undefined ? pData.watermarkTextSize : 5) / 100.0,
-                            imageScale: (pData.watermarkSize !== undefined ? pData.watermarkSize : 5) / 100.0,
-                            canvasWidth: window.canvasWidth,
-                            canvasHeight: window.canvasHeight,
-                            imageLoader: watermarkImageLoader,
-                            imageReady: watermarkImageLoader.status === Image.Ready,
-                            imageSourceSize: watermarkImageLoader.sourceSize
-                        }, config);
-
-                        ctx.restore();
-
-                        const tempOut = `/tmp/dms_capture_${Date.now()}.png`;
-                        exportCanvas.save(tempOut);
-
-                        if (window.exportCallback) {
-                            const cb = window.exportCallback;
-                            window.exportCallback = null;
-                            Qt.callLater(() => {
-                                cb(tempOut);
-                            });
-                        }
+                        window.renderExportCanvas(exportCanvas, bgImage);
                     }
                 }
 
