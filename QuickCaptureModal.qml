@@ -332,14 +332,14 @@ DankModal {
         else strokeWidth = clamped;
 
         if (selectedStroke) {
-            selectedStroke.width = val;
+            selectedStroke.width = clamped;
             if (selectedStroke.tool === "callout" && selectedStroke.points && selectedStroke.points.length === 4) {
                 const srcP0 = selectedStroke.points[0];
                 const srcP1 = selectedStroke.points[1];
                 const dstP0 = selectedStroke.points[2];
                 const rw = srcP1.x - srcP0.x;
                 const rh = srcP1.y - srcP0.y;
-                const zoom = val / 100.0;
+                const zoom = clamped / 100.0;
                 const dw = rw * zoom;
                 const dh = rh * zoom;
                 const newPoints = [...selectedStroke.points];
@@ -353,7 +353,7 @@ DankModal {
             }
         }
         if (currentStroke) {
-            currentStroke.width = val;
+            currentStroke.width = clamped;
         }
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }

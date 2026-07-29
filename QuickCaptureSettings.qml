@@ -2963,6 +2963,8 @@ PluginSettings {
                 function refreshThicknessConstraints() {
                     const t = presetToolSetting.value;
                     const meta = Constants.getToolMeta(t);
+                    // Localized labels map - required because I18n.tr() needs string literals for extraction tools.
+                    // Keys must match ToolMetadata.label values for consistency.
                     const toolLabels = {
                         pen: I18n.tr("Thickness"), line: I18n.tr("Thickness"),
                         arrow: I18n.tr("Thickness"), rect: I18n.tr("Thickness"),

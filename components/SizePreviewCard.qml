@@ -31,21 +31,19 @@ Rectangle {
         const tool = window.effectiveTool;
         const meta = Constants.getToolMeta(tool);
 
-        if (meta.previewMultiplier) {
+        if (meta.previewFixedWidth !== undefined) {
+            base = meta.previewFixedWidth;
+        } else if (meta.previewMultiplier) {
             base = window.activeIntensity * meta.previewMultiplier;
         }
         if (meta.previewClampMin !== undefined) {
             base = Math.max(meta.previewClampMin, Math.min(meta.previewClampMax, base));
         }
 
-        if (tool === "spotlight") {
-            base = 100;
-        } else if (tool === "callout") {
+        if (tool === "callout") {
             if (window.currentTool === "select" && !window.calloutDestDragging && window.selectedStroke) {
                 const bw = window.selectedStroke.borderWidth !== undefined ? window.selectedStroke.borderWidth : 2;
                 base = bw * 2;
-            } else {
-                base = 40;
             }
         }
         return base * window.editScale;

@@ -265,7 +265,7 @@ Rectangle {
                 spacing: Theme.spacingS; anchors.verticalCenter: parent.verticalCenter
                 readonly property var toolMeta: Constants.getToolMeta(root.activeToolType)
                 Text {
-                    text: root.strokeWidth + root.toolMeta.unit
+                    text: root.strokeWidth + parent.toolMeta.unit
                     width: Constants.btnSize; horizontalAlignment: Text.AlignRight
                     color: Theme.surfaceText; font.pixelSize: 11; font.bold: true; anchors.verticalCenter: parent.verticalCenter
                 }
