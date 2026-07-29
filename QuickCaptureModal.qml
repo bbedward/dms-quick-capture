@@ -63,149 +63,174 @@ DankModal {
     property string lastActiveTool: "pen"
     property string colorPickerMode: "draw" // draw, copy
     property color hoveredColor: "transparent"
+
+    function requestActiveCanvasPaint() {
+        if (window.activeCanvas) {
+            window.activeCanvas.requestPaint();
+        }
+    }
+
+    function refreshStrokeReference(stroke) {
+        const idx = window.strokes.indexOf(stroke);
+        if (idx !== -1) {
+            window.strokes[idx] = stroke;
+            window.strokes = [...window.strokes];
+        }
+    }
+
+    function copyStrokePoints(points) {
+        const copied = [];
+        for (let p of points) {
+            copied.push(Qt.point(p.x, p.y));
+        }
+        return copied;
+    }
+
+    function updateToolStrokeState(tool, updater) {
+        if (window.selectedStroke && window.selectedStroke.tool === tool) {
+            updater(window.selectedStroke);
+            window.refreshStrokeReference(window.selectedStroke);
+        }
+        if (window.currentStroke && window.currentStroke.tool === tool) {
+            updater(window.currentStroke);
+        }
+        window.requestActiveCanvasPaint();
+    }
+
+    function syncStyleFromStroke(stroke) {
+        window.currentColor = stroke.color;
+        if (stroke.tool === "text") window.textFontSize = stroke.width;
+        else if (stroke.tool === "pixelate") window.pixelateIntensity = stroke.width;
+        else if (stroke.tool === "spotlight") window.spotlightIntensity = stroke.width;
+        else if (stroke.tool === "callout") window.calloutZoom = stroke.width;
+        else window.strokeWidth = stroke.width;
+
+        if (stroke.tool === "line" && stroke.lineStyle) window.activeLineStyle = stroke.lineStyle;
+        if (stroke.tool === "arrow") {
+            if (stroke.arrowLineStyle) window.activeArrowLineStyle = stroke.arrowLineStyle;
+            if (stroke.arrowHeadStyle) window.activeArrowHeadStyle = stroke.arrowHeadStyle;
+        }
+        if (stroke.tool === "redact" && stroke.redactMode) window.activeRedactMode = stroke.redactMode;
+        if (stroke.tool === "redact" && stroke.redactShape) window.activeRedactShape = stroke.redactShape;
+        if (stroke.tool === "callout") {
+            window.calloutLinkLines = stroke.calloutLinkLines !== undefined ? stroke.calloutLinkLines : 1;
+            window.calloutShape = stroke.calloutShape !== undefined ? stroke.calloutShape : "rect";
+        }
+    }
+
+    function bringStrokeToFront(stroke) {
+        const reorder = [...window.strokes];
+        const idx = reorder.indexOf(stroke);
+        if (idx !== -1) {
+            reorder.splice(idx, 1);
+            reorder.push(stroke);
+            window.strokes = reorder;
+        }
+    }
+
+    function selectStrokeForEditing(stroke, saveCurrentState) {
+        if (saveCurrentState) {
+            window.savePreGrabState();
+        }
+        window.selectedStroke = stroke;
+        window.originalPoints = window.copyStrokePoints(stroke.points);
+        window.syncStyleFromStroke(stroke);
+        window.bringStrokeToFront(stroke);
+    }
+
+    function deselectStrokeForEditing(restoreStyle) {
+        window.selectedStroke = null;
+        window.originalPoints = [];
+        window.activeHandle = "none";
+        window.calloutDestDragging = false;
+        if (restoreStyle) {
+            window.restorePreGrabState();
+        }
+    }
+
+    function enterColorPickerTool() {
+        window._lastSampledX = -1;
+        window._lastSampledY = -1;
+        window._lastSampledColor = "transparent";
+        window.requestPaintAll();
+        window.hoveredColor = window.sampleCanvasColor(window.cursorX * window.editScale, window.cursorY * window.editScale);
+    }
+
+    function enterBackdropTool() {
+        if (window.backdropMode !== "none") return;
+        const defaultMode = (config && config.pluginData && config.pluginData["backdropDefaultMode"]) || Constants.defaultBackdropMode;
+        window.backdropMode = defaultMode;
+    }
+
+    function enterSelectTool() {
+        if (window.selectedStroke || window.strokes.length === 0) return;
+        window.selectStrokeForEditing(window.strokes[window.strokes.length - 1], true);
+    }
+
+    function handleCurrentToolChanged() {
+        if (window.currentTool !== "colorpicker") {
+            window.backdropColorPickingSlot = "none";
+        }
+        if (window.currentTool !== "text" && window.isTyping) {
+            window.commitTypingText();
+        }
+        if (window.currentTool !== "crop" && window.currentTool !== "backdrop" && window.currentTool !== "select" && window.currentTool !== "colorpicker") {
+            window.lastActiveTool = window.currentTool;
+        }
+        if (window.currentTool !== "select" && window.selectedStroke) {
+            window.deselectStrokeForEditing(true);
+            window.requestActiveCanvasPaint();
+        }
+        if (window.currentTool === "colorpicker") {
+            window.enterColorPickerTool();
+        }
+        if (window.currentTool === "backdrop") {
+            window.enterBackdropTool();
+        }
+        if (window.currentTool === "select") {
+            window.enterSelectTool();
+        }
+        window.requestPaintAll();
+    }
+
     property string activeLineStyle: "solid"
     property string activeRedactMode: "solid" // solid, blur, clean
     onActiveRedactModeChanged: {
-        if (window.selectedStroke && window.selectedStroke.tool === "redact") {
-            window.selectedStroke.redactMode = window.activeRedactMode;
-            window.selectedStroke.cachedCleanColor = undefined;
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = window.selectedStroke;
-                window.strokes = [...window.strokes];
-            }
-        }
-        if (window.currentStroke && window.currentStroke.tool === "redact") {
-            window.currentStroke.redactMode = window.activeRedactMode;
-        }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.updateToolStrokeState("redact", function(stroke) {
+            stroke.redactMode = window.activeRedactMode;
+            stroke.cachedCleanColor = undefined;
+        });
     }
     property string activeRedactShape: window.roundRect ? "roundRect" : "rect" // rect, roundRect, ellipse
     onActiveRedactShapeChanged: {
-        if (window.selectedStroke && window.selectedStroke.tool === "redact") {
-            window.selectedStroke.redactShape = window.activeRedactShape;
-            window.selectedStroke.cachedCleanColor = undefined;
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = window.selectedStroke;
-                window.strokes = [...window.strokes];
-            }
-        }
-        if (window.currentStroke && window.currentStroke.tool === "redact") {
-            window.currentStroke.redactShape = window.activeRedactShape;
-        }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.updateToolStrokeState("redact", function(stroke) {
+            stroke.redactShape = window.activeRedactShape;
+            stroke.cachedCleanColor = undefined;
+        });
     }
     onActiveLineStyleChanged: {
-        if (window.selectedStroke && window.selectedStroke.tool === "line") {
-            window.selectedStroke.lineStyle = window.activeLineStyle;
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = window.selectedStroke;
-                window.strokes = [...window.strokes];
-            }
-        }
-        if (window.currentStroke && window.currentStroke.tool === "line") {
-            window.currentStroke.lineStyle = window.activeLineStyle;
-        }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.updateToolStrokeState("line", function(stroke) {
+            stroke.lineStyle = window.activeLineStyle;
+        });
     }
     property string activeArrowLineStyle: "solid"
     property string activeArrowHeadStyle: "single-filled"
     onActiveArrowLineStyleChanged: {
-        if (window.selectedStroke && window.selectedStroke.tool === "arrow") {
-            window.selectedStroke.arrowLineStyle = window.activeArrowLineStyle;
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = window.selectedStroke;
-                window.strokes = [...window.strokes];
-            }
-        }
-        if (window.currentStroke && window.currentStroke.tool === "arrow") {
-            window.currentStroke.arrowLineStyle = window.activeArrowLineStyle;
-        }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.updateToolStrokeState("arrow", function(stroke) {
+            stroke.arrowLineStyle = window.activeArrowLineStyle;
+        });
     }
     onActiveArrowHeadStyleChanged: {
-        if (window.selectedStroke && window.selectedStroke.tool === "arrow") {
-            window.selectedStroke.arrowHeadStyle = window.activeArrowHeadStyle;
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = window.selectedStroke;
-                window.strokes = [...window.strokes];
-            }
-        }
-        if (window.currentStroke && window.currentStroke.tool === "arrow") {
-            window.currentStroke.arrowHeadStyle = window.activeArrowHeadStyle;
-        }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.updateToolStrokeState("arrow", function(stroke) {
+            stroke.arrowHeadStyle = window.activeArrowHeadStyle;
+        });
     }
     property int _lastSampledX: -1
     property int _lastSampledY: -1
     property color _lastSampledColor: "transparent"
     readonly property real dpr: Screen.devicePixelRatio || 1.0
     onCurrentToolChanged: {
-        if (currentTool !== "colorpicker") {
-            window.backdropColorPickingSlot = "none";
-        }
-        if (currentTool !== "text" && window.isTyping) {
-            window.commitTypingText();
-        }
-        if (currentTool !== "crop" && currentTool !== "backdrop" && currentTool !== "select" && currentTool !== "colorpicker") {
-            lastActiveTool = currentTool;
-        }
-        if (currentTool !== "select" && window.selectedStroke) {
-            window.selectedStroke = null;
-            window.originalPoints = [];
-            window.restorePreGrabState();
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
-        }
-        if (currentTool === "colorpicker") {
-            window._lastSampledX = -1;
-            window._lastSampledY = -1;
-            window._lastSampledColor = "transparent";
-            window.requestPaintAll();
-            window.hoveredColor = window.sampleCanvasColor(window.cursorX * window.editScale, window.cursorY * window.editScale);
-        }
-        if (currentTool === "backdrop" && window.backdropMode === "none") {
-            const defaultMode = (config && config.pluginData && config.pluginData["backdropDefaultMode"]) || Constants.defaultBackdropMode;
-            window.backdropMode = defaultMode;
-        }
-        if (currentTool === "select" && !window.selectedStroke && window.strokes.length > 0) {
-            const s = window.strokes[window.strokes.length - 1];
-            window.savePreGrabState();
-            window.selectedStroke = s;
-            window.currentColor = s.color;
-            const orig = [];
-            for (let p of s.points) {
-                orig.push(Qt.point(p.x, p.y));
-            }
-            window.originalPoints = orig;
-            if (s.tool === "text") window.textFontSize = s.width;
-            else if (s.tool === "pixelate") window.pixelateIntensity = s.width;
-            else if (s.tool === "spotlight") window.spotlightIntensity = s.width;
-            else if (s.tool === "callout") window.calloutZoom = s.width;
-            else window.strokeWidth = s.width;
-            if (s.tool === "line" && s.lineStyle) window.activeLineStyle = s.lineStyle;
-            if (s.tool === "arrow") {
-                if (s.arrowLineStyle) window.activeArrowLineStyle = s.arrowLineStyle;
-                if (s.arrowHeadStyle) window.activeArrowHeadStyle = s.arrowHeadStyle;
-            }
-            if (s.tool === "redact" && s.redactMode) window.activeRedactMode = s.redactMode;
-            if (s.tool === "redact" && s.redactShape) window.activeRedactShape = s.redactShape;
-            if (s.tool === "callout") {
-                window.calloutLinkLines = s.calloutLinkLines !== undefined ? s.calloutLinkLines : 1;
-                window.calloutShape = s.calloutShape !== undefined ? s.calloutShape : "rect";
-            }
-            const reorder = [...window.strokes];
-            const idx = reorder.indexOf(s);
-            if (idx !== -1) {
-                reorder.splice(idx, 1);
-                reorder.push(s);
-            }
-            window.strokes = reorder;
-        }
-        window.requestPaintAll();
+        window.handleCurrentToolChanged();
     }
 
     // Backdrop State Variables
@@ -921,37 +946,67 @@ DankModal {
         window.requestPaintAll();
     }
 
-    function runOcr() {
+    function resetRegionScanRect() {
         window.ocrRect = Qt.rect(0, 0, 0, 0);
-        window.currentTool = "ocr";
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
 
-    function executeOcr() {
-        const r = window.ocrRect;
-        if (r.width < 10 || r.height < 10) {
-            window.ocrRect = Qt.rect(0, 0, 0, 0);
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
-            return;
-        }
+    function startRegionScanTool(tool) {
+        window.resetRegionScanRect();
+        window.currentTool = tool;
+        window.requestActiveCanvasPaint();
+    }
 
-        // Account for crop offset when mapping to source image coordinates
+    function finishRegionScanTool() {
+        window.currentTool = window.lastActiveTool;
+        window.resetRegionScanRect();
+        window.requestActiveCanvasPaint();
+    }
+
+    function getRegionScanCrop() {
+        const r = window.ocrRect;
+        if (r.width < 10 || r.height < 10) return null;
+
+        // Account for crop offset when mapping to source image coordinates.
         const cropOffsetX = window.hasSelection ? window.cropRect.x : 0;
         const cropOffsetY = window.hasSelection ? window.cropRect.y : 0;
-        const ix = Math.round(r.x + cropOffsetX);
-        const iy = Math.round(r.y + cropOffsetY);
-        const iw = Math.round(r.width);
-        const ih = Math.round(r.height);
+        return {
+            x: Math.round(r.x + cropOffsetX),
+            y: Math.round(r.y + cropOffsetY),
+            width: Math.round(r.width),
+            height: Math.round(r.height)
+        };
+    }
 
+    function getBackgroundImagePath() {
         let bgPath = decodeURIComponent(window.bgImageSource.toString());
         if (bgPath.startsWith("file://")) bgPath = bgPath.substring(7);
         const qIdx = bgPath.indexOf("?");
         if (qIdx !== -1) bgPath = bgPath.substring(0, qIdx);
+        return bgPath;
+    }
+
+    function makeTempCropPath(kind) {
+        const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
+        return `/tmp/dms_${kind}_crop_${uniqueId}.png`;
+    }
+
+    function runOcr() {
+        window.startRegionScanTool("ocr");
+    }
+
+    function executeOcr() {
+        const crop = window.getRegionScanCrop();
+        if (!crop) {
+            window.resetRegionScanRect();
+            window.requestActiveCanvasPaint();
+            return;
+        }
+
+        const bgPath = window.getBackgroundImagePath();
         let ocrLang = "eng";
 
-        const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
-        const tempCropPath = `/tmp/dms_ocr_crop_${uniqueId}.png`;
-        Proc.runCommand("crop-ocr-temp", ["magick", bgPath, "-crop", `${iw}x${ih}+${ix}+${iy}`, tempCropPath], (stdout1, exitCode1) => {
+        const tempCropPath = window.makeTempCropPath("ocr");
+        Proc.runCommand("crop-ocr-temp", ["magick", bgPath, "-crop", `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, tempCropPath], (stdout1, exitCode1) => {
             if (exitCode1 === 0) {
                 Proc.runCommand("run-ocr", ["tesseract", tempCropPath, "-", "-l", ocrLang], (stdout2, exitCode2) => {
                     Proc.runCommand("cleanup-ocr-temp", ["rm", "-f", tempCropPath]);
@@ -974,51 +1029,33 @@ DankModal {
                             ToastService.showError(I18n.tr("OCR failed during text extraction"));
                         }
                     }
-                    window.currentTool = window.lastActiveTool;
-                    window.ocrRect = Qt.rect(0, 0, 0, 0);
-                    if (window.activeCanvas) window.activeCanvas.requestPaint();
+                    window.finishRegionScanTool();
                 });
             } else {
                 if (typeof ToastService !== "undefined" && ToastService) {
                     ToastService.showError(I18n.tr("OCR failed: Could not crop image"));
                 }
-                window.currentTool = window.lastActiveTool;
-                window.ocrRect = Qt.rect(0, 0, 0, 0);
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
+                window.finishRegionScanTool();
             }
         });
     }
 
     function runQrScan() {
-        window.ocrRect = Qt.rect(0, 0, 0, 0);
-        window.currentTool = "qr";
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.startRegionScanTool("qr");
     }
 
     function executeQrScan() {
-        const r = window.ocrRect;
-        if (r.width < 10 || r.height < 10) {
-            window.ocrRect = Qt.rect(0, 0, 0, 0);
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+        const crop = window.getRegionScanCrop();
+        if (!crop) {
+            window.resetRegionScanRect();
+            window.requestActiveCanvasPaint();
             return;
         }
 
-        // Account for crop offset when mapping to source image coordinates
-        const cropOffsetX = window.hasSelection ? window.cropRect.x : 0;
-        const cropOffsetY = window.hasSelection ? window.cropRect.y : 0;
-        const ix = Math.round(r.x + cropOffsetX);
-        const iy = Math.round(r.y + cropOffsetY);
-        const iw = Math.round(r.width);
-        const ih = Math.round(r.height);
+        const bgPath = window.getBackgroundImagePath();
 
-        let bgPath = decodeURIComponent(window.bgImageSource.toString());
-        if (bgPath.startsWith("file://")) bgPath = bgPath.substring(7);
-        const qIdx = bgPath.indexOf("?");
-        if (qIdx !== -1) bgPath = bgPath.substring(0, qIdx);
-
-        const uniqueId = `${Date.now()}_${Math.floor(Math.random() * 1000000)}`;
-        const tempCropPath = `/tmp/dms_qr_crop_${uniqueId}.png`;
-        Proc.runCommand("crop-qr-temp", ["magick", bgPath, "-crop", `${iw}x${ih}+${ix}+${iy}`, tempCropPath], (stdout1, exitCode1) => {
+        const tempCropPath = window.makeTempCropPath("qr");
+        Proc.runCommand("crop-qr-temp", ["magick", bgPath, "-crop", `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, tempCropPath], (stdout1, exitCode1) => {
             if (exitCode1 === 0) {
                 Proc.runCommand("run-qr-scan", ["zbarimg", "--raw", "-q", tempCropPath], (stdout2, exitCode2) => {
                     Proc.runCommand("cleanup-qr-temp", ["rm", "-f", tempCropPath]);
@@ -1045,17 +1082,13 @@ DankModal {
                             ToastService.showError(I18n.tr("QR Scan failed or command execution error"));
                         }
                     }
-                    window.currentTool = window.lastActiveTool;
-                    window.ocrRect = Qt.rect(0, 0, 0, 0);
-                    if (window.activeCanvas) window.activeCanvas.requestPaint();
+                    window.finishRegionScanTool();
                 });
             } else {
                 if (typeof ToastService !== "undefined" && ToastService) {
                     ToastService.showError(I18n.tr("QR Scan failed: Could not crop image"));
                 }
-                window.currentTool = window.lastActiveTool;
-                window.ocrRect = Qt.rect(0, 0, 0, 0);
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
+                window.finishRegionScanTool();
             }
         });
     }
@@ -1650,7 +1683,7 @@ DankModal {
                 window.undoneStrokes = [...window.undoneStrokes, window.selectedStroke];
                 window.strokes = list;
             }
-            window.selectedStroke = null;
+            window.deselectStrokeForEditing(false);
             if (window.activeCanvas) window.activeCanvas.requestPaint();
             event.accepted = true;
             return;
@@ -1706,7 +1739,7 @@ DankModal {
                 return;
             }
             if (window.selectedStroke) {
-                window.selectedStroke = null;
+                window.deselectStrokeForEditing(false);
                 if (window.activeCanvas) window.activeCanvas.requestPaint();
                 event.accepted = true;
                 return;
@@ -2242,6 +2275,155 @@ DankModal {
         }
     }
 
+    function focusModalAfterToolbarAction() {
+        if (window.modalFocusScope) {
+            window.modalFocusScope.forceActiveFocus();
+        }
+    }
+
+    function closeMoreToolsMenu(menu) {
+        if (menu) {
+            menu.close();
+        }
+    }
+
+    function handleToolbarToolSelected(tool, menu) {
+        window.closeMoreToolsMenu(menu);
+        if (tool === "back") {
+            window.currentTool = window.lastActiveTool;
+        } else if (tool === "crop" && window.currentTool === "crop") {
+            window.currentTool = window.lastActiveTool;
+        } else if (tool === "colorpicker-draw") {
+            window.colorPickerMode = "draw";
+            window.currentTool = "colorpicker";
+        } else if (tool === "colorpicker-copy") {
+            window.colorPickerMode = "copy";
+            window.currentTool = "colorpicker";
+        } else {
+            window.currentTool = tool;
+        }
+        window.focusModalAfterToolbarAction();
+    }
+
+    function handleToolbarColorSelected(color, index, menu) {
+        window.closeMoreToolsMenu(menu);
+        window.activeColorSlotIndex = index;
+        window.currentColor = color;
+        window.focusModalAfterToolbarAction();
+    }
+
+    function handleToolbarCustomColorPickerRequested(menu) {
+        window.closeMoreToolsMenu(menu);
+        if (!window.openColorPickerModal()) {
+            if (window.currentTool === "colorpicker") {
+                window.currentTool = window.lastActiveTool;
+            } else {
+                window.colorPickerMode = "draw";
+                window.currentTool = "colorpicker";
+            }
+        }
+    }
+
+    function handleToolbarStrokeWidthSelected(width, menu) {
+        window.closeMoreToolsMenu(menu);
+        window.updateActiveIntensity(width);
+    }
+
+    function runToolbarAction(action, menu) {
+        window.closeMoreToolsMenu(menu);
+        action();
+    }
+
+    function toggleMoreToolsMenu(buttonItem, menu, toolbar, contentItem) {
+        if (menu.opened) {
+            menu.close();
+            return;
+        }
+
+        const pt = buttonItem.mapToItem(contentItem, 0, 0);
+        if (toolbar.isVertical) {
+            if (window.toolbarPosition === "right") {
+                menu.x = pt.x - menu.width - Theme.spacingS;
+            } else {
+                menu.x = pt.x + buttonItem.width + Theme.spacingS;
+            }
+            const targetY = pt.y + (buttonItem.height - menu.height) / 2;
+            menu.y = Math.max(Theme.spacingS, Math.min(targetY, contentItem.height - menu.height - Theme.spacingS));
+        } else {
+            const targetX = pt.x + (buttonItem.width - menu.width) / 2;
+            menu.x = Math.max(Theme.spacingS, Math.min(targetX, contentItem.width - menu.width - Theme.spacingS));
+            if (window.toolbarPosition === "bottom") {
+                menu.y = pt.y - menu.height - Theme.spacingS;
+            } else {
+                menu.y = pt.y + buttonItem.height + Theme.spacingS;
+            }
+        }
+        menu.open();
+    }
+
+    function positionBackdropPopover(popover, controlItem, toolbar, contentItem) {
+        const pt = controlItem.mapToItem(contentItem, 0, 0);
+        if (toolbar.isVertical) {
+            if (window.toolbarPosition === "right") {
+                popover.x = pt.x - popover.width - Theme.spacingXS;
+            } else {
+                popover.x = pt.x + controlItem.width + Theme.spacingXS;
+            }
+            popover.y = pt.y + (controlItem.height - popover.height) / 2;
+            return;
+        }
+
+        popover.x = pt.x + (controlItem.width - popover.width) / 2;
+        if (window.toolbarPosition === "bottom") {
+            if (popover._anchorIsAbove !== undefined) {
+                popover._anchorY = pt.y;
+                popover._anchorIsAbove = true;
+            } else {
+                popover.y = pt.y - popover.height - Theme.spacingXS;
+            }
+        } else {
+            if (popover._anchorIsAbove !== undefined) {
+                popover._anchorY = pt.y + controlItem.height + Theme.spacingXS;
+                popover._anchorIsAbove = false;
+            } else {
+                popover.y = pt.y + controlItem.height + Theme.spacingXS;
+            }
+        }
+    }
+
+    function handleBackdropControlHovered(popover, controlItem, toolbar, contentItem) {
+        if (!popover) return;
+
+        window.positionBackdropPopover(popover, controlItem, toolbar, contentItem);
+        popover.open();
+    }
+
+    function handleBackdropControlExited(popover) {
+        if (popover) {
+            popover.startCloseTimer();
+        }
+    }
+
+    function handleBackdropControlWheel(type, delta) {
+        const step = delta > 0 ? 5 : -5;
+        if (type === "padding") {
+            window.backdropPadding = Math.max(10, Math.min(150, window.backdropPadding + step));
+        } else if (type === "radius") {
+            const rStep = delta > 0 ? 2 : -2;
+            window.backdropCornerRadius = Math.max(0, Math.min(60, window.backdropCornerRadius + rStep));
+        } else if (type === "shadow") {
+            window.backdropShadowStrength = Math.max(0, Math.min(100, window.backdropShadowStrength + step));
+        } else if (type === "angle") {
+            const aStep = delta > 0 ? 15 : -15;
+            window.backdropGradientAngle = (window.backdropGradientAngle + aStep + 360) % 360;
+        } else if (type === "aspectRatio" && window.backdropAspectRatio === "custom") {
+            const ratioStep = delta > 0 ? 5 : -5;
+            const scaled = Math.round(window.customAspectRatio * 100) + ratioStep;
+            window.customAspectRatio = Math.max(50, Math.min(250, scaled)) / 100.0;
+        }
+        window.requestActiveCanvasPaint();
+    }
+
     content: Component {
         FocusScope {
             id: contentRoot
@@ -2409,106 +2591,49 @@ DankModal {
                     }
 
                     onToolSelected: (tool) => {
-                        moreToolsMenu.close();
-                        if (tool === "back") {
-                            window.currentTool = window.lastActiveTool;
-                        } else if (tool === "crop" && window.currentTool === "crop") {
-                            window.currentTool = window.lastActiveTool;
-                        } else if (tool === "colorpicker-draw") {
-                            window.colorPickerMode = "draw";
-                            window.currentTool = "colorpicker";
-                        } else if (tool === "colorpicker-copy") {
-                            window.colorPickerMode = "copy";
-                            window.currentTool = "colorpicker";
-                        } else {
-                            window.currentTool = tool;
-                        }
-                        if (window.modalFocusScope) window.modalFocusScope.forceActiveFocus();
+                        window.handleToolbarToolSelected(tool, moreToolsMenu);
                     }
                     onColorSelected: (color, index) => {
-                        moreToolsMenu.close();
-                        window.activeColorSlotIndex = index;
-                        window.currentColor = color;
-                        if (window.modalFocusScope) window.modalFocusScope.forceActiveFocus();
+                        window.handleToolbarColorSelected(color, index, moreToolsMenu);
                     }
                     onCustomColorPickerRequested: (buttonItem) => {
-                        moreToolsMenu.close();
-                        if (!window.openColorPickerModal()) {
-                            if (window.currentTool === "colorpicker") {
-                                window.currentTool = window.lastActiveTool;
-                            } else {
-                                window.colorPickerMode = "draw";
-                                window.currentTool = "colorpicker";
-                            }
-                        }
+                        window.handleToolbarCustomColorPickerRequested(moreToolsMenu);
                     }
                     onStrokeWidthSelected: (width) => {
-                        moreToolsMenu.close();
-                        window.updateActiveIntensity(width);
+                        window.handleToolbarStrokeWidthSelected(width, moreToolsMenu);
                     }
                     onUndoRequested: {
-                        moreToolsMenu.close();
-                        window.performUndo();
+                        window.runToolbarAction(window.performUndo, moreToolsMenu);
                     }
                     onRedoRequested: {
-                        moreToolsMenu.close();
-                        window.performRedo();
+                        window.runToolbarAction(window.performRedo, moreToolsMenu);
                     }
                     onAnnotationsToggled: window.showAnnotations = !window.showAnnotations
 
                     onFloatRequested: {
-                        moreToolsMenu.close();
-                        captureActions.performFloatAction();
+                        window.runToolbarAction(captureActions.performFloatAction, moreToolsMenu);
                     }
                     onSaveRequested: {
-                        moreToolsMenu.close();
-                        captureActions.performSaveOnly();
+                        window.runToolbarAction(captureActions.performSaveOnly, moreToolsMenu);
                     }
 
                     onCopyRequested: {
-                        moreToolsMenu.close();
-                        captureActions.performCopyOnly();
+                        window.runToolbarAction(captureActions.performCopyOnly, moreToolsMenu);
                     }
                     onAnonymousCopyRequested: {
-                        moreToolsMenu.close();
-                        captureActions.performAnonymousCopy();
+                        window.runToolbarAction(captureActions.performAnonymousCopy, moreToolsMenu);
                     }
                     onCopyAndSaveRequested: {
-                        moreToolsMenu.close();
-                        captureActions.performCopyAndSave();
+                        window.runToolbarAction(captureActions.performCopyAndSave, moreToolsMenu);
                     }
                     onCloseRequested: {
-                        moreToolsMenu.close();
-                        window.discardAndClose();
+                        window.runToolbarAction(window.discardAndClose, moreToolsMenu);
                     }
                     onMoreToolsClicked: (buttonItem) => {
-                        if (moreToolsMenu.opened) {
-                            moreToolsMenu.close();
-                        } else {
-                            const pt = buttonItem.mapToItem(contentRoot, 0, 0);
-                            if (toolbarCard.isVertical) {
-                                if (window.toolbarPosition === "right") {
-                                    moreToolsMenu.x = pt.x - moreToolsMenu.width - Theme.spacingS;
-                                } else {
-                                    moreToolsMenu.x = pt.x + buttonItem.width + Theme.spacingS;
-                                }
-                                const targetY = pt.y + (buttonItem.height - moreToolsMenu.height) / 2;
-                                moreToolsMenu.y = Math.max(Theme.spacingS, Math.min(targetY, contentRoot.height - moreToolsMenu.height - Theme.spacingS));
-                            } else {
-                                const targetX = pt.x + (buttonItem.width - moreToolsMenu.width) / 2;
-                                moreToolsMenu.x = Math.max(Theme.spacingS, Math.min(targetX, contentRoot.width - moreToolsMenu.width - Theme.spacingS));
-                                if (window.toolbarPosition === "bottom") {
-                                    moreToolsMenu.y = pt.y - moreToolsMenu.height - Theme.spacingS;
-                                } else {
-                                    moreToolsMenu.y = pt.y + buttonItem.height + Theme.spacingS;
-                                }
-                            }
-                            moreToolsMenu.open();
-                        }
+                        window.toggleMoreToolsMenu(buttonItem, moreToolsMenu, toolbarCard, contentRoot);
                     }
                     onBackdropControlHovered: (type, controlItem) => {
-                        var pt = controlItem.mapToItem(contentRoot, 0, 0);
-                        var popover;
+                        let popover = null;
                         if (type === "padding") popover = backdropPaddingPopover;
                         else if (type === "radius") popover = backdropRadiusPopover;
                         else if (type === "shadow") popover = backdropShadowPopover;
@@ -2516,40 +2641,10 @@ DankModal {
                         else if (type === "aspectRatio") popover = backdropAspectRatioPopover;
                         else if (type === "alignment") popover = backdropAlignmentPopover;
                         else if (type === "presets") popover = backdropPresetsPopover;
-
-                        if (popover) {
-                            if (toolbarCard.isVertical) {
-                                if (window.toolbarPosition === "right") {
-                                    popover.x = pt.x - popover.width - Theme.spacingXS;
-                                } else {
-                                    popover.x = pt.x + controlItem.width + Theme.spacingXS;
-                                }
-                                popover.y = pt.y + (controlItem.height - popover.height) / 2;
-                            } else {
-                                popover.x = pt.x + (controlItem.width - popover.width) / 2;
-                                if (window.toolbarPosition === "bottom") {
-                                    // Popover above control: use anchor binding so height changes don't overlap toolbar
-                                    if (popover._anchorIsAbove !== undefined) {
-                                        popover._anchorY = pt.y;
-                                        popover._anchorIsAbove = true;
-                                    } else {
-                                        popover.y = pt.y - popover.height - Theme.spacingXS;
-                                    }
-                                } else {
-                                    // Popover below control: use anchor binding so height changes don't overlap toolbar
-                                    if (popover._anchorIsAbove !== undefined) {
-                                        popover._anchorY = pt.y + controlItem.height + Theme.spacingXS;
-                                        popover._anchorIsAbove = false;
-                                    } else {
-                                        popover.y = pt.y + controlItem.height + Theme.spacingXS;
-                                    }
-                                }
-                            }
-                            popover.open();
-                        }
+                        window.handleBackdropControlHovered(popover, controlItem, toolbarCard, contentRoot);
                     }
                     onBackdropControlExited: (type) => {
-                        var popover;
+                        let popover = null;
                         if (type === "padding") popover = backdropPaddingPopover;
                         else if (type === "radius") popover = backdropRadiusPopover;
                         else if (type === "shadow") popover = backdropShadowPopover;
@@ -2557,31 +2652,10 @@ DankModal {
                         else if (type === "aspectRatio") popover = backdropAspectRatioPopover;
                         else if (type === "alignment") popover = backdropAlignmentPopover;
                         else if (type === "presets") popover = backdropPresetsPopover;
-
-                        if (popover) {
-                            popover.startCloseTimer();
-                        }
+                        window.handleBackdropControlExited(popover);
                     }
                     onBackdropControlWheel: (type, delta) => {
-                        let step = delta > 0 ? 5 : -5;
-                        if (type === "padding") {
-                            window.backdropPadding = Math.max(10, Math.min(150, window.backdropPadding + step));
-                        } else if (type === "radius") {
-                            let rStep = delta > 0 ? 2 : -2;
-                            window.backdropCornerRadius = Math.max(0, Math.min(60, window.backdropCornerRadius + rStep));
-                        } else if (type === "shadow") {
-                            window.backdropShadowStrength = Math.max(0, Math.min(100, window.backdropShadowStrength + step));
-                        } else if (type === "angle") {
-                            let aStep = delta > 0 ? 15 : -15;
-                            window.backdropGradientAngle = (window.backdropGradientAngle + aStep + 360) % 360;
-                        } else if (type === "aspectRatio") {
-                            if (window.backdropAspectRatio === "custom") {
-                                let ratioStep = delta > 0 ? 5 : -5;
-                                let scaled = Math.round(window.customAspectRatio * 100) + ratioStep;
-                                window.customAspectRatio = Math.max(50, Math.min(250, scaled)) / 100.0;
-                            }
-                        }
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
+                        window.handleBackdropControlWheel(type, delta);
                     }
                 }
 
@@ -3555,8 +3629,7 @@ DankModal {
             window.strokes = list;
             window.undoneStrokes = [...window.undoneStrokes, popped];
             if (window.selectedStroke === popped) {
-                window.selectedStroke = null;
-                window.restorePreGrabState();
+                window.deselectStrokeForEditing(true);
             }
             if (window.activeCanvas) window.activeCanvas.requestPaint();
         }
@@ -3570,26 +3643,7 @@ DankModal {
             window.strokes = [...window.strokes, strokeToRedo];
 
             if (window.currentTool === "select") {
-                window.savePreGrabState();
-                window.selectedStroke = strokeToRedo;
-                window.currentColor = strokeToRedo.color;
-                if (strokeToRedo.tool === "text") window.textFontSize = strokeToRedo.width;
-                else if (strokeToRedo.tool === "pixelate") window.pixelateIntensity = strokeToRedo.width;
-                else if (strokeToRedo.tool === "spotlight") window.spotlightIntensity = strokeToRedo.width;
-                else if (strokeToRedo.tool === "callout") window.calloutZoom = strokeToRedo.width;
-                else window.strokeWidth = strokeToRedo.width;
-
-                if (strokeToRedo.tool === "line" && strokeToRedo.lineStyle) window.activeLineStyle = strokeToRedo.lineStyle;
-                if (strokeToRedo.tool === "arrow") {
-                    if (strokeToRedo.arrowLineStyle) window.activeArrowLineStyle = strokeToRedo.arrowLineStyle;
-                    if (strokeToRedo.arrowHeadStyle) window.activeArrowHeadStyle = strokeToRedo.arrowHeadStyle;
-                }
-                if (strokeToRedo.tool === "redact" && strokeToRedo.redactMode) window.activeRedactMode = strokeToRedo.redactMode;
-                if (strokeToRedo.tool === "redact" && strokeToRedo.redactShape) window.activeRedactShape = strokeToRedo.redactShape;
-                if (strokeToRedo.tool === "callout") {
-                    window.calloutLinkLines = strokeToRedo.calloutLinkLines !== undefined ? strokeToRedo.calloutLinkLines : 1;
-                    window.calloutShape = strokeToRedo.calloutShape !== undefined ? strokeToRedo.calloutShape : "rect";
-                }
+                window.selectStrokeForEditing(strokeToRedo, !window.selectedStroke);
             }
 
             if (window.activeCanvas) window.activeCanvas.requestPaint();
@@ -3597,7 +3651,7 @@ DankModal {
     }
 
     function discardAndClose() {
-        window.selectedStroke = null;
+        window.deselectStrokeForEditing(false);
         window.copiedStroke = null;
         window.close();
     }

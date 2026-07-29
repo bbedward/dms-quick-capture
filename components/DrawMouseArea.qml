@@ -59,6 +59,18 @@ MouseArea {
             : "none";
     }
 
+    function updateCalloutDestinationDrag(stroke, pt) {
+        if (stroke.tool !== "callout" || stroke.points.length !== 4) {
+            window.calloutDestDragging = false;
+            return;
+        }
+
+        const dstP0 = stroke.points[2];
+        const dstP1 = stroke.points[3];
+        window.calloutDestDragging = pt.x >= dstP0.x && pt.x <= dstP1.x
+            && pt.y >= dstP0.y && pt.y <= dstP1.y;
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -556,16 +568,7 @@ MouseArea {
                 const removed = list.splice(strokeIdx, 1);
                 window.strokes = list;
                 if (window.selectedStroke === removed[0]) {
-                    window.strokeWidth = window.preGrabStrokeWidth;
-                    window.textFontSize = window.preGrabTextFontSize;
-                    window.pixelateIntensity = window.preGrabPixelateIntensity;
-                    window.spotlightIntensity = window.preGrabSpotlightIntensity;
-                    window.calloutZoom = window.preGrabCalloutZoom;
-                    window.currentColor = window.preGrabColor;
-                    window.activeRedactMode = window.preGrabRedactMode;
-                    window.activeRedactShape = window.preGrabRedactShape;
-                    window.calloutLinkLines = window.preGrabCalloutLinkLines;
-                    window.selectedStroke = null;
+                    window.deselectStrokeForEditing(true);
                 }
                 drawingCanvas.requestPaint();
             }
@@ -580,11 +583,7 @@ MouseArea {
                 if (sh !== "none") {
                     window.activeHandle = sh;
                     window.pressCoords = absPt;
-                    const orig = [];
-                    for (let p of window.selectedStroke.points) {
-                        orig.push(Qt.point(p.x, p.y));
-                    }
-                    window.originalPoints = orig;
+                    window.originalPoints = window.copyStrokePoints(window.selectedStroke.points);
                     drawingCanvas.requestPaint();
                     return;
                 }
@@ -594,20 +593,8 @@ MouseArea {
             if (strokeIdx === -1) {
                 // Clicked empty space — deselect
                 if (window.selectedStroke) {
-                    window.selectedStroke = null;
-                    window.strokeWidth = window.preGrabStrokeWidth;
-                    window.textFontSize = window.preGrabTextFontSize;
-                    window.pixelateIntensity = window.preGrabPixelateIntensity;
-                    window.spotlightIntensity = window.preGrabSpotlightIntensity;
-                    window.calloutZoom = window.preGrabCalloutZoom;
-                    window.currentColor = window.preGrabColor;
-                    window.activeRedactMode = window.preGrabRedactMode;
-                    window.activeRedactShape = window.preGrabRedactShape;
-                    window.calloutLinkLines = window.preGrabCalloutLinkLines;
-                    window.calloutShape = window.preGrabCalloutShape;
+                    window.deselectStrokeForEditing(true);
                 }
-                window.originalPoints = [];
-                window.activeHandle = "none";
                 hoveredHandle = "none";
                 drawingCanvas.requestPaint();
                 return;
@@ -616,75 +603,13 @@ MouseArea {
             if (strokeIdx !== -1) {
                 const stroke = window.strokes[strokeIdx];
                 
-                // Save previous style state if nothing was selected yet
-                if (!window.selectedStroke) {
-                    window.preGrabStrokeWidth = window.strokeWidth;
-                    window.preGrabTextFontSize = window.textFontSize;
-                    window.preGrabPixelateIntensity = window.pixelateIntensity;
-                    window.preGrabSpotlightIntensity = window.spotlightIntensity;
-                    window.preGrabCalloutZoom = window.calloutZoom;
-                    window.preGrabColor = window.currentColor;
-                    window.preGrabRedactMode = window.activeRedactMode;
-                    window.preGrabRedactShape = window.activeRedactShape;
-                    window.preGrabCalloutLinkLines = window.calloutLinkLines;
-                    window.preGrabCalloutShape = window.calloutShape;
-                }
-                
-                window.selectedStroke = stroke;
-                window.currentColor = stroke.color;
-                if (stroke.tool === "line" && stroke.lineStyle) {
-                    window.activeLineStyle = stroke.lineStyle;
-                }
-                if (stroke.tool === "arrow") {
-                    if (stroke.arrowLineStyle) window.activeArrowLineStyle = stroke.arrowLineStyle;
-                    if (stroke.arrowHeadStyle) window.activeArrowHeadStyle = stroke.arrowHeadStyle;
-                }
-                if (stroke.tool === "redact" && stroke.redactMode) {
-                    window.activeRedactMode = stroke.redactMode;
-                }
-                if (stroke.tool === "redact" && stroke.redactShape) {
-                    window.activeRedactShape = stroke.redactShape;
-                }
-                if (stroke.tool === "callout") {
-                    window.calloutLinkLines = stroke.calloutLinkLines !== undefined ? stroke.calloutLinkLines : 1;
-                    window.calloutShape = stroke.calloutShape !== undefined ? stroke.calloutShape : "rect";
+                if (stroke.tool === "pixelate" && stroke.randomSeed === undefined) {
+                    stroke.randomSeed = Math.floor(Math.random() * 2147483647);
                 }
 
-                // Detection for callout destination dragging
-                if (stroke.tool === "callout" && stroke.points.length === 4) {
-                    const dstP0 = stroke.points[2];
-                    const dstP1 = stroke.points[3];
-                    if (absPt.x >= dstP0.x && absPt.x <= dstP1.x && absPt.y >= dstP0.y && absPt.y <= dstP1.y) {
-                        window.calloutDestDragging = true;
-                    } else {
-                        window.calloutDestDragging = false;
-                    }
-                }
-
-                // Sync internal state with stroke's intensity
-                if (stroke.tool === "text") window.textFontSize = stroke.width;
-                else if (stroke.tool === "pixelate") {
-                    window.pixelateIntensity = stroke.width;
-                    if (stroke.randomSeed === undefined) {
-                        stroke.randomSeed = Math.floor(Math.random() * 2147483647);
-                    }
-                }
-                else if (stroke.tool === "spotlight") window.spotlightIntensity = stroke.width;
-                else if (stroke.tool === "callout") window.calloutZoom = stroke.width;
-                else window.strokeWidth = stroke.width;
-                
+                window.selectStrokeForEditing(stroke, !window.selectedStroke);
+                updateCalloutDestinationDrag(stroke, absPt);
                 window.pressCoords = absPt;
-                const orig = [];
-                for (let p of stroke.points) {
-                    orig.push(Qt.point(p.x, p.y));
-                }
-                window.originalPoints = orig;
-
-                // Bring selected stroke to front (move to end of strokes array)
-                const reorder = [...window.strokes];
-                reorder.splice(strokeIdx, 1);
-                reorder.push(stroke);
-                window.strokes = reorder;
                 if (window.activeCanvas) window.activeCanvas.requestPaint();
             }
             return;
@@ -847,7 +772,7 @@ MouseArea {
         if (stroke.tool !== "text" || !stroke.points || stroke.points.length === 0) return;
 
         window.editingStroke = stroke;
-        window.selectedStroke = null;
+        window.deselectStrokeForEditing(false);
         window.typingIsSpeechBubble = stroke.isSpeechBubble || false;
         // Store coordinates directly on the stroke to avoid cross-contamination
         // between concurrent edit sessions (multiple dialogs)
