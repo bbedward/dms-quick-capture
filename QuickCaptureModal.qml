@@ -319,14 +319,17 @@ DankModal {
     }
 
     function updateActiveIntensity(val) {
-        if (effectiveTool === "text") textFontSize = val;
-        else if (effectiveTool === "pixelate") pixelateIntensity = Math.max(2, Math.min(12, val));
+        const meta = Constants.getToolMeta(effectiveTool);
+        const clamped = Math.max(meta.min, Math.min(meta.max, val));
+
+        if (effectiveTool === "text") textFontSize = clamped;
+        else if (effectiveTool === "pixelate") pixelateIntensity = clamped;
         else if (effectiveTool === "spotlight") {
-            spotlightIntensity = Math.max(10, Math.min(100, val));
-            preGrabSpotlightIntensity = spotlightIntensity;
+            spotlightIntensity = clamped;
+            preGrabSpotlightIntensity = clamped;
         }
-        else if (effectiveTool === "callout") calloutZoom = Math.max(100, Math.min(500, val));
-        else strokeWidth = Math.max(1, Math.min(50, val));
+        else if (effectiveTool === "callout") calloutZoom = clamped;
+        else strokeWidth = clamped;
 
         if (selectedStroke) {
             selectedStroke.width = val;
@@ -1229,7 +1232,7 @@ DankModal {
 
     function getPresetThickness(index) {
         const val = window.pluginData["preset_" + index + "_thickness"];
-        return val !== undefined ? (parseInt(val, 10) || 6) : 6;
+        return val !== undefined ? (parseInt(val, 10) || Constants.getToolMeta("pen").defaultValue) : Constants.getToolMeta("pen").defaultValue;
     }
 
     function updateRadialPresets() {
@@ -1936,7 +1939,7 @@ DankModal {
         window.updateRadialPresets();
 
         let startTool = "pen";
-        let startThickness = 6;
+        let startThickness = Constants.getToolMeta("pen").defaultValue;
         let startColor = Theme.primary;
 
         const defaultToolMode = config.pluginData.defaultToolMode || "preset";
@@ -1951,11 +1954,11 @@ DankModal {
                 startThickness = window.getPresetThickness(presetIdx);
             } else {
                 startTool = config.pluginData.defaultTool || "pen";
-                startThickness = config.pluginData.defaultThickness || 6;
+                startThickness = config.pluginData.defaultThickness || Constants.getToolMeta("pen").defaultValue;
             }
         } else {
             startTool = config.pluginData.defaultTool || "pen";
-            startThickness = config.pluginData.defaultThickness || 6;
+            startThickness = config.pluginData.defaultThickness || Constants.getToolMeta("pen").defaultValue;
         }
 
         window.currentTool = startTool;
@@ -3357,11 +3360,13 @@ DankModal {
                     onPresetSelected: (preset) => {
                         window.currentTool = preset.tool;
                         window.currentColor = preset.color;
-                        if (preset.tool === "text") window.textFontSize = preset.thickness;
-                        else if (preset.tool === "pixelate") window.pixelateIntensity = Math.max(2, Math.min(12, preset.thickness));
-                        else if (preset.tool === "spotlight") window.spotlightIntensity = Math.max(10, Math.min(100, preset.thickness));
-                        else if (preset.tool === "callout") window.calloutZoom = Math.max(100, Math.min(500, preset.thickness));
-                        else window.strokeWidth = preset.thickness;
+                        const meta = Constants.getToolMeta(preset.tool);
+                        const clamped = Math.max(meta.min, Math.min(meta.max, preset.thickness));
+                        if (preset.tool === "text") window.textFontSize = clamped;
+                        else if (preset.tool === "pixelate") window.pixelateIntensity = clamped;
+                        else if (preset.tool === "spotlight") window.spotlightIntensity = clamped;
+                        else if (preset.tool === "callout") window.calloutZoom = clamped;
+                        else window.strokeWidth = clamped;
                         window.recordPresetUsage(preset);
                     }
                     onCenterClicked: {

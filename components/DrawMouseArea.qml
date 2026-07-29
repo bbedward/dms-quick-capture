@@ -1014,10 +1014,11 @@ MouseArea {
              return;
          }
 
-         if (window.currentTool === "select" && window.selectedStroke && window.selectedStroke.tool === "callout") {
-             if (window.calloutDestDragging) {
-                 const currentZoom = window.selectedStroke.width;
-                 const nextZoom = Math.max(100, Math.min(500, currentZoom + step * 10));
+          if (window.currentTool === "select" && window.selectedStroke && window.selectedStroke.tool === "callout") {
+              if (window.calloutDestDragging) {
+                  const calloutMeta = Constants.getToolMeta("callout");
+                  const currentZoom = window.selectedStroke.width;
+                  const nextZoom = Math.max(calloutMeta.min, Math.min(calloutMeta.max, currentZoom + step * calloutMeta.step));
                  window.selectedStroke.width = nextZoom;
                  window.calloutZoom = nextZoom;
                  
@@ -1039,8 +1040,9 @@ MouseArea {
                      window.originalPoints[3] = Qt.point(window.originalPoints[2].x + dw, window.originalPoints[2].y + dh);
                  }
              } else {
-                 const currentBorderWidth = window.selectedStroke.borderWidth !== undefined ? window.selectedStroke.borderWidth : 2;
-                 const nextBorderWidth = Math.max(1, Math.min(10, currentBorderWidth + step));
+                  const calloutMeta = Constants.getToolMeta("callout");
+                  const currentBorderWidth = window.selectedStroke.borderWidth !== undefined ? window.selectedStroke.borderWidth : 2;
+                  const nextBorderWidth = Math.max(calloutMeta.borderWidthMin, Math.min(calloutMeta.borderWidthMax, currentBorderWidth + step));
                  window.selectedStroke.borderWidth = nextBorderWidth;
                  window.strokeWidth = nextBorderWidth;
              }
