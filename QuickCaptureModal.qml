@@ -1185,6 +1185,16 @@ DankModal {
         }
     }
 
+    function applyExportAnnotationTransform(ctx, isBackdropActive) {
+        if (isBackdropActive || window.hasActiveCropSelection) {
+            const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
+            const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
+            ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
+            ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
+            ctx.translate(-cropX, -cropY);
+        }
+    }
+
     function getSpotlightRenderConfig() {
         return {
             screenshotWidth: window.screenshotWidth,
@@ -1237,6 +1247,196 @@ DankModal {
                 window.drawStroke(ctx, strokes[i]);
             }
         }
+    }
+
+    function drawActiveAnnotationLayer(ctx) {
+        if (!window.showAnnotations) return;
+
+        const strokes = window.strokes;
+        const selectedStroke = window.selectedStroke;
+
+        if (window.currentStroke && window.currentStroke.tool === "pixelate") {
+            const tempStroke = Object.assign({}, window.currentStroke, { isCurrent: true });
+            window.drawStroke(ctx, tempStroke);
+        }
+        if (selectedStroke && selectedStroke.tool === "pixelate") {
+            window.drawStroke(ctx, selectedStroke);
+        }
+
+        const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
+        const isEditingSpotlight = selectedStroke && selectedStroke.tool === "spotlight";
+        if (isDrawingSpotlight || isEditingSpotlight) {
+            const activeSpotlights = strokes.filter(s => s.tool === "spotlight" && s !== selectedStroke);
+            if (isDrawingSpotlight) activeSpotlights.push(window.currentStroke);
+            if (isEditingSpotlight) activeSpotlights.push(selectedStroke);
+
+            DrawingRenderer.drawSpotlightOverlay(ctx, activeSpotlights, window.getSpotlightRenderConfig());
+
+            if (window.currentStroke && (window.currentStroke.tool === "spotlight" || window.currentStroke.tool === "pixelate") && window.currentStroke.points.length >= 2) {
+                const p0 = window.currentStroke.points[0];
+                const p1 = window.currentStroke.points[window.currentStroke.points.length - 1];
+                const rx = Math.min(p0.x, p1.x);
+                const ry = Math.min(p0.y, p1.y);
+                const rw = Math.abs(p1.x - p0.x);
+                const rh = Math.abs(p1.y - p0.y);
+                DrawingRenderer.drawHighContrastDashedRect(ctx, rx, ry, rw, rh);
+            }
+        }
+
+        if (window.currentStroke && window.currentStroke.tool !== "spotlight" && window.currentStroke.tool !== "pixelate") {
+            const tempStroke = Object.assign({}, window.currentStroke, { isCurrent: true });
+            window.drawStroke(ctx, tempStroke);
+        }
+
+        if (selectedStroke && selectedStroke.tool !== "spotlight" && selectedStroke.tool !== "pixelate" && (!window.isTyping || selectedStroke !== window.editingStroke)) {
+            window.drawStroke(ctx, selectedStroke);
+        }
+
+        if (selectedStroke && window.currentTool === "select") {
+            DrawingRenderer.drawSelectionHandles(ctx, selectedStroke, Theme, window.estimateTextWidth, Qt, Helpers);
+        }
+    }
+
+    function drawTypingPreview(ctx) {
+        if (!window.isTyping) return;
+
+        ctx.fillStyle = window.currentColor;
+
+        let styleStr = "";
+        if (window.textItalic) styleStr += "italic ";
+        if (window.textBold) styleStr += "bold ";
+
+        ctx.font = `${styleStr}${Math.round(window.textFontSize)}px ${window.textFontFamily}`;
+        ctx.textAlign = "left";
+        ctx.textBaseline = "middle";
+
+        const rawText = window.currentTypingText || "";
+        const previewLines = rawText.split("\n");
+        const lineH = window.textFontSize * 1.35;
+
+        if (window.textBackground) {
+            let maxW = 0;
+            for (let li = 0; li < previewLines.length; li++) {
+                const m = ctx.measureText(previewLines[li]);
+                if (m.width > maxW) maxW = m.width;
+            }
+            if (maxW === 0) maxW = Math.max(10, window.textFontSize * 0.4);
+            const h = window.textFontSize;
+            const padX = h * 0.3;
+            const padY = h * 0.15;
+            const totalH = previewLines.length * lineH - (lineH - h);
+            const rx = window.typingCoords.x - padX;
+            const ry = window.typingCoords.y - padY;
+            const rw = maxW + padX * 2;
+            const rh = totalH + padY * 2;
+            const radius = window.textCornerRadius;
+
+            ctx.fillStyle = Helpers.getContrastingColor(window.currentColor.toString(), Qt);
+
+            if (radius > 0) {
+                ctx.beginPath();
+                ctx.moveTo(rx + radius, ry);
+                ctx.lineTo(rx + rw - radius, ry);
+                ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+                ctx.lineTo(rx + rw, ry + rh - radius);
+                ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+                ctx.lineTo(rx + radius, ry + rh);
+                ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+                ctx.lineTo(rx, ry + radius);
+                ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+                ctx.closePath();
+                ctx.fill();
+            } else {
+                ctx.fillRect(rx, ry, rw, rh);
+            }
+
+            ctx.fillStyle = window.currentColor;
+        }
+
+        for (let li = 0; li < previewLines.length; li++) {
+            ctx.fillText(previewLines[li], window.typingCoords.x, window.typingCoords.y + li * lineH + window.textFontSize / 2);
+        }
+
+        if (window.textUnderline) {
+            ctx.strokeStyle = window.currentColor;
+            ctx.lineWidth = Math.max(1.5, Math.round(window.textFontSize * 0.08));
+            for (let li = 0; li < previewLines.length; li++) {
+                const textWidth = ctx.measureText(previewLines[li]).width;
+                ctx.beginPath();
+                ctx.moveTo(window.typingCoords.x, window.typingCoords.y + li * lineH + window.textFontSize * 1.05);
+                ctx.lineTo(window.typingCoords.x + textWidth, window.typingCoords.y + li * lineH + window.textFontSize * 1.05);
+                ctx.stroke();
+            }
+        }
+
+        if (window.typingCursorVisible) {
+            let cursorLine = 0;
+            let charAcc = 0;
+            let cursorCol = 0;
+            const targetIdx = Math.max(0, Math.min(rawText.length, window.typingCursorIndex));
+
+            for (let i = 0; i < previewLines.length; i++) {
+                const lineLen = previewLines[i].length;
+                if (targetIdx <= charAcc + lineLen) {
+                    cursorLine = i;
+                    cursorCol = targetIdx - charAcc;
+                    break;
+                }
+                charAcc += lineLen + 1;
+            }
+
+            const subText = (previewLines[cursorLine] || "").substring(0, cursorCol);
+            const subW = ctx.measureText(subText).width;
+            const curX = window.typingCoords.x + subW;
+            const curY = window.typingCoords.y + cursorLine * lineH;
+
+            ctx.strokeStyle = window.currentColor;
+            ctx.lineWidth = Math.max(2, Math.round(window.textFontSize * 0.07));
+            ctx.beginPath();
+            ctx.moveTo(curX, curY);
+            ctx.lineTo(curX, curY + window.textFontSize);
+            ctx.stroke();
+        }
+    }
+
+    function drawExportAnnotationLayer(ctx, isBackdropActive) {
+        if (!window.showAnnotations) return;
+
+        ctx.save();
+        window.applyExportAnnotationTransform(ctx, isBackdropActive);
+
+        for (let i = 0; i < window.strokes.length; i++) {
+            if (window.strokes[i].tool === "pixelate") {
+                window.drawStroke(ctx, window.strokes[i]);
+            }
+        }
+        if (window.currentStroke && window.currentStroke.tool === "pixelate") {
+            window.drawStroke(ctx, window.currentStroke);
+        }
+
+        const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
+        if (window.hasSpotlights || isDrawingSpotlight) {
+            const spotlights = window.strokes.filter(s => s.tool === "spotlight");
+            if (isDrawingSpotlight) {
+                spotlights.push(window.currentStroke);
+            }
+
+            if (spotlights.length > 0) {
+                DrawingRenderer.drawSpotlightOverlay(ctx, spotlights, window.getSpotlightRenderConfig());
+            }
+        }
+
+        for (let i = 0; i < window.strokes.length; i++) {
+            if (window.strokes[i].tool !== "pixelate" && window.strokes[i].tool !== "spotlight") {
+                window.drawStroke(ctx, window.strokes[i]);
+            }
+        }
+
+        if (window.currentStroke && window.currentStroke.tool !== "pixelate" && window.currentStroke.tool !== "spotlight") {
+            window.drawStroke(ctx, window.currentStroke);
+        }
+
+        ctx.restore();
     }
 
     // Radial Menu Presets & History
@@ -2896,156 +3096,8 @@ DankModal {
                             window.applyEditorAnnotationTransform(ctx, isBackdropActive);
 
                             if (window.showAnnotations) {
-                                const strokes = window.strokes;
-                                const selectedStroke = window.selectedStroke;
-
-                                // Draw active/selected pixelate stroke
-                                if (window.currentStroke && window.currentStroke.tool === "pixelate") {
-                                    const tempStroke = Object.assign({}, window.currentStroke, { isCurrent: true });
-                                    drawStroke(ctx, tempStroke);
-                                }
-                                if (selectedStroke && selectedStroke.tool === "pixelate") {
-                                    drawStroke(ctx, selectedStroke);
-                                }
-
-                                // Draw active/selected spotlight dimming + holes
-                                const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
-                                const isEditingSpotlight = selectedStroke && selectedStroke.tool === "spotlight";
-                                if (isDrawingSpotlight || isEditingSpotlight) {
-                                    const activeSpotlights = strokes.filter(s => s.tool === "spotlight" && s !== selectedStroke);
-                                    if (isDrawingSpotlight) activeSpotlights.push(window.currentStroke);
-                                    if (isEditingSpotlight) activeSpotlights.push(selectedStroke);
-
-                                    DrawingRenderer.drawSpotlightOverlay(ctx, activeSpotlights, window.getSpotlightRenderConfig());
-
-                                    if (window.currentStroke && (window.currentStroke.tool === "spotlight" || window.currentStroke.tool === "pixelate") && window.currentStroke.points.length >= 2) {
-                                        const p0 = window.currentStroke.points[0];
-                                        const p1 = window.currentStroke.points[window.currentStroke.points.length - 1];
-                                        const rx = Math.min(p0.x, p1.x);
-                                        const ry = Math.min(p0.y, p1.y);
-                                        const rw = Math.abs(p1.x - p0.x);
-                                        const rh = Math.abs(p1.y - p0.y);
-                                        DrawingRenderer.drawHighContrastDashedRect(ctx, rx, ry, rw, rh);
-                                    }
-                                }
-
-                                // Draw active/current stroke
-                                if (window.currentStroke && window.currentStroke.tool !== "spotlight" && window.currentStroke.tool !== "pixelate") {
-                                    const tempStroke = Object.assign({}, window.currentStroke, { isCurrent: true });
-                                    drawStroke(ctx, tempStroke);
-                                }
-
-                                // Draw selected stroke
-                                if (selectedStroke && selectedStroke.tool !== "spotlight" && selectedStroke.tool !== "pixelate" && (!window.isTyping || selectedStroke !== window.editingStroke)) {
-                                    drawStroke(ctx, selectedStroke);
-                                }
-
-                                // Draw selection resize handles in select mode
-                                if (selectedStroke && window.currentTool === "select") {
-                                    DrawingRenderer.drawSelectionHandles(ctx, selectedStroke, Theme, window.estimateTextWidth, Qt, Helpers);
-                                }
-
-                                // Draw temporary live typing text
-                                if (window.isTyping) {
-                                    ctx.fillStyle = window.currentColor;
-                                    
-                                    let styleStr = "";
-                                    if (window.textItalic) styleStr += "italic ";
-                                    if (window.textBold) styleStr += "bold ";
-                                    
-                                    ctx.font = `${styleStr}${Math.round(window.textFontSize)}px ${window.textFontFamily}`;
-                                    ctx.textAlign = "left";
-                                    ctx.textBaseline = "middle";
-
-                                    const rawText = window.currentTypingText || "";
-                                    const previewLines = rawText.split("\n");
-                                    const lineH = window.textFontSize * 1.35;
-
-                                    if (window.textBackground) {
-                                        let maxW = 0;
-                                        for (let li = 0; li < previewLines.length; li++) {
-                                            const m = ctx.measureText(previewLines[li]);
-                                            if (m.width > maxW) maxW = m.width;
-                                        }
-                                        if (maxW === 0) maxW = Math.max(10, window.textFontSize * 0.4);
-                                        const h = window.textFontSize;
-                                        const padX = h * 0.3;
-                                        const padY = h * 0.15;
-                                        const totalH = previewLines.length * lineH - (lineH - h);
-                                        const rx = window.typingCoords.x - padX;
-                                        const ry = window.typingCoords.y - padY;
-                                        const rw = maxW + padX * 2;
-                                        const rh = totalH + padY * 2;
-                                        const radius = window.textCornerRadius;
-
-                                        ctx.fillStyle = Helpers.getContrastingColor(window.currentColor.toString(), Qt);
-                                        
-                                        if (radius > 0) {
-                                            ctx.beginPath();
-                                            ctx.moveTo(rx + radius, ry);
-                                            ctx.lineTo(rx + rw - radius, ry);
-                                            ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
-                                            ctx.lineTo(rx + rw, ry + rh - radius);
-                                            ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
-                                            ctx.lineTo(rx + radius, ry + rh);
-                                            ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
-                                            ctx.lineTo(rx, ry + radius);
-                                            ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-                                            ctx.closePath();
-                                            ctx.fill();
-                                        } else {
-                                            ctx.fillRect(rx, ry, rw, rh);
-                                        }
-
-                                        ctx.fillStyle = window.currentColor;
-                                    }
-
-                                    for (let li = 0; li < previewLines.length; li++) {
-                                        ctx.fillText(previewLines[li], window.typingCoords.x, window.typingCoords.y + li * lineH + window.textFontSize / 2);
-                                    }
-
-                                    if (window.textUnderline) {
-                                        ctx.strokeStyle = window.currentColor;
-                                        ctx.lineWidth = Math.max(1.5, Math.round(window.textFontSize * 0.08));
-                                        for (let li = 0; li < previewLines.length; li++) {
-                                            const textWidth = ctx.measureText(previewLines[li]).width;
-                                            ctx.beginPath();
-                                            ctx.moveTo(window.typingCoords.x, window.typingCoords.y + li * lineH + window.textFontSize * 1.05);
-                                            ctx.lineTo(window.typingCoords.x + textWidth, window.typingCoords.y + li * lineH + window.textFontSize * 1.05);
-                                            ctx.stroke();
-                                        }
-                                    }
-
-                                    // Draw Overlaid Blinking Cursor Line
-                                    if (window.typingCursorVisible) {
-                                        let cursorLine = 0;
-                                        let charAcc = 0;
-                                        let cursorCol = 0;
-                                        const targetIdx = Math.max(0, Math.min(rawText.length, window.typingCursorIndex));
-
-                                        for (let i = 0; i < previewLines.length; i++) {
-                                            const lineLen = previewLines[i].length;
-                                            if (targetIdx <= charAcc + lineLen) {
-                                                cursorLine = i;
-                                                cursorCol = targetIdx - charAcc;
-                                                break;
-                                            }
-                                            charAcc += lineLen + 1;
-                                        }
-
-                                        const subText = (previewLines[cursorLine] || "").substring(0, cursorCol);
-                                        const subW = ctx.measureText(subText).width;
-                                        const curX = window.typingCoords.x + subW;
-                                        const curY = window.typingCoords.y + cursorLine * lineH;
-
-                                        ctx.strokeStyle = window.currentColor;
-                                        ctx.lineWidth = Math.max(2, Math.round(window.textFontSize * 0.07));
-                                        ctx.beginPath();
-                                        ctx.moveTo(curX, curY);
-                                        ctx.lineTo(curX, curY + window.textFontSize);
-                                        ctx.stroke();
-                                    }
-                                }
+                                window.drawActiveAnnotationLayer(ctx);
+                                window.drawTypingPreview(ctx);
                             }
 
                             ctx.restore();
@@ -3189,52 +3241,7 @@ DankModal {
                             }
                         }
 
-                        // 1.5 Overlay the Spotlight Layer and Annotations
-                        if (window.showAnnotations) {
-                            ctx.save();
-                            if (isBackdropActive || window.hasActiveCropSelection) {
-                                const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                                const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-                                ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
-                                ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
-                                ctx.translate(-cropX, -cropY);
-                            }
-
-                            // 1.4 Draw Pixelate BEFORE spotlight layer in export
-                            for (let i = 0; i < window.strokes.length; i++) {
-                                if (window.strokes[i].tool === "pixelate") {
-                                    window.drawStroke(ctx, window.strokes[i]);
-                                }
-                            }
-                            if (window.currentStroke && window.currentStroke.tool === "pixelate") {
-                                window.drawStroke(ctx, window.currentStroke);
-                            }
-
-                            const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
-                            if (window.hasSpotlights || isDrawingSpotlight) {
-                                const spotlights = window.strokes.filter(s => s.tool === "spotlight");
-                                if (isDrawingSpotlight) {
-                                    spotlights.push(window.currentStroke);
-                                }
-
-                                if (spotlights.length > 0) {
-                                    DrawingRenderer.drawSpotlightOverlay(ctx, spotlights, window.getSpotlightRenderConfig());
-                                }
-                            }
-
-                            // 2. Overlay the annotations at full resolution
-                            // Draw all completed strokes (except pixelate and spotlight)
-                            for (var i = 0; i < window.strokes.length; i++) {
-                                if (window.strokes[i].tool !== "pixelate" && window.strokes[i].tool !== "spotlight") {
-                                    window.drawStroke(ctx, window.strokes[i]);
-                                }
-                            }
-                            // Draw current dragging stroke if any
-                            if (window.currentStroke && window.currentStroke.tool !== "pixelate" && window.currentStroke.tool !== "spotlight") {
-                                window.drawStroke(ctx, window.currentStroke);
-                            }
-                            ctx.restore();
-                        }
+                        window.drawExportAnnotationLayer(ctx, isBackdropActive);
 
                         // 3. Overlay custom watermark if enabled
                         const pData = (window.parentWidget && window.parentWidget.pluginData) || {};
