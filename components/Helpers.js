@@ -457,7 +457,12 @@ function estimateTextWidth(text, fontSize, isBold, isMonospace) {
 // ─── 6. Stroke geometry & hit-testing ────────────────────────────────────────
 
 /**
- * Finds the index of the stroke under coordinate (mx, my).
+ * Calculates the bounding box of a stroke.
+ * @param {object} stroke - The stroke object.
+ * @param {function} estimateTextWidthFn - Text width estimation function.
+ * @returns {object} { minX, minY, maxX, maxY }
+ */
+function getStrokeBBox(stroke, estimateTextWidthFn) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const pts = stroke.points;
     const len = pts.length;
@@ -527,6 +532,14 @@ function estimateTextWidth(text, fontSize, isBold, isMonospace) {
     return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
 }
 
+/**
+ * Finds the index of the stroke under coordinate (mx, my).
+ * @param {number} mx - X coordinate.
+ * @param {number} my - Y coordinate.
+ * @param {array} strokes - List of strokes.
+ * @param {function} estimateTextWidthFn - Text width estimation function.
+ * @returns {number} Stroke index or -1.
+ */
 function findStrokeAt(mx, my, strokes, estimateTextWidthFn) {
     for (let i = strokes.length - 1; i >= 0; i--) {
         const stroke = strokes[i];

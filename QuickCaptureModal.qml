@@ -176,6 +176,11 @@ DankModal {
             window.savePreGrabState();
             window.selectedStroke = s;
             window.currentColor = s.color;
+            const orig = [];
+            for (let p of s.points) {
+                orig.push(Qt.point(p.x, p.y));
+            }
+            window.originalPoints = orig;
             if (s.tool === "text") window.textFontSize = s.width;
             else if (s.tool === "pixelate") window.pixelateIntensity = s.width;
             else if (s.tool === "spotlight") window.spotlightIntensity = s.width;
