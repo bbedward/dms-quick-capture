@@ -1381,11 +1381,11 @@ DankModal {
             return;
         }
         if (window.hasSelection && window.effectiveBackdropMode === "none") {
-            window.exportCanvasItem.width = window.cropRect.width;
-            window.exportCanvasItem.height = window.cropRect.height;
+            window.exportCanvasItem.width = window.cropRect.width / window.dpr;
+            window.exportCanvasItem.height = window.cropRect.height / window.dpr;
         } else if (window.activeCanvas) {
-            window.exportCanvasItem.width = window.canvasWidth;
-            window.exportCanvasItem.height = window.canvasHeight;
+            window.exportCanvasItem.width = window.canvasWidth / window.dpr;
+            window.exportCanvasItem.height = window.canvasHeight / window.dpr;
         }
         window.exportCanvasItem.requestPaint();
     }
