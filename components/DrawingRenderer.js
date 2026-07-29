@@ -4,9 +4,101 @@
 function ellipseEdgePoint(cx, cy, rx, ry, tx, ty) {
     const dx = tx - cx;
     const dy = ty - cy;
-    if (dx === 0 && dy === 0) return { x: cx + rx, y: cy };
+    if (dx === 0 && dy === 0) { return { x: cx + rx, y: cy }; }
     const angle = Math.atan2(dy, dx);
     return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
+}
+
+function drawEllipsePath(ctx, cx, cy, rx, ry) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.scale(rx, ry);
+    ctx.beginPath();
+    ctx.arc(0, 0, 1, 0, 2 * Math.PI);
+    ctx.restore();
+}
+
+/**
+ * Draws the spotlight dimming overlay with holes for spotlight rectangles.
+ * Extracted to avoid duplication across bakedCanvas, drawingCanvas, and exportCanvas onPaint handlers.
+ *
+ * @param {object} ctx - Canvas 2D context (must be in save/restore pair)
+ * @param {Array} spotlights - Array of spotlight stroke objects
+ * @param {object} config - Configuration object with:
+ *   - screenshotWidth, screenshotHeight: canvas dimensions
+ *   - spotlightIntensity: 0-100 opacity value
+ *   - hasActiveCropSelection: boolean
+ *   - cropRect: {x, y, width, height}
+ *   - effectiveBackdropMode: "none" | "solid" | "gradient" | etc.
+ *   - backdropCornerRadius: number
+ *   - roundRect: boolean
+ *   - cornerRadius: number (Theme.cornerRadius)
+ */
+function drawSpotlightOverlay(ctx, spotlights, config) {
+    if (spotlights.length === 0) return;
+
+    const sw = config.screenshotWidth;
+    const sh = config.screenshotHeight;
+    const spotlightOpacity = config.spotlightIntensity / 100.0;
+    const cropX = config.hasActiveCropSelection ? config.cropRect.x : 0;
+    const cropY = config.hasActiveCropSelection ? config.cropRect.y : 0;
+
+    ctx.save();
+    ctx.beginPath();
+
+    // Outer rectangle covering the whole view (rounded if backdrop active)
+    if (config.effectiveBackdropMode !== "none" && config.backdropCornerRadius > 0) {
+        const r = Math.min(config.backdropCornerRadius, sw / 2, sh / 2);
+        ctx.moveTo(cropX + r, cropY);
+        ctx.lineTo(cropX + sw - r, cropY);
+        ctx.arcTo(cropX + sw, cropY, cropX + sw, cropY + r, r);
+        ctx.lineTo(cropX + sw, cropY + sh - r);
+        ctx.arcTo(cropX + sw, cropY + sh, cropX + sw - r, cropY + sh, r);
+        ctx.lineTo(cropX + r, cropY + sh);
+        ctx.arcTo(cropX, cropY + sh, cropX, cropY + sh - r, r);
+        ctx.lineTo(cropX, cropY + r);
+        ctx.arcTo(cropX, cropY, cropX + r, cropY, r);
+        ctx.closePath();
+    } else {
+        ctx.rect(cropX, cropY, sw, sh);
+    }
+
+    // Add spotlight rectangles to the path
+    for (let i = 0; i < spotlights.length; i++) {
+        const s = spotlights[i];
+        if (s.points.length >= 2) {
+            const p0 = s.points[0];
+            const p1 = s.points[s.points.length - 1];
+            const rx = Math.min(p0.x, p1.x);
+            const ry = Math.min(p0.y, p1.y);
+            const rw = Math.abs(p1.x - p0.x);
+            const rh = Math.abs(p1.y - p0.y);
+
+            if (rw > 0 && rh > 0) {
+                const radius = config.roundRect ? Math.min(config.cornerRadius, Math.min(rw, rh) / 2) : 0;
+                if (radius > 0) {
+                    ctx.moveTo(rx + radius, ry);
+                    ctx.lineTo(rx + rw - radius, ry);
+                    ctx.arcTo(rx + rw, ry, rx + rw, ry + radius, radius);
+                    ctx.lineTo(rx + rw, ry + rh - radius);
+                    ctx.arcTo(rx + rw, ry + rh, rx + rw - radius, ry + rh, radius);
+                    ctx.lineTo(rx + radius, ry + rh);
+                    ctx.arcTo(rx, ry + rh, rx, ry + rh - radius, radius);
+                    ctx.lineTo(rx, ry + radius);
+                    ctx.arcTo(rx, ry, rx + radius, ry, radius);
+                    ctx.closePath();
+                } else {
+                    ctx.rect(rx, ry, rw, rh);
+                }
+            }
+        }
+    }
+
+    // Clip and fill with dimming overlay
+    ctx.clip("evenodd");
+    ctx.fillStyle = `rgba(0, 0, 0, ${spotlightOpacity})`;
+    ctx.fillRect(cropX, cropY, sw, sh);
+    ctx.restore();
 }
 
 function drawEllipsePath(ctx, cx, cy, rx, ry) {
@@ -462,7 +554,7 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         const text = Helpers.formatCounter(stroke.counter, stroke.format || "numeric");
         ctx.fillStyle = textColor;
         const fontFam = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
-        ctx.font = "bold " + fontSize + "px " + fontFam;
+        ctx.font = `bold ${fontSize}px ${fontFam}`;
         ctx.textBaseline = "middle";
         ctx.textAlign = "left";
         const textW = ctx.measureText(text).width;
@@ -495,13 +587,13 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                 const srcCy = (srcP0.y + srcP1.y) / 2;
                 const visX = config.canvasMinX || 0;
                 const visY = config.canvasMinY || 0;
-                const visW = config.canvasWidth || 1920;
-                const visH = config.canvasHeight || 1080;
+                const visW = config.canvasWidth || Constants.fallbackCanvasWidth;
+                const visH = config.canvasHeight || Constants.fallbackCanvasHeight;
                 const visCx = visX + visW / 2;
                 const visCy = visY + visH / 2;
                 const dirX = visCx - srcCx >= 0 ? 1 : -1;
                 const dirY = visCy - srcCy >= 0 ? 1 : -1;
-                const margin = 50;
+                const margin = Constants.calloutAutoPlacementMargin;
 
                 let dx = dirX > 0 ? srcP1.x + margin : srcP0.x - dw - margin;
                 let dy = dirY > 0 ? srcP1.y + margin : srcP0.y - dh - margin;
@@ -665,12 +757,12 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         const sysFont = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
         const fFamily = (stroke.fontFamily && stroke.fontFamily !== "system") ? stroke.fontFamily : (stroke.isMonospace ? "monospace" : sysFont);
         
-        ctx.font = styleStr + Math.round(stroke.width) + "px " + fFamily;
+        ctx.font = `${styleStr}${Math.round(stroke.width)}px ${fFamily}`;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
         const lines = (stroke.text || "").split("\n");
-        const lineHeight = stroke.width * 1.35;
+        const lineHeight = stroke.width * Constants.textLineHeightMultiplier;
 
         const isBubble = stroke.isSpeechBubble && stroke.points.length >= 2;
 
@@ -1022,7 +1114,7 @@ function drawSelectionHandles(ctx, stroke, Theme, estimateTextWidthFn, Qt, Helpe
         const txt = stroke.text || "";
         const lines = String(txt).split("\n");
         const numLines = lines.length || 1;
-        const lineH = fontSize * 1.35;
+        const lineH = fontSize * Constants.textLineHeightMultiplier;
         let tw = Constants.minTextWidth;
         if (estimateTextWidthFn) {
             tw = Math.max(Constants.minTextWidth, estimateTextWidthFn(txt, fontSize, stroke.isBold === true, stroke.isMonospace === true));
@@ -1129,7 +1221,7 @@ function drawSelectionOverlay(ctx, options, Theme) {
         ctx.setLineDash([]);
 
         if (!options.isOcrMode) {
-            const refW = options.canvasWidth || 1920;
+            const refW = options.canvasWidth || Constants.fallbackCanvasWidth;
             const arm = Math.max(10, Math.min(24, refW * 0.025));
             const edgeLen = Math.max(14, Math.min(30, refW * 0.03));
             const sw = Math.max(1.5, Math.min(3, refW * 0.0035));
@@ -1220,7 +1312,7 @@ function drawWatermark(ctx, options, config) {
         const fontSize = Math.round(Math.max(12, options.canvasHeight * options.textScale));
         
         const watermarkFont = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
-        ctx.font = "bold " + fontSize + "px " + watermarkFont;
+        ctx.font = `bold ${fontSize}px ${watermarkFont}`;
         ctx.fillStyle = "#ffffff";
         ctx.shadowColor = "#000000";
         ctx.shadowOffsetX = 1;

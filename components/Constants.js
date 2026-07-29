@@ -103,6 +103,14 @@ const compactControlHeight = 40;
 const customRatioPopoverHeight = 120;
 const verticalSelectorItemWidth = 32;
 
+// Text rendering constants
+const textLineHeightMultiplier = 1.35;  // line-height relative to font size
+
+// Callout auto-placement constants
+const calloutAutoPlacementMargin = 50;  // px gap from source rect when auto-placing callout dest
+const fallbackCanvasWidth = 1920;       // used when canvasWidth is not passed in render config
+const fallbackCanvasHeight = 1080;      // used when canvasHeight is not passed in render config
+
 // Default Backdrop Presets
 const defaultBackdropPresets = [
     {
