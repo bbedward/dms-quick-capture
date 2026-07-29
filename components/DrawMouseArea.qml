@@ -46,6 +46,19 @@ MouseArea {
         return Qt.point(rx, ry);
     }
 
+    function updateSelectHover(mx, my) {
+        if (window.currentTool !== "select") {
+            hoveredStrokeIdx = -1;
+            return;
+        }
+
+        const absPt = getAbsolutePoint(mx, my);
+        hoveredStrokeIdx = window.findStrokeAt(absPt.x, absPt.y);
+        hoveredHandle = window.selectedStroke
+            ? window.getSelectedStrokeHandleAt(absPt.x, absPt.y)
+            : "none";
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -62,7 +75,7 @@ MouseArea {
             if (window.selectedStroke) {
                 hoveredHandle = window.getSelectedStrokeHandleAt(absPt.x, absPt.y);
 
-                if (window.activeHandle === "none" && window.originalPoints.length > 0) {
+                if (window.activeHandle === "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
                     let dx = absPt.x - window.pressCoords.x;
                     let dy = absPt.y - window.pressCoords.y;
 
@@ -101,7 +114,7 @@ MouseArea {
                     if (window.selectedStroke.tool === "redact") {
                         window.selectedStroke.cachedCleanColor = undefined;
                     }
-                } else if (window.activeHandle !== "none" && window.originalPoints.length > 0) {
+                } else if (window.activeHandle !== "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
                     const dx = absPt.x - window.pressCoords.x;
                     const dy = absPt.y - window.pressCoords.y;
                     const orig = window.originalPoints;
@@ -285,7 +298,7 @@ MouseArea {
                         window.selectedStroke.points = newPoints;
                     }
                 }
-                if (window.originalPoints.length === 0) {
+                if (window.originalPoints.length === 0 || !(mouse.buttons & Qt.LeftButton)) {
                     hoveredStrokeIdx = window.findStrokeAt(absPt.x, absPt.y);
                 }
                 drawingCanvas.requestPaint();
@@ -1078,6 +1091,7 @@ MouseArea {
          function onCurrentToolChanged() {
              penSmoothX = 0;
              penSmoothY = 0;
+             updateSelectHover(window.cursorX * window.editScale, window.cursorY * window.editScale);
          }
      }
 }
