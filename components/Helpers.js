@@ -17,6 +17,8 @@
 
 // ─── 1. Color utilities ────────────────────────────────────────────────────────
 
+/**
+ * Converts a hex color string to an RGB object { r, g, b } with values 0-1.
  * @param {string} hex - The hex color string.
  * @param {object} Qt - The Qt object.
  * @returns {object} { r, g, b }
