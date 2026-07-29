@@ -1169,6 +1169,36 @@ DankModal {
         if (window.bakedCanvas) window.bakedCanvas.requestPaint();
     }
 
+    function applyEditorAnnotationTransform(ctx, isBackdropActive) {
+        if (isBackdropActive || window.hasActiveCropSelection) {
+            const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
+            const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
+            ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
+            if (isBackdropActive) {
+                ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
+            }
+            ctx.translate(-cropX, -cropY);
+        } else if (window.hasSelection) {
+            ctx.beginPath();
+            ctx.rect(window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height);
+            ctx.clip();
+        }
+    }
+
+    function getSpotlightRenderConfig() {
+        return {
+            screenshotWidth: window.screenshotWidth,
+            screenshotHeight: window.screenshotHeight,
+            spotlightIntensity: window.spotlightIntensity,
+            hasActiveCropSelection: window.hasActiveCropSelection,
+            cropRect: window.cropRect,
+            effectiveBackdropMode: window.effectiveBackdropMode,
+            backdropCornerRadius: window.backdropCornerRadius,
+            roundRect: window.roundRect,
+            cornerRadius: Theme.cornerRadius
+        };
+    }
+
     function drawStroke(ctx, stroke) {
         DrawingRenderer.drawStroke(ctx, stroke, Helpers, Qt, Theme, {
             roundRect: window.roundRect,
@@ -1180,6 +1210,33 @@ DankModal {
             canvasMinX: window.hasActiveCropSelection ? window.cropRect.x : 0,
             canvasMinY: window.hasActiveCropSelection ? window.cropRect.y : 0,
         });
+    }
+
+    function drawBakedAnnotationLayer(ctx) {
+        if (!window.showAnnotations) return;
+
+        const strokes = window.strokes;
+        const selectedStroke = window.selectedStroke;
+
+        // Pixelate must render before spotlight dimming.
+        for (let i = 0; i < strokes.length; i++) {
+            if (strokes[i].tool === "pixelate" && strokes[i] !== selectedStroke) {
+                window.drawStroke(ctx, strokes[i]);
+            }
+        }
+
+        const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
+        const isEditingSpotlight = selectedStroke && selectedStroke.tool === "spotlight";
+        const spotlightStrokes = strokes.filter(s => s.tool === "spotlight" && s !== selectedStroke);
+        if (spotlightStrokes.length > 0 && !isDrawingSpotlight && !isEditingSpotlight) {
+            DrawingRenderer.drawSpotlightOverlay(ctx, spotlightStrokes, window.getSpotlightRenderConfig());
+        }
+
+        for (let i = 0; i < strokes.length; i++) {
+            if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate" && strokes[i] !== selectedStroke && (!window.isTyping || strokes[i] !== window.editingStroke)) {
+                window.drawStroke(ctx, strokes[i]);
+            }
+        }
     }
 
     // Radial Menu Presets & History
@@ -2768,55 +2825,9 @@ DankModal {
 
                             // 2. Draw annotations (translated in edit mode, or clipped in crop mode)
                             ctx.save();
-                            if (isBackdropActive || window.hasActiveCropSelection) {
-                                const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                                const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-                                ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
-                                if (isBackdropActive) {
-                                    ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
-                                }
-                                ctx.translate(-cropX, -cropY);
-                            } else if (window.hasSelection) {
-                                ctx.beginPath();
-                                ctx.rect(window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height);
-                                ctx.clip();
-                            }
+                            window.applyEditorAnnotationTransform(ctx, isBackdropActive);
 
-                            if (window.showAnnotations) {
-                                const strokes = window.strokes;
-                                const selectedStroke = window.selectedStroke;
-
-                                // 2.05 Draw Pixelate strokes BEFORE dimming layer
-                                for (let i = 0; i < strokes.length; i++) {
-                                    if (strokes[i].tool === "pixelate" && strokes[i] !== selectedStroke) {
-                                        drawStroke(ctx, strokes[i]);
-                                    }
-                                }
-
-                                // 2.1 Draw Spotlight Layer (Dimming + Holes)
-                                const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
-                                const isEditingSpotlight = selectedStroke && selectedStroke.tool === "spotlight";
-                                const spotlightStrokes = strokes.filter(s => s.tool === "spotlight" && s !== selectedStroke);
-                                if (spotlightStrokes.length > 0 && !isDrawingSpotlight && !isEditingSpotlight) {
-                                    DrawingRenderer.drawSpotlightOverlay(ctx, spotlightStrokes, {
-                                        screenshotWidth: window.screenshotWidth,
-                                        screenshotHeight: window.screenshotHeight,
-                                        spotlightIntensity: window.spotlightIntensity,
-                                        hasActiveCropSelection: window.hasActiveCropSelection,
-                                        cropRect: window.cropRect,
-                                        effectiveBackdropMode: window.effectiveBackdropMode,
-                                        backdropCornerRadius: window.backdropCornerRadius,
-                                        roundRect: window.roundRect,
-                                        cornerRadius: Theme.cornerRadius
-                                    });
-                                }
-
-                                for (let i = 0; i < strokes.length; i++) {
-                                    if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate" && strokes[i] !== selectedStroke && (!window.isTyping || strokes[i] !== window.editingStroke)) {
-                                        drawStroke(ctx, strokes[i]);
-                                    }
-                                }
-                            }
+                            window.drawBakedAnnotationLayer(ctx);
 
                             ctx.restore();
 
@@ -2882,19 +2893,7 @@ DankModal {
                             // 2. Draw active/selected annotations (translated in edit mode, or clipped in crop mode)
                             ctx.save();
                             const isBackdropActive = window.effectiveBackdropMode !== "none";
-                            if (isBackdropActive || window.hasActiveCropSelection) {
-                                const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                                const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-                                ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
-                                if (isBackdropActive) {
-                                    ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
-                                }
-                                ctx.translate(-cropX, -cropY);
-                            } else if (window.hasSelection) {
-                                ctx.beginPath();
-                                ctx.rect(window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height);
-                                ctx.clip();
-                            }
+                            window.applyEditorAnnotationTransform(ctx, isBackdropActive);
 
                             if (window.showAnnotations) {
                                 const strokes = window.strokes;
@@ -2917,17 +2916,7 @@ DankModal {
                                     if (isDrawingSpotlight) activeSpotlights.push(window.currentStroke);
                                     if (isEditingSpotlight) activeSpotlights.push(selectedStroke);
 
-                                    DrawingRenderer.drawSpotlightOverlay(ctx, activeSpotlights, {
-                                        screenshotWidth: window.screenshotWidth,
-                                        screenshotHeight: window.screenshotHeight,
-                                        spotlightIntensity: window.spotlightIntensity,
-                                        hasActiveCropSelection: window.hasActiveCropSelection,
-                                        cropRect: window.cropRect,
-                                        effectiveBackdropMode: window.effectiveBackdropMode,
-                                        backdropCornerRadius: window.backdropCornerRadius,
-                                        roundRect: window.roundRect,
-                                        cornerRadius: Theme.cornerRadius
-                                    });
+                                    DrawingRenderer.drawSpotlightOverlay(ctx, activeSpotlights, window.getSpotlightRenderConfig());
 
                                     if (window.currentStroke && (window.currentStroke.tool === "spotlight" || window.currentStroke.tool === "pixelate") && window.currentStroke.points.length >= 2) {
                                         const p0 = window.currentStroke.points[0];
@@ -3229,17 +3218,7 @@ DankModal {
                                 }
 
                                 if (spotlights.length > 0) {
-                                    DrawingRenderer.drawSpotlightOverlay(ctx, spotlights, {
-                                        screenshotWidth: window.screenshotWidth,
-                                        screenshotHeight: window.screenshotHeight,
-                                        spotlightIntensity: window.spotlightIntensity,
-                                        hasActiveCropSelection: window.hasActiveCropSelection,
-                                        cropRect: window.cropRect,
-                                        effectiveBackdropMode: window.effectiveBackdropMode,
-                                        backdropCornerRadius: window.backdropCornerRadius,
-                                        roundRect: window.roundRect,
-                                        cornerRadius: Theme.cornerRadius
-                                    });
+                                    DrawingRenderer.drawSpotlightOverlay(ctx, spotlights, window.getSpotlightRenderConfig());
                                 }
                             }
 
