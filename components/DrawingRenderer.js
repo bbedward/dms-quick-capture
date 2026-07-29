@@ -9,15 +9,6 @@ function ellipseEdgePoint(cx, cy, rx, ry, tx, ty) {
     return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
 }
 
-function drawEllipsePath(ctx, cx, cy, rx, ry) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.scale(rx, ry);
-    ctx.beginPath();
-    ctx.arc(0, 0, 1, 0, 2 * Math.PI);
-    ctx.restore();
-}
-
 /**
  * Draws the spotlight dimming overlay with holes for spotlight rectangles.
  * Extracted to avoid duplication across bakedCanvas, drawingCanvas, and exportCanvas onPaint handlers.
