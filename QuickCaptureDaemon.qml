@@ -18,7 +18,8 @@ PluginComponent {
     property bool isCapturing: false
     readonly property string middleClickAction: (pluginData.middleClickAction || "region")
     readonly property var allowedModes: ["region", "window", "full", "output", "all", "last", "scroll"]
-    property string activeIpcMode: ""
+    property string pendingCaptureAction: "edit"
+    property string pendingCaptureMode: ""
     property bool isDownloading: false
     property string currentCapturePath: ""
     property string captureOutputName: ""
@@ -32,7 +33,7 @@ PluginComponent {
     }
 
     function screenshotMode() {
-        return root.activeIpcMode !== "" ? root.activeIpcMode : root.middleClickAction;
+        return root.pendingCaptureMode !== "" ? root.pendingCaptureMode : root.middleClickAction;
     }
 
     function modeFlags() {
@@ -71,8 +72,8 @@ PluginComponent {
             return;
         }
 
-        root.activeIpcMode = mode || "";
-        captureDelayTimer.captureAction = action || "edit";
+        root.pendingCaptureMode = mode || "";
+        root.pendingCaptureAction = action || "edit";
 
         if (root.isCapturing || modal.shouldBeVisible)
             return;
@@ -90,45 +91,33 @@ PluginComponent {
         return "'" + s.replace(/'/g, "'\\''") + "'";
     }
 
-    function toastInfo(m) {
-        if (typeof ToastService !== "undefined" && ToastService)
-            ToastService.showInfo(m);
-    }
-    function toastError(m) {
-        if (typeof ToastService !== "undefined" && ToastService)
-            ToastService.showError(m);
-    }
-    function toastWarning(m) {
-        if (typeof ToastService !== "undefined" && ToastService)
-            ToastService.showWarning(m);
-    }
+    readonly property bool hasToast: typeof ToastService !== "undefined" && !!ToastService
+    function toastInfo(m)    { if (hasToast) ToastService.showInfo(m); }
+    function toastError(m)   { if (hasToast) ToastService.showError(m); }
+    function toastWarning(m) { if (hasToast) ToastService.showWarning(m); }
 
     function parseJsonMeta(stdout) {
-        const trimmed = (stdout || "").trim();
-        const startIdx = trimmed.indexOf("{");
-        const endIdx = trimmed.lastIndexOf("}");
-        return startIdx !== -1 && endIdx > startIdx
-            ? JSON.parse(trimmed.substring(startIdx, endIdx + 1))
-            : JSON.parse(trimmed);
+        return JSON.parse((stdout || "").trim());
     }
 
     function startActualCapture() {
-        const action = captureDelayTimer.captureAction || "edit";
+        const action = root.pendingCaptureAction;
         const mode = root.screenshotMode();
         const timeout = mode === "scroll" ? root.scrollCaptureTimeoutMs : root.captureTimeoutMs;
 
         root.currentCapturePath = root.capturePath();
         const filename = root.currentCapturePath.split("/").pop();
-        const cmdStr = root.screenshotArgs(filename).map(root.escShell).join(" ") + " 2>&1";
+        const cmdStr = root.screenshotArgs(filename).map(root.escShell).join(" ");
         Proc.runCommand("screenshot-trigger", ["sh", "-c", cmdStr], (stdout, exitCode) => {
             root.isCapturing = false;
-            root.activeIpcMode = "";
+            root.pendingCaptureMode = "";
+            root.pendingCaptureAction = "edit";
             root.captureOutputName = "";
             try {
                 const meta = root.parseJsonMeta(stdout);
                 if (meta.status === "success") {
                     root.currentCapturePath = meta.path;
-                    root.validateAndOpenCapturedImage(meta.path, action, meta.width, meta.height);
+                    root.openCapturedImageWithDimensions(meta.path, action, meta.width, meta.height);
                 } else if (meta.status !== "aborted") {
                     root.toastError(meta.message || meta.error || I18n.tr("Screenshot failed (mode: %1).").arg(mode));
                 }
@@ -151,7 +140,7 @@ PluginComponent {
         Proc.runCommand("smart-paste", ["sh", "-c", checkCmd], (stdout, exitCode) => {
             const output = stdout.trim();
             if (output === "IMAGE") {
-                root.validateAndOpenCapturedImage(root.currentCapturePath, action);
+                root.openCapturedImageUnknown(root.currentCapturePath, action);
             } else if (output.startsWith("TEXT:")) {
                 let text = output.substring(5).trim();
                 if (text === "")
@@ -164,24 +153,26 @@ PluginComponent {
         });
     }
 
-    function validateAndOpenCapturedImage(path, action, width, height) {
-        if (width !== undefined && height !== undefined) {
-            const minSize = pluginData.minImageSize ?? 16;
-            if (width < minSize || height < minSize) {
-                root.toastError("Image is too small (" + width + "x" + height + "). Minimum: " + minSize + "px");
+    // Called when we already have image dimensions (e.g. from screenshot JSON metadata).
+    function openCapturedImageWithDimensions(path, action, width, height) {
+        const minSize = pluginData.minImageSize ?? 16;
+        if (width < minSize || height < minSize) {
+            root.toastError(`Image is too small (${width}x${height}). Minimum: ${minSize}px`);
+            return;
+        }
+        root.openAction(path, action);
+    }
+
+    // Called when we don't have dimensions — runs `file -b` to confirm it's a valid image.
+    function openCapturedImageUnknown(path, action) {
+        Proc.runCommand("validate-image", ["file", "-b", path], (stdout, exitCode) => {
+            const output = stdout.toLowerCase();
+            if (exitCode !== 0 || output.includes("empty") || !output.includes("image")) {
+                root.toastError("Invalid or corrupted image file.");
                 return;
             }
             root.openAction(path, action);
-        } else {
-            Proc.runCommand("validate-image", ["file", "-b", path], function(stdout, exitCode) {
-                const output = stdout.toLowerCase();
-                if (exitCode !== 0 || output.includes("empty") || !output.includes("image")) {
-                    root.toastError("Invalid or corrupted image file.");
-                    return;
-                }
-                root.openAction(path, action);
-            });
-        }
+        });
     }
 
     function openAction(path, action) {
@@ -232,7 +223,7 @@ PluginComponent {
             Proc.runCommand("download-image", ["curl", "-s", "-L", "-o", root.currentCapturePath, uri], (stdout, exitCode) => {
                 root.isDownloading = false;
                 if (exitCode === 0)
-                    root.validateAndOpenCapturedImage(root.currentCapturePath, action);
+                    root.openCapturedImageUnknown(root.currentCapturePath, action);
                 else
                     root.toastError("Failed to download image.");
             });
@@ -240,7 +231,7 @@ PluginComponent {
             root.currentCapturePath = root.capturePath();
             Proc.runCommand("copy-image", ["cp", "-f", uri, root.currentCapturePath], (stdout, exitCode) => {
                 if (exitCode === 0)
-                    root.validateAndOpenCapturedImage(root.currentCapturePath, action);
+                    root.openCapturedImageUnknown(root.currentCapturePath, action);
                 else
                     root.toastError("Failed to copy image.");
             });
@@ -313,8 +304,6 @@ PluginComponent {
     // ── Capture delay timer ───────────────────────────────────────────────────
     Timer {
         id: captureDelayTimer
-        property string captureAction: "edit"
-
         interval: Math.max(50, Theme.popoutAnimationDuration + 50)
         repeat: false
         onTriggered: root.startActualCapture()
@@ -345,7 +334,7 @@ PluginComponent {
             root.currentCapturePath = root.capturePath();
             Proc.runCommand("copy-image", ["cp", "-f", path, root.currentCapturePath], (stdout, exitCode) => {
                 if (exitCode === 0) {
-                    root.validateAndOpenCapturedImage(root.currentCapturePath, action);
+                    root.openCapturedImageUnknown(root.currentCapturePath, action);
                 } else {
                     root.toastError("Failed to load image.");
                 }
