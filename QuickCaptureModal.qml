@@ -2051,8 +2051,16 @@ DankModal {
         }
     }
 
-    function handleShortcutKey(event) {
-        // Delete selected stroke shortcut
+    function acceptKeyEvent(event) {
+        event.accepted = true;
+        return true;
+    }
+
+    function repaintActiveCanvas() {
+        if (window.activeCanvas) window.activeCanvas.requestPaint();
+    }
+
+    function handleSelectedStrokeDeleteShortcut(event) {
         if ((event.key === Qt.Key_Delete || event.key === Qt.Key_Backspace) && window.currentTool === "select" && window.selectedStroke) {
             const list = [...window.strokes];
             const idx = list.indexOf(window.selectedStroke);
@@ -2062,15 +2070,17 @@ DankModal {
                 window.strokes = list;
             }
             window.deselectStrokeForEditing(false);
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
-            event.accepted = true;
-            return;
+            window.repaintActiveCanvas();
+            return window.acceptKeyEvent(event);
         }
 
-        // Move selected stroke shortcut using arrow keys
+        return false;
+    }
+
+    function handleSelectedStrokeMoveShortcut(event) {
         if ((event.key === Qt.Key_Left || event.key === Qt.Key_Right || event.key === Qt.Key_Up || event.key === Qt.Key_Down)
             && window.currentTool === "select" && window.selectedStroke) {
-            
+
             let step = (event.modifiers & Qt.ShiftModifier) ? 10 : 1;
             let dx = 0;
             let dy = 0;
@@ -2089,45 +2099,39 @@ DankModal {
                 window.selectedStroke.cachedCleanColor = undefined;
             }
 
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
-            event.accepted = true;
-            return;
+            window.repaintActiveCanvas();
+            return window.acceptKeyEvent(event);
         }
 
-        const token = Helpers.shortcutToken(event.key, Qt);
-        const hasCtrl = event.modifiers & Qt.ControlModifier;
+        return false;
+    }
 
+    function handleEscapeShortcut(event) {
         if (event.key === Qt.Key_Escape) {
-            // Cancel active drawing stroke
             if (window.currentStroke) {
                 window.currentStroke = null;
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
-                event.accepted = true;
-                return;
+                window.repaintActiveCanvas();
+                return window.acceptKeyEvent(event);
             }
-            // Cancel active select tool drag/move/resize and restore original position
             if (window.currentTool === "select" && window.originalPoints && window.originalPoints.length > 0) {
                 if (window.selectedStroke) {
                     window.selectedStroke.points = window.originalPoints.map(p => Qt.point(p.x, p.y));
                 }
                 window.activeHandle = "none";
                 window.originalPoints = [];
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
-                event.accepted = true;
-                return;
+                window.repaintActiveCanvas();
+                return window.acceptKeyEvent(event);
             }
             if (window.selectedStroke) {
                 window.deselectStrokeForEditing(false);
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
-                event.accepted = true;
-                return;
+                window.repaintActiveCanvas();
+                return window.acceptKeyEvent(event);
             }
             if (window.currentTool === "ocr" || window.currentTool === "qr") {
                 window.currentTool = window.lastActiveTool;
                 window.ocrRect = Qt.rect(0, 0, 0, 0);
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
-                event.accepted = true;
-                return;
+                window.repaintActiveCanvas();
+                return window.acceptKeyEvent(event);
             }
             if (window.currentTool === "crop" || window.hasSelection) {
                 window.hasSelection = false;
@@ -2135,72 +2139,72 @@ DankModal {
                 window.activeHandle = "none";
                 window.currentTool = window.lastActiveTool;
                 window.requestPaintAll();
-                event.accepted = true;
-                return;
+                return window.acceptKeyEvent(event);
             }
             window.discardAndClose();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
+
+        return false;
+    }
+
+    function handleCaptureActionShortcut(event, token, hasCtrl) {
         if (hasCtrl && (token === "Y" || (event.modifiers & Qt.ShiftModifier && token === "Z"))) {
             window.performRedo();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && token === "Z") {
             window.performUndo();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && (event.modifiers & Qt.ShiftModifier) && token === "C") {
             captureActions.performAnonymousCopy();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && token === "C") {
             captureActions.performCopyOnly();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             captureActions.performDoneAction();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && token === "S") {
             captureActions.performSaveOnly();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && token === "A") {
             captureActions.performCopyAndSave();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && token === "F") {
             captureActions.performFloatAction();
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
         if (hasCtrl && token === "X") {
             window.currentTool = window.currentTool === "crop" ? window.lastActiveTool : "crop";
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
 
+        return false;
+    }
+
+    function handleAnnotationVisibilityShortcut(event, token, hasCtrl) {
         if (token === "X" && !hasCtrl) {
             window.showAnnotations = !window.showAnnotations;
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
-            event.accepted = true;
-            return;
+            window.repaintActiveCanvas();
+            return window.acceptKeyEvent(event);
         }
 
+        return false;
+    }
+
+    function handleStrokeClipboardShortcut(event, token, hasCtrl) {
         if (token === "C" && !hasCtrl) {
             if (window.currentTool !== "select" && window.strokes.length > 0) {
                 window.currentTool = "select";
             }
             if (window.selectedStroke) {
-                // Duplicate: Copy then Paste
                 window.copiedStroke = {
                     tool: window.selectedStroke.tool,
                     color: window.selectedStroke.color.toString(),
@@ -2209,148 +2213,182 @@ DankModal {
                 };
                 Helpers.copyStrokeProperties(window.selectedStroke, window.copiedStroke);
                 window.performPasteAction();
-                event.accepted = true;
-                return;
+                return window.acceptKeyEvent(event);
             } else if (window.copiedStroke) {
-                // Just Paste
                 window.performPasteAction();
-                event.accepted = true;
-                return;
+                return window.acceptKeyEvent(event);
             }
         }
 
         if (token === "V" && !hasCtrl) {
             window.currentTool = "select";
-            event.accepted = true;
-            return;
+            return window.acceptKeyEvent(event);
         }
 
-        if (hasCtrl) {
-            const colorShortcut = Helpers.findByKey(config.colorShortcuts, token);
-            if (colorShortcut) {
-                let idx = config.colorShortcuts.indexOf(colorShortcut);
-                if (idx !== -1) {
-                    window.activeColorSlotIndex = idx;
-                }
-                window.currentColor = colorShortcut.color === "primary" ? Theme.primary : colorShortcut.color;
-                event.accepted = true;
+        return false;
+    }
+
+    function handleColorShortcut(event, token) {
+        const colorShortcut = Helpers.findByKey(config.colorShortcuts, token);
+        if (colorShortcut) {
+            let idx = config.colorShortcuts.indexOf(colorShortcut);
+            if (idx !== -1) {
+                window.activeColorSlotIndex = idx;
             }
-            return;
+            window.currentColor = colorShortcut.color === "primary" ? Theme.primary : colorShortcut.color;
+            event.accepted = true;
         }
+    }
 
+    function handleOcrShortcut(event, token, hasCtrl) {
         if (token === "O" && !hasCtrl) {
             if (window.currentTool === "ocr") {
                 window.currentTool = window.lastActiveTool;
                 window.ocrRect = Qt.rect(0, 0, 0, 0);
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
+                window.repaintActiveCanvas();
             } else {
                 window.runOcr();
             }
-            event.accepted = true;
+            return window.acceptKeyEvent(event);
+        }
+
+        return false;
+    }
+
+    function handleToolShortcut(event, token) {
+        const toolShortcut = Helpers.findByKey(config.toolShortcuts, token);
+        if (!toolShortcut) return false;
+
+        if (toolShortcut.tool === "colorpicker") {
+            if (!window.openColorPickerModal()) {
+                if (window.currentTool === "colorpicker") {
+                    window.currentTool = window.lastActiveTool;
+                } else {
+                    window.colorPickerMode = "draw";
+                    window.currentTool = "colorpicker";
+                }
+            }
+            return window.acceptKeyEvent(event);
+        }
+
+        if (window.currentTool === toolShortcut.tool) {
+            if (toolShortcut.tool === "backdrop" || toolShortcut.tool === "crop") {
+                window.currentTool = window.lastActiveTool;
+            }
+        } else {
+            window.currentTool = toolShortcut.tool;
+        }
+        return window.acceptKeyEvent(event);
+    }
+
+    function handleShortcutKey(event) {
+        if (window.handleSelectedStrokeDeleteShortcut(event)) return;
+        if (window.handleSelectedStrokeMoveShortcut(event)) return;
+
+        const token = Helpers.shortcutToken(event.key, Qt);
+        const hasCtrl = event.modifiers & Qt.ControlModifier;
+
+        if (window.handleEscapeShortcut(event)) return;
+        if (window.handleCaptureActionShortcut(event, token, hasCtrl)) return;
+        if (window.handleAnnotationVisibilityShortcut(event, token, hasCtrl)) return;
+        if (window.handleStrokeClipboardShortcut(event, token, hasCtrl)) return;
+
+        if (hasCtrl) {
+            window.handleColorShortcut(event, token);
             return;
         }
 
-        const toolShortcut = Helpers.findByKey(config.toolShortcuts, token);
-        if (toolShortcut) {
-            if (toolShortcut.tool === "colorpicker") {
-                if (!window.openColorPickerModal()) {
-                    if (window.currentTool === "colorpicker") {
-                        window.currentTool = window.lastActiveTool;
-                    } else {
-                        window.colorPickerMode = "draw";
-                        window.currentTool = "colorpicker";
-                    }
-                }
-                event.accepted = true;
-                return;
-            }
+        if (window.handleOcrShortcut(event, token, hasCtrl)) return;
+        window.handleToolShortcut(event, token);
+    }
 
-            if (window.currentTool === toolShortcut.tool) {
-                if (toolShortcut.tool === "backdrop" || toolShortcut.tool === "crop") {
-                    window.currentTool = window.lastActiveTool;
-                }
-            } else {
-                window.currentTool = toolShortcut.tool;
-            }
+    function handleTabShortcut(event) {
+        if (event.key !== Qt.Key_Tab) return false;
+        if (event.isAutoRepeat) {
+            return window.acceptKeyEvent(event);
+        }
+
+        if (window.currentTool === "select") {
+            window.currentTool = window.lastActiveTool;
+        } else if (window.currentTool === window.lastActiveTool) {
+            window.currentTool = "select";
+        } else if (window.presetHistory.length >= 2) {
+            const current = {
+                tool: window.currentTool,
+                color: window.currentColor.toString(),
+                thickness: window.strokeWidth
+            };
+            const p0 = window.presetHistory[0];
+            const p1 = window.presetHistory[1];
+
+            const isP0 = current.tool === p0.tool &&
+                         current.color.toString() === p0.color.toString() &&
+                         current.thickness === p0.thickness;
+
+            const target = isP0 ? p1 : p0;
+            window.currentTool = target.tool;
+            window.currentColor = target.color;
+            window.strokeWidth = target.thickness;
+            window.recordPresetUsage(target);
+        } else {
+            window.currentTool = "select";
+        }
+
+        return window.acceptKeyEvent(event);
+    }
+
+    function handleZoomKeyPressed(event) {
+        if (event.key !== Qt.Key_G || window.isTyping) return false;
+        if (event.isAutoRepeat) {
+            return window.acceptKeyEvent(event);
+        }
+        window.isZoomPressed = true;
+        return window.acceptKeyEvent(event);
+    }
+
+    function handleZoomKeyReleased(event) {
+        if (event.key !== Qt.Key_G || window.isTyping) return false;
+        if (event.isAutoRepeat) {
+            return window.acceptKeyEvent(event);
+        }
+        window.isZoomPressed = false;
+        return window.acceptKeyEvent(event);
+    }
+
+    function handleTypingKeyPressed(event) {
+        if (!window.isTyping) return false;
+        if (window.textInputMode === "inline") {
+            window.handleTypingKey(event);
+        } else if (event.key !== Qt.Key_Escape) {
             event.accepted = true;
         }
+        return true;
+    }
+
+    function handleModalKeyPressed(event) {
+        if (window.handleTabShortcut(event)) return;
+        if (window.handleZoomKeyPressed(event)) return;
+        if (window.handleTypingKeyPressed(event)) return;
+        window.handleShortcutKey(event);
+    }
+
+    function handleModalKeyReleased(event) {
+        if (event.key === Qt.Key_Tab) {
+            event.accepted = true;
+            return;
+        }
+        window.handleZoomKeyReleased(event);
     }
 
     onBackgroundClicked: () => discardAndClose()
 
     // Keyboard Shortcuts Support
     modalFocusScope.Keys.onPressed: (event) => {
-        if (event.key === Qt.Key_Tab) {
-            if (event.isAutoRepeat) {
-                event.accepted = true;
-                return;
-            }
-            if (window.currentTool === "select") {
-                window.currentTool = window.lastActiveTool;
-            } else if (window.currentTool === window.lastActiveTool) {
-                window.currentTool = "select";
-            } else if (window.presetHistory.length >= 2) {
-                const current = { 
-                    tool: window.currentTool, 
-                    color: window.currentColor.toString(), 
-                    thickness: window.strokeWidth 
-                };
-                const p0 = window.presetHistory[0];
-                const p1 = window.presetHistory[1];
-                
-                // Compare with history[0] to toggle
-                const isP0 = current.tool === p0.tool && 
-                             current.color.toString() === p0.color.toString() && 
-                             current.thickness === p0.thickness;
-                
-                const target = isP0 ? p1 : p0;
-                window.currentTool = target.tool;
-                window.currentColor = target.color;
-                window.strokeWidth = target.thickness;
-                
-                // Update history so the new current is at the top
-                window.recordPresetUsage(target);
-            } else {
-                window.currentTool = "select";
-            }
-            event.accepted = true;
-            return;
-        }
-        if (event.key === Qt.Key_G && !window.isTyping) {
-            if (event.isAutoRepeat) {
-                event.accepted = true;
-                return;
-            }
-            window.isZoomPressed = true;
-            event.accepted = true;
-            return;
-        }
-        if (window.isTyping) {
-            if (window.textInputMode === "inline") {
-                window.handleTypingKey(event);
-            } else if (event.key !== Qt.Key_Escape) {
-                event.accepted = true;
-            }
-            return;
-        }
-
-        window.handleShortcutKey(event);
+        window.handleModalKeyPressed(event);
     }
 
     modalFocusScope.Keys.onReleased: (event) => {
-        if (event.key === Qt.Key_Tab) {
-            event.accepted = true;
-            return;
-        }
-        if (event.key === Qt.Key_G && !window.isTyping) {
-            if (event.isAutoRepeat) {
-                event.accepted = true;
-                return;
-            }
-            window.isZoomPressed = false;
-            event.accepted = true;
-            return;
-        }
+        window.handleModalKeyReleased(event);
     }
 
     onOpened: {
