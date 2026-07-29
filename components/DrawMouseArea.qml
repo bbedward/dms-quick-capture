@@ -771,32 +771,7 @@ MouseArea {
         const stroke = window.strokes[strokeIdx];
         if (stroke.tool !== "text" || !stroke.points || stroke.points.length === 0) return;
 
-        window.editingStroke = stroke;
-        window.deselectStrokeForEditing(false);
-        window.typingIsSpeechBubble = stroke.isSpeechBubble || false;
-        // Store coordinates directly on the stroke to avoid cross-contamination
-        // between concurrent edit sessions (multiple dialogs)
-        stroke._editCoords = (stroke.isSpeechBubble && stroke.points.length >= 2)
-            ? Qt.point(stroke.points[1].x, stroke.points[1].y)
-            : Qt.point(stroke.points[0].x, stroke.points[0].y);
-        window.typingCoords = stroke._editCoords;
-        if (stroke.isSpeechBubble && stroke.points.length >= 2) {
-            stroke._editTargetCoords = Qt.point(stroke.points[0].x, stroke.points[0].y);
-            window.typingTargetCoords = stroke._editTargetCoords;
-        }
-        window.currentTypingText = stroke.text;
-        window.typingCursorIndex = stroke.text ? stroke.text.length : 0;
-        window.isTyping = true;
-        window.currentColor = stroke.color;
-        window.textFontSize = stroke.width;
-        window.textBold = stroke.isBold;
-        window.textItalic = stroke.isItalic;
-        window.textUnderline = stroke.isUnderline;
-        window.textBackground = stroke.hasBackground;
-        window.textCornerRadius = stroke.cornerRadius;
-        window.textFontFamily = stroke.fontFamily;
-        textInputDialog.open();
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.beginEditingTextStroke(stroke, textInputDialog);
     }
 
     onReleased: (mouse) => {
@@ -853,20 +828,7 @@ MouseArea {
         if (!window.currentStroke) return;
         let stroke = window.currentStroke;
         if (stroke.tool === "text") {
-            const hasDrag = stroke.isSpeechBubble && stroke.points.length >= 2;
-            window.typingIsSpeechBubble = hasDrag;
-            window.typingCoords = hasDrag ? stroke.points[1] : stroke.points[0];
-            if (hasDrag) {
-                window.typingTargetCoords = stroke.points[0];
-            }
-            window.currentTypingText = "";
-            window.typingCursorIndex = 0;
-            window.isTyping = true;
-            window.currentStroke = null;
-            if (window.textInputMode === "popup") {
-                textInputDialog.open();
-            }
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+            window.beginNewTextStroke(stroke, textInputDialog);
             return;
         }
         if (stroke.tool === "callout" && stroke.points.length >= 2) {
