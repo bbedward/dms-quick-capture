@@ -539,9 +539,12 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         ctx.fill();
         ctx.restore();
 
-        // Draw text
+        // Draw text. Keep the actual canvas font below common glyph-cache cliffs
+        // and scale the context so the visual size still tracks stamp size.
         ctx.save();
-        const fontSize = Math.round(radius * Constants.stampTextFontSizeMultiplier);
+        const visualFontSize = Math.round(radius * Constants.stampTextFontSizeMultiplier);
+        const fontSize = Math.min(48, visualFontSize);
+        const textScale = visualFontSize / fontSize;
         const text = Helpers.formatCounter(stroke.counter, stroke.format || "numeric");
         ctx.fillStyle = textColor;
         const fontFam = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
@@ -549,7 +552,9 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         ctx.textBaseline = "middle";
         ctx.textAlign = "left";
         const textW = ctx.measureText(text).width;
-        ctx.fillText(text, stampPt.x - textW / 2, stampPt.y + Math.round(fontSize * Constants.stampTextOffsetMultiplier));
+        ctx.translate(stampPt.x, stampPt.y);
+        ctx.scale(textScale, textScale);
+        ctx.fillText(text, -textW / 2, Math.round(fontSize * Constants.stampTextOffsetMultiplier));
         ctx.restore();
 
     } else if (stroke.tool === "callout") {
