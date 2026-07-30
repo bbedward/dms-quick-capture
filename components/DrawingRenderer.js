@@ -1084,6 +1084,14 @@ function drawSelectionHandles(ctx, stroke, Theme, estimateTextWidthFn, Qt, Helpe
     if (stroke.tool === "stamp") {
         const hasLeader = stroke.hasLeaderLine && stroke.points.length >= 2;
         const stampPt = hasLeader ? stroke.points[1] : stroke.points[0];
+        const radius = stroke.width * Constants.stampRadiusMultiplier;
+
+        ctx.save();
+        setDashedSelectionStyle(ctx, stroke, Helpers, Qt);
+        ctx.beginPath();
+        ctx.arc(stampPt.x, stampPt.y, radius, 0, 2 * Math.PI);
+        ctx.stroke();
+        ctx.restore();
 
         ctx.fillStyle = "#ffffff";
         ctx.strokeStyle = Theme.primary;
@@ -1095,8 +1103,6 @@ function drawSelectionHandles(ctx, stroke, Theme, estimateTextWidthFn, Qt, Helpe
             ctx.strokeRect(anchorPt.x - hh, anchorPt.y - hh, hs, hs);
         }
 
-        ctx.fillRect(stampPt.x - hh, stampPt.y - hh, hs, hs);
-        ctx.strokeRect(stampPt.x - hh, stampPt.y - hh, hs, hs);
         return;
     }
 
