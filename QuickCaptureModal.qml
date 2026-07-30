@@ -1331,15 +1331,15 @@ DankModal {
             window.drawStroke(ctx, selectedStroke);
         }
 
+        let pastePreview = null;
         if (window.pastePreviewActive) {
-            const pastePreview = window.getPastePreviewStroke();
-            if (pastePreview) {
-                window.drawStroke(ctx, pastePreview);
-            }
+            pastePreview = window.getPastePreviewStroke();
+            if (pastePreview) window.drawStroke(ctx, pastePreview);
         }
 
-        if (selectedStroke && window.currentTool === "select") {
-            DrawingRenderer.drawSelectionHandles(ctx, selectedStroke, Theme, window.estimateTextWidth, Qt, Helpers);
+        const handleStroke = pastePreview || selectedStroke;
+        if (handleStroke && window.currentTool === "select") {
+            DrawingRenderer.drawSelectionHandles(ctx, handleStroke, Theme, window.estimateTextWidth, Qt, Helpers);
         }
     }
 
