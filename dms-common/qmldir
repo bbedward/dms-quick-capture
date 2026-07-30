@@ -4,6 +4,7 @@ ColorSettingPlus 1.0 ColorSettingPlus.qml
 CopyBox 1.0 CopyBox.qml
 DankSliderPlus 1.0 DankSliderPlus.qml
 InfoText 1.0 InfoText.qml
+FontSelectionSettingPlus 1.0 FontSelectionSettingPlus.qml
 NumericText 1.0 NumericText.qml
 PluginAbout 1.0 PluginAbout.qml
 SectionTitle 1.0 SectionTitle.qml

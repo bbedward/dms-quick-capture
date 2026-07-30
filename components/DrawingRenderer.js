@@ -9,6 +9,26 @@ function ellipseEdgePoint(cx, cy, rx, ry, tx, ty) {
     return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
 }
 
+function canvasFontFamily(family) {
+    const fallback = "sans-serif";
+    if (!family) return fallback;
+
+    const normalized = String(family).trim();
+    if (normalized === "") return fallback;
+
+    const lower = normalized.toLowerCase();
+    if (lower === "sans-serif" || lower === "serif" || lower === "monospace") {
+        return normalized;
+    }
+
+    if ((normalized.startsWith("\"") && normalized.endsWith("\"")) ||
+        (normalized.startsWith("'") && normalized.endsWith("'"))) {
+        return normalized;
+    }
+
+    return `"${normalized.replace(/"/g, "\\\"")}"`;
+}
+
 /**
  * Draws the spotlight dimming overlay with holes for spotlight rectangles.
  * Extracted to avoid duplication across bakedCanvas, drawingCanvas, and exportCanvas onPaint handlers.
@@ -547,7 +567,7 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         const textScale = visualFontSize / fontSize;
         const text = Helpers.formatCounter(stroke.counter, stroke.format || "numeric");
         ctx.fillStyle = textColor;
-        const fontFam = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
+        const fontFam = canvasFontFamily((config && config.stampFontFamily) || ((typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif"));
         ctx.font = `bold ${fontSize}px ${fontFam}`;
         ctx.textBaseline = "middle";
         ctx.textAlign = "left";

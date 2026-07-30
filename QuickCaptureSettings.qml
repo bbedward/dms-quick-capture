@@ -1447,10 +1447,11 @@ PluginSettings {
         SectionTitle {
             text: I18n.tr("Text")
             icon: "format_size"
-            showReset: textFontSize.isDirty || textFontFamily.isDirty || textBold.isDirty || textItalic.isDirty || textUnderline.isDirty || textBackground.isDirty || textInputMode.isDirty
+            showReset: textFontSize.isDirty || textFontFamily.isDirty || stampFontFamily.isDirty || textBold.isDirty || textItalic.isDirty || textUnderline.isDirty || textBackground.isDirty || textInputMode.isDirty
             onResetClicked: {
                 textFontSize.resetToDefault();
                 textFontFamily.resetToDefault();
+                stampFontFamily.resetToDefault();
                 textBold.resetToDefault();
                 textItalic.resetToDefault();
                 textUnderline.resetToDefault();
@@ -1483,6 +1484,16 @@ PluginSettings {
                 { label: I18n.tr("Monospace"), value: "monospace" },
                 { label: I18n.tr("Serif"), value: "serif" }
             ]
+            defaultValue: "system"
+        }
+
+        Separator {}
+
+        FontSelectionSettingPlus {
+            id: stampFontFamily
+            settingKey: "stampFontFamily"
+            label: I18n.tr("Stamp Number Font")
+            description: I18n.tr("Font family used for number stamp labels")
             defaultValue: "system"
         }
 
