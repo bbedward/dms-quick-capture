@@ -47,8 +47,15 @@ MouseArea {
     }
 
     function updateSelectHover(mx, my) {
+        if (window.pastePreviewActive) {
+            hoveredStrokeIdx = -1;
+            hoveredHandle = "none";
+            return;
+        }
+
         if (window.currentTool !== "select") {
             hoveredStrokeIdx = -1;
+            hoveredHandle = "none";
             return;
         }
 
@@ -76,6 +83,11 @@ MouseArea {
          const origY = mouse.y / window.editScale;
          window.cursorX = origX;
          window.cursorY = origY;
+         if (window.pastePreviewActive && window.activeCanvas) {
+             hoveredStrokeIdx = -1;
+             hoveredHandle = "none";
+             window.activeCanvas.requestPaint();
+         }
          if (window.currentTool === "colorpicker") {
              window.hoveredColor = window.sampleCanvasColor(mouse.x, mouse.y);
          };
@@ -490,6 +502,10 @@ MouseArea {
     }
 
     cursorShape: {
+        if (window.pastePreviewActive) {
+            return Qt.ClosedHandCursor;
+        }
+
         const h = (window.activeHandle !== "none" && window.activeHandle !== "new") ? window.activeHandle : hoveredHandle;
         const hs = (h && h.length > 4) ? h.slice(-3) : h;
         if (h === "tl" || h === "br" || hs === "_tl" || hs === "_br") return Qt.SizeFDiagCursor;
@@ -576,6 +592,11 @@ MouseArea {
         }
 
         const absPt = getAbsolutePoint(mouse.x, mouse.y);
+        if (mouse.button === Qt.LeftButton && window.pastePreviewActive) {
+            window.performPasteAction();
+            return;
+        }
+
         if (window.currentTool === "select") {
             // Check if clicking on a resize handle
             if (window.selectedStroke) {
@@ -913,6 +934,22 @@ MouseArea {
              wheel.accepted = true;
              return;
          }
+
+          if (window.pastePreviewActive) {
+              const tool = window.effectiveTool;
+              let multiplier = 1;
+              if (tool === "text" || tool === "pixelate") multiplier = 2;
+              else if (tool === "spotlight") multiplier = 5;
+              else if (tool === "callout") multiplier = 10;
+
+              window.updateActiveIntensity(window.activeIntensity + (step * multiplier));
+              window.previewX = wheel.x;
+              window.previewY = wheel.y;
+              window.showSizePreview = true;
+              previewTimer.restart();
+              wheel.accepted = true;
+              return;
+          }
 
           if (window.currentTool === "select" && window.selectedStroke && window.selectedStroke.tool === "callout") {
               if (window.calloutDestDragging) {

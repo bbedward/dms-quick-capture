@@ -319,14 +319,54 @@ DankModal {
     property int calloutZoom: 150
     property bool calloutDestDragging: false
 
-    readonly property string effectiveTool: (currentTool === "select" && selectedStroke) ? selectedStroke.tool : currentTool
+    readonly property string effectiveTool: (pastePreviewActive && copiedStroke) ? copiedStroke.tool : ((currentTool === "select" && selectedStroke) ? selectedStroke.tool : currentTool)
     readonly property bool hasActiveCropSelection: window.currentTool !== "crop" && window.hasSelection
     property int activeIntensity: {
+        if (pastePreviewActive && copiedStroke && copiedStroke.width !== undefined) return copiedStroke.width;
         if (effectiveTool === "text") return textFontSize;
         if (effectiveTool === "pixelate") return pixelateIntensity;
         if (effectiveTool === "spotlight") return spotlightIntensity;
         if (effectiveTool === "callout") return calloutZoom;
         return strokeWidth;
+    }
+
+    function updateCalloutDestFromWidth(stroke, width) {
+        if (!stroke || stroke.tool !== "callout" || !stroke.points || stroke.points.length !== 4) return;
+
+        const srcP0 = stroke.points[0];
+        const srcP1 = stroke.points[1];
+        const dstP0 = stroke.points[2];
+        const rw = srcP1.x - srcP0.x;
+        const rh = srcP1.y - srcP0.y;
+        const zoom = width / 100.0;
+        const newPoints = [...stroke.points];
+        newPoints[3] = Qt.point(dstP0.x + rw * zoom, dstP0.y + rh * zoom);
+        stroke.points = newPoints;
+    }
+
+    function updatePastePreviewWidth(width) {
+        if (!window.pastePreviewActive || !window.copiedStroke) return false;
+
+        const nextStroke = Object.assign({}, window.copiedStroke, { width: width });
+        if (nextStroke.tool === "redact") {
+            nextStroke.cachedCleanColor = undefined;
+        }
+        window.updateCalloutDestFromWidth(nextStroke, width);
+        window.copiedStroke = nextStroke;
+        window.repaintActiveCanvas();
+        return true;
+    }
+
+    function updatePastePreviewColor(color) {
+        if (!window.pastePreviewActive || !window.copiedStroke) return false;
+
+        const nextStroke = Object.assign({}, window.copiedStroke, { color: color.toString() });
+        if (nextStroke.tool === "redact") {
+            nextStroke.cachedCleanColor = undefined;
+        }
+        window.copiedStroke = nextStroke;
+        window.repaintActiveCanvas();
+        return true;
     }
 
     function updateActiveIntensity(val) {
@@ -342,21 +382,11 @@ DankModal {
         else if (effectiveTool === "callout") calloutZoom = clamped;
         else strokeWidth = clamped;
 
+        if (window.updatePastePreviewWidth(clamped)) return;
+
         if (selectedStroke) {
             selectedStroke.width = clamped;
-            if (selectedStroke.tool === "callout" && selectedStroke.points && selectedStroke.points.length === 4) {
-                const srcP0 = selectedStroke.points[0];
-                const srcP1 = selectedStroke.points[1];
-                const dstP0 = selectedStroke.points[2];
-                const rw = srcP1.x - srcP0.x;
-                const rh = srcP1.y - srcP0.y;
-                const zoom = clamped / 100.0;
-                const dw = rw * zoom;
-                const dh = rh * zoom;
-                const newPoints = [...selectedStroke.points];
-                newPoints[3] = Qt.point(dstP0.x + dw, dstP0.y + dh);
-                selectedStroke.points = newPoints;
-            }
+            window.updateCalloutDestFromWidth(selectedStroke, clamped);
             const idx = window.strokes.indexOf(selectedStroke);
             if (idx !== -1) {
                 window.strokes[idx] = selectedStroke;
@@ -371,6 +401,9 @@ DankModal {
 
     property color currentColor: Theme.primary
     onCurrentColorChanged: {
+        if (window.updatePastePreviewColor(window.currentColor)) {
+            return;
+        }
         if (window.selectedStroke) {
             window.selectedStroke.color = window.currentColor.toString();
             if (window.selectedStroke.tool === "redact") {
@@ -740,6 +773,7 @@ DankModal {
         window.requestPaintAll();
     }
     property var copiedStroke: null
+    property bool pastePreviewActive: false
 
     property var strokes: []
     onStrokesChanged: {
@@ -1292,6 +1326,13 @@ DankModal {
             window.drawStroke(ctx, selectedStroke);
         }
 
+        if (window.pastePreviewActive) {
+            const pastePreview = window.getPastePreviewStroke();
+            if (pastePreview) {
+                window.drawStroke(ctx, pastePreview);
+            }
+        }
+
         if (selectedStroke && window.currentTool === "select") {
             DrawingRenderer.drawSelectionHandles(ctx, selectedStroke, Theme, window.estimateTextWidth, Qt, Helpers);
         }
@@ -1588,12 +1629,16 @@ DankModal {
         window.presetHistory = history;
     }
 
-    function performPasteAction() {
-        if (!window.copiedStroke) return;
-
+    function getCursorAbsolutePoint() {
         const mx = window.cursorX;
         const my = window.cursorY;
-        const absPt = window.hasActiveCropSelection ? Qt.point(mx + window.cropRect.x, my + window.cropRect.y) : Qt.point(mx, my);
+        return window.hasActiveCropSelection ? Qt.point(mx + window.cropRect.x, my + window.cropRect.y) : Qt.point(mx, my);
+    }
+
+    function getPastePreviewStroke() {
+        if (!window.copiedStroke) return;
+
+        const absPt = window.getCursorAbsolutePoint();
 
         // Calculate the bounding box center of the copied stroke
         let minX = Infinity, maxX = -Infinity;
@@ -1620,8 +1665,30 @@ DankModal {
             points: newPoints
         };
         Helpers.copyStrokeProperties(window.copiedStroke, pasted);
+        return pasted;
+    }
+
+    function beginPastePreview() {
+        if (!window.copiedStroke) return;
+        window.pastePreviewActive = true;
+        window.currentTool = "select";
+        window.repaintActiveCanvas();
+    }
+
+    function cancelPastePreview() {
+        if (!window.pastePreviewActive) return false;
+        window.pastePreviewActive = false;
+        window.repaintActiveCanvas();
+        return true;
+    }
+
+    function performPasteAction() {
+        const pasted = window.getPastePreviewStroke();
+        if (!pasted) return;
+
         window.pushStroke(pasted);
-        
+        window.pastePreviewActive = false;
+
         if (window.currentTool === "select") {
             window.savePreGrabState();
             window.strokeWidth = pasted.width;
@@ -1630,10 +1697,10 @@ DankModal {
             if (pasted.tool === "redact" && pasted.redactShape) window.activeRedactShape = pasted.redactShape;
             if (pasted.tool === "callout") window.calloutShape = pasted.calloutShape !== undefined ? pasted.calloutShape : "rect";
             window.selectedStroke = pasted;
-            window.pressCoords = absPt;
-            window.originalPoints = newPoints;
+            window.pressCoords = window.getCursorAbsolutePoint();
+            window.originalPoints = window.copyStrokePoints(pasted.points);
         }
-        
+
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
 
@@ -2121,6 +2188,9 @@ DankModal {
 
     function handleEscapeShortcut(event) {
         if (event.key === Qt.Key_Escape) {
+            if (window.cancelPastePreview()) {
+                return window.acceptKeyEvent(event);
+            }
             if (window.currentStroke) {
                 window.currentStroke = null;
                 window.repaintActiveCanvas();
@@ -2225,10 +2295,10 @@ DankModal {
                     points: window.selectedStroke.points.map(p => Qt.point(p.x, p.y))
                 };
                 Helpers.copyStrokeProperties(window.selectedStroke, window.copiedStroke);
-                window.performPasteAction();
+                window.beginPastePreview();
                 return window.acceptKeyEvent(event);
             } else if (window.copiedStroke) {
-                window.performPasteAction();
+                window.beginPastePreview();
                 return window.acceptKeyEvent(event);
             }
         }
@@ -2443,6 +2513,7 @@ DankModal {
         window.showAnnotations = true;
         window.selectedStroke = null;
         window.copiedStroke = null;
+        window.pastePreviewActive = false;
         window.stampCounter = 1;
         window.stampIdCounter = 1;
         window.bgRotation = 0;
@@ -3783,6 +3854,7 @@ DankModal {
     function discardAndClose() {
         window.deselectStrokeForEditing(false);
         window.copiedStroke = null;
+        window.pastePreviewActive = false;
         window.close();
     }
 
