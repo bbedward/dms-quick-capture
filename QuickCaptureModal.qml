@@ -144,7 +144,9 @@ DankModal {
         window.selectedStroke = stroke;
         window.originalPoints = window.copyStrokePoints(stroke.points);
         window.syncStyleFromStroke(stroke);
-        window.bringStrokeToFront(stroke);
+        if (stroke.tool !== "spotlight") {
+            window.bringStrokeToFront(stroke);
+        }
     }
 
     function deselectStrokeForEditing(restoreStyle) {
@@ -1474,9 +1476,11 @@ DankModal {
             DrawingRenderer.drawSpotlightOverlay(ctx, spotlightStrokes, window.getSpotlightRenderConfig());
         }
 
-        for (let i = 0; i < strokes.length; i++) {
-            if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate" && strokes[i] !== selectedStroke && (!window.isTyping || strokes[i] !== window.editingStroke)) {
-                window.drawStroke(ctx, strokes[i]);
+        if (!isDrawingSpotlight && !isEditingSpotlight) {
+            for (let i = 0; i < strokes.length; i++) {
+                if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate" && strokes[i] !== selectedStroke && (!window.isTyping || strokes[i] !== window.editingStroke)) {
+                    window.drawStroke(ctx, strokes[i]);
+                }
             }
         }
     }
@@ -1512,6 +1516,16 @@ DankModal {
                 const rw = Math.abs(p1.x - p0.x);
                 const rh = Math.abs(p1.y - p0.y);
                 DrawingRenderer.drawHighContrastDashedRect(ctx, rx, ry, rw, rh);
+            }
+        }
+
+        // Spotlight is a background effect: keep regular annotations above it
+        // while its active overlay is being drawn or edited.
+        if (isDrawingSpotlight || isEditingSpotlight) {
+            for (let i = 0; i < strokes.length; i++) {
+                if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate" && (!window.isTyping || strokes[i] !== window.editingStroke)) {
+                    window.drawStroke(ctx, strokes[i]);
+                }
             }
         }
 
