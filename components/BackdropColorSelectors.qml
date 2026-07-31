@@ -14,11 +14,19 @@ Grid {
     property int itemSize: 24
     property int iconSize: 18
     property bool isVertical: false
+    property bool imageBlurEnabled: false
+    property bool imageDimEnabled: false
+    property int imageDimStrength: 28
 
     signal setGradientActiveSlot(string slot)
     signal autoColorBalanceRequested()
     signal colorPickerRequested(color currentColor)
     signal eyedropperRequested(string slot)
+    signal imageBlurToggled(bool enabled)
+    signal imageDimToggled(bool enabled)
+    signal imageDimControlHovered(var controlItem)
+    signal imageDimControlExited()
+    signal imageDimControlWheel(int delta)
 
     columns: isVertical ? 1 : 4
     spacing: isVertical ? 10 : Theme.spacingXS
@@ -48,6 +56,97 @@ Grid {
                         controlRoot.colorPickerRequested(controlRoot.backdropSolidColor)
                     }
                 }
+            }
+        }
+    }
+
+    Item {
+        visible: controlRoot.backdropMode === "image"
+        width: Constants.verticalSelectorItemWidth
+        height: controlRoot.itemSize
+
+        DankActionButton {
+            anchors.centerIn: parent
+            buttonSize: controlRoot.itemSize
+            iconName: "blur_on"
+            iconSize: controlRoot.iconSize
+            backgroundColor: controlRoot.imageBlurEnabled ? Theme.withAlpha(Theme.primary, 0.18) : "transparent"
+            iconColor: controlRoot.imageBlurEnabled ? Theme.primary : Theme.surfaceText
+            tooltipText: I18n.tr("Blur Backdrop Image")
+            onClicked: controlRoot.imageBlurToggled(!controlRoot.imageBlurEnabled)
+        }
+    }
+
+    Item {
+        id: imageDimControl
+        visible: controlRoot.backdropMode === "image"
+        width: controlRoot.isVertical ? Constants.verticalSelectorItemWidth : dimHorizontalContent.implicitWidth + Theme.spacingXS * 2
+        height: controlRoot.isVertical ? 40 : controlRoot.itemSize
+
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.cornerRadiusSmall
+            color: controlRoot.imageDimEnabled ? Theme.withAlpha(Theme.primary, 0.18) :
+                   (dimMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
+        }
+
+        Row {
+            id: dimHorizontalContent
+            visible: !controlRoot.isVertical
+            anchors.centerIn: parent
+            spacing: Theme.spacingXS
+
+            DankIcon {
+                name: "dark_mode"
+                size: controlRoot.iconSize
+                color: controlRoot.imageDimEnabled ? Theme.primary : Theme.surfaceText
+            }
+
+            StyledText {
+                text: controlRoot.imageDimStrength + "%"
+                font.pixelSize: Theme.fontSizeSmall
+                color: controlRoot.imageDimEnabled ? Theme.primary : Theme.surfaceText
+            }
+        }
+
+        Column {
+            visible: controlRoot.isVertical
+            anchors.centerIn: parent
+            spacing: 1
+
+            DankIcon {
+                name: "dark_mode"
+                size: controlRoot.iconSize
+                color: controlRoot.imageDimEnabled ? Theme.primary : Theme.surfaceText
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+
+            StyledText {
+                text: controlRoot.imageDimStrength + "%"
+                font.pixelSize: Theme.fontSizeSmall - 2
+                color: controlRoot.imageDimEnabled ? Theme.primary : Theme.surfaceText
+                anchors.horizontalCenter: parent.horizontalCenter
+            }
+        }
+
+        MouseArea {
+            id: dimMouse
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                const enabled = !controlRoot.imageDimEnabled;
+                controlRoot.imageDimToggled(enabled);
+                if (enabled) controlRoot.imageDimControlHovered(imageDimControl);
+                else controlRoot.imageDimControlExited();
+            }
+            onEntered: {
+                if (controlRoot.imageDimEnabled) controlRoot.imageDimControlHovered(imageDimControl);
+            }
+            onExited: controlRoot.imageDimControlExited()
+            onWheel: (wheel) => {
+                controlRoot.imageDimControlWheel(wheel.angleDelta.y);
+                wheel.accepted = true;
             }
         }
     }
@@ -102,6 +201,7 @@ Grid {
     }
 
     Item {
+        visible: controlRoot.backdropMode !== "image"
         width: Constants.verticalSelectorItemWidth
         height: controlRoot.itemSize
 
@@ -132,6 +232,7 @@ Grid {
     }
 
     Item {
+        visible: controlRoot.backdropMode !== "image"
         width: Constants.verticalSelectorItemWidth
         height: controlRoot.itemSize
 

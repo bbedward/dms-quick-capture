@@ -1619,10 +1619,15 @@ PluginSettings {
         SectionTitle {
             text: I18n.tr("Backdrop Defaults")
             icon: "wallpaper"
-            showReset: backdropAutoApply.isDirty || backdropDefaultMode.isDirty || backdropDefaultPadding.isDirty || backdropDefaultRadius.isDirty || backdropDefaultShadow.isDirty || backdropDefaultAngle.isDirty || backdropDefaultAspectRatio.isDirty || backdropDefaultAlignment.isDirty || backdropDefaultSolidColor.isDirty || backdropDefaultGradientStart.isDirty || backdropDefaultGradientEnd.isDirty
+            showReset: backdropAutoApply.isDirty || backdropDefaultMode.isDirty || backdropImageFolderSetting.isDirty || backdropDefaultImageSetting.isDirty || backdropImageBlurSetting.isDirty || backdropImageDimSetting.isDirty || backdropImageDimStrengthSetting.isDirty || backdropDefaultPadding.isDirty || backdropDefaultRadius.isDirty || backdropDefaultShadow.isDirty || backdropDefaultAngle.isDirty || backdropDefaultAspectRatio.isDirty || backdropDefaultAlignment.isDirty || backdropDefaultSolidColor.isDirty || backdropDefaultGradientStart.isDirty || backdropDefaultGradientEnd.isDirty
             onResetClicked: {
                 backdropAutoApply.resetToDefault();
                 backdropDefaultMode.resetToDefault();
+                backdropImageFolderSetting.resetToDefault();
+                backdropDefaultImageSetting.resetToDefault();
+                backdropImageBlurSetting.resetToDefault();
+                backdropImageDimSetting.resetToDefault();
+                backdropImageDimStrengthSetting.resetToDefault();
                 backdropDefaultSolidColor.resetToDefault();
                 backdropDefaultGradientStart.resetToDefault();
                 backdropDefaultGradientEnd.resetToDefault();
@@ -1653,9 +1658,88 @@ PluginSettings {
                 { label: I18n.tr("Solid Color"), value: "solid" },
                 { label: I18n.tr("Linear Gradient"), value: "gradient" },
                 { label: I18n.tr("Radial Gradient"), value: "radial" },
-                { label: I18n.tr("Conic Gradient"), value: "conic" }
+                { label: I18n.tr("Conic Gradient"), value: "conic" },
+                { label: I18n.tr("Image"), value: "image" }
             ]
             defaultValue: "solid"
+        }
+
+        Separator {
+            visible: backdropDefaultMode.value === "image"
+        }
+
+        StringSettingPlus {
+            id: backdropImageFolderSetting
+            settingKey: "backdropImageFolder"
+            label: I18n.tr("Backdrop Image Folder")
+            placeholder: "~/Pictures/Wallpaper"
+            defaultValue: "~/Pictures/Wallpaper"
+            isDirectory: true
+            visible: backdropDefaultMode.value === "image"
+            height: visible ? implicitHeight : 0
+        }
+
+        Separator {
+            visible: backdropDefaultMode.value === "image"
+        }
+
+        StringSettingPlus {
+            id: backdropDefaultImageSetting
+            settingKey: "backdropDefaultImagePath"
+            label: I18n.tr("Default Backdrop Image")
+            description: I18n.tr("Image selected automatically when using Image Backdrop mode")
+            placeholder: "~/Pictures/Wallpaper/image.jpg"
+            defaultValue: ""
+            isFile: true
+            fileExtensions: ["Image files (*.png *.jpg *.jpeg *.webp *.bmp)", "All files (*)"]
+            visible: backdropDefaultMode.value === "image"
+            height: visible ? implicitHeight : 0
+        }
+
+        Separator {
+            visible: backdropDefaultMode.value === "image"
+        }
+
+        ToggleSettingPlus {
+            id: backdropImageBlurSetting
+            settingKey: "backdropImageBlur"
+            label: I18n.tr("Blur Backdrop Image")
+            description: I18n.tr("Soften image details so screenshot content stands out")
+            defaultValue: false
+            visible: backdropDefaultMode.value === "image"
+            height: visible ? 36 : 0
+        }
+
+        Separator {
+            visible: backdropDefaultMode.value === "image"
+        }
+
+        ToggleSettingPlus {
+            id: backdropImageDimSetting
+            settingKey: "backdropImageDim"
+            label: I18n.tr("Dim Backdrop Image")
+            description: I18n.tr("Darken the image to improve foreground contrast")
+            defaultValue: false
+            visible: backdropDefaultMode.value === "image"
+            height: visible ? 36 : 0
+        }
+
+        Separator {
+            visible: backdropDefaultMode.value === "image" && backdropImageDimSetting.value
+        }
+
+        SliderSettingPlus {
+            id: backdropImageDimStrengthSetting
+            settingKey: "backdropImageDimStrength"
+            label: I18n.tr("Dim Intensity")
+            defaultValue: 28
+            minimum: 0
+            maximum: 80
+            unit: "%"
+            leftLabel: "0"
+            rightLabel: "80"
+            visible: backdropDefaultMode.value === "image" && backdropImageDimSetting.value
+            height: visible ? implicitHeight : 0
         }
 
         Separator {
@@ -1671,7 +1755,7 @@ PluginSettings {
         }
 
         Separator {
-            visible: backdropDefaultMode.value !== "solid"
+            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
         }
 
         BackdropColorSetting {
@@ -1679,11 +1763,11 @@ PluginSettings {
             settingKey: "backdropDefaultGradientStart"
             label: I18n.tr("Default Gradient Start")
             defaultValue: "slot_1"
-            visible: backdropDefaultMode.value !== "solid"
+            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
         }
 
         Separator {
-            visible: backdropDefaultMode.value !== "solid"
+            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
         }
 
         BackdropColorSetting {
@@ -1691,7 +1775,7 @@ PluginSettings {
             settingKey: "backdropDefaultGradientEnd"
             label: I18n.tr("Default Gradient End")
             defaultValue: "slot_2"
-            visible: backdropDefaultMode.value !== "solid"
+            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
         }
 
         Separator {}
@@ -1728,7 +1812,7 @@ PluginSettings {
             id: backdropDefaultShadow
             settingKey: "backdropDefaultShadow"
             label: I18n.tr("Default Shadow Strength")
-            defaultValue: 50
+            defaultValue: 0
             minimum: 0
             maximum: 100
             unit: "%"

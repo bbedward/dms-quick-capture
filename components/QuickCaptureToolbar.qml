@@ -30,16 +30,19 @@ Rectangle {
     property int backdropGradientAngle: 45
     property int backdropPadding: 40
     property int backdropCornerRadius: 12
-    property int backdropShadowStrength: 50
+    property int backdropShadowStrength: 0
     property string backdropAspectRatio: "auto"
     
     property real customAspectRatio: 1.50
     property string backdropAlignment: "center"
+    property bool backdropImageBlur: false
+    property bool backdropImageDim: false
+    property int backdropImageDimStrength: 28
 
     property string gradientActiveSlot: "start"
     property string backdropColorPickingSlot: "none"
 
-    signal changeBackdropMode(string mode)
+    signal changeBackdropMode(string mode, var controlItem)
     signal changeBackdropSolidColor(color col)
     signal changeBackdropGradientStart(color col)
     signal changeBackdropGradientEnd(color col)
@@ -89,6 +92,8 @@ Rectangle {
     signal annotationsToggled()
     signal backdropColorPickerRequested(color currentColor)
     signal backdropEyedropperRequested(string slot)
+    signal changeBackdropImageBlur(bool enabled)
+    signal changeBackdropImageDim(bool enabled)
 
     readonly property color activeBackdropColor: root.backdropMode === "solid" ?
         root.backdropSolidColor :
@@ -490,7 +495,7 @@ Rectangle {
             BackdropModeSelectors {
                 backdropMode: root.backdropMode
                 isVertical: false
-                onChangeBackdropMode: (mode) => root.changeBackdropMode(mode)
+                onChangeBackdropMode: (mode, controlItem) => root.changeBackdropMode(mode, controlItem)
                 anchors.verticalCenter: parent.verticalCenter
             }
             
@@ -685,15 +690,24 @@ Rectangle {
                     backdropGradientStart: root.backdropGradientStart
                     backdropGradientEnd: root.backdropGradientEnd
                     gradientActiveSlot: root.gradientActiveSlot
+                    imageBlurEnabled: root.backdropImageBlur
+                    imageDimEnabled: root.backdropImageDim
+                    imageDimStrength: root.backdropImageDimStrength
                     itemSize: 24
                     iconSize: 18
                     onSetGradientActiveSlot: (slot) => root.gradientActiveSlot = slot
                     onAutoColorBalanceRequested: root.autoColorBalanceRequested()
                     onColorPickerRequested: (currentColor) => root.backdropColorPickerRequested(currentColor)
                     onEyedropperRequested: (slot) => root.backdropEyedropperRequested(slot)
+                    onImageBlurToggled: (enabled) => root.changeBackdropImageBlur(enabled)
+                    onImageDimToggled: (enabled) => root.changeBackdropImageDim(enabled)
+                    onImageDimControlHovered: (controlItem) => root.backdropControlHovered("imageDim", controlItem)
+                    onImageDimControlExited: root.backdropControlExited("imageDim")
+                    onImageDimControlWheel: (delta) => root.backdropControlWheel("imageDim", delta)
                 }
                 
                 ColorPaletteGrid {
+                    visible: root.backdropMode !== "image"
                     activeColor: root.activeBackdropColor
                     activeSlotIndex: -1
                     swatchSize: Constants.swatchSize
@@ -763,7 +777,7 @@ Rectangle {
             BackdropModeSelectors {
                 backdropMode: root.backdropMode
                 isVertical: true
-                onChangeBackdropMode: (mode) => root.changeBackdropMode(mode)
+                onChangeBackdropMode: (mode, controlItem) => root.changeBackdropMode(mode, controlItem)
                 anchors.horizontalCenter: parent.horizontalCenter
             }
             
@@ -961,15 +975,24 @@ Rectangle {
                     backdropGradientStart: root.backdropGradientStart
                     backdropGradientEnd: root.backdropGradientEnd
                     gradientActiveSlot: root.gradientActiveSlot
+                    imageBlurEnabled: root.backdropImageBlur
+                    imageDimEnabled: root.backdropImageDim
+                    imageDimStrength: root.backdropImageDimStrength
                     itemSize: 24
                     iconSize: 18
                     onSetGradientActiveSlot: (slot) => root.gradientActiveSlot = slot
                     onAutoColorBalanceRequested: root.autoColorBalanceRequested()
                     onColorPickerRequested: (currentColor) => root.backdropColorPickerRequested(currentColor)
                     onEyedropperRequested: (slot) => root.backdropEyedropperRequested(slot)
+                    onImageBlurToggled: (enabled) => root.changeBackdropImageBlur(enabled)
+                    onImageDimToggled: (enabled) => root.changeBackdropImageDim(enabled)
+                    onImageDimControlHovered: (controlItem) => root.backdropControlHovered("imageDim", controlItem)
+                    onImageDimControlExited: root.backdropControlExited("imageDim")
+                    onImageDimControlWheel: (delta) => root.backdropControlWheel("imageDim", delta)
                 }
                 
                 ColorPaletteGrid {
+                    visible: root.backdropMode !== "image"
                     activeColor: root.activeBackdropColor
                     activeSlotIndex: -1
                     swatchSize: Constants.swatchSizeVert

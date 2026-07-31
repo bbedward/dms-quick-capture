@@ -9,10 +9,10 @@ Grid {
     property string backdropMode: "none"
     property bool isVertical: false
 
-    signal changeBackdropMode(string mode)
+    signal changeBackdropMode(string mode, var controlItem)
 
-    rows: isVertical ? 5 : 1
-    columns: isVertical ? 1 : 5
+    rows: isVertical ? 6 : 1
+    columns: isVertical ? 1 : 6
     spacing: Theme.spacingXS
 
     readonly property var modes: [
@@ -20,19 +20,21 @@ Grid {
         { mode: "solid", icon: "format_color_fill", tooltip: I18n.tr("Solid Color") },
         { mode: "radial", icon: "filter_tilt_shift", tooltip: I18n.tr("Radial Gradient") },
         { mode: "gradient", icon: "gradient", tooltip: I18n.tr("Linear Gradient") },
-        { mode: "conic", icon: "timelapse", tooltip: I18n.tr("Conic Gradient") }
+        { mode: "conic", icon: "timelapse", tooltip: I18n.tr("Conic Gradient") },
+        { mode: "image", icon: "image", tooltip: I18n.tr("Image Backdrop") }
     ]
 
     Repeater {
         model: controlRoot.modes
         delegate: DankActionButton {
+            id: modeButton
             iconName: modelData.icon
             buttonSize: Constants.btnSize
             iconSize: Constants.iconSize
             tooltipText: modelData.tooltip
             backgroundColor: controlRoot.backdropMode === modelData.mode ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
             iconColor: controlRoot.backdropMode === modelData.mode ? Theme.primary : Theme.surfaceText
-            onClicked: controlRoot.changeBackdropMode(modelData.mode)
+            onClicked: controlRoot.changeBackdropMode(modelData.mode, modeButton)
         }
     }
 }
