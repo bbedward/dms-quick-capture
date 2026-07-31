@@ -16,7 +16,6 @@ const ocrSelectionPadding = 8;
 const stampSelectThresholdOffset = 6;
 const rectSelectionPadding = 5;
 const calloutSelectionPadding = 5;
-const minTextWidth = 40;
 
 // Tool multipliers and scales
 const lineDashMultiplier = 2.5;
@@ -128,4 +127,3 @@ const defaultBackdropPresets = [
         customAspectRatio: 1.50
     }
 ];
-

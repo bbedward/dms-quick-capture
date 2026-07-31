@@ -743,7 +743,7 @@ MouseArea {
                 const stroke = window.strokes[i];
                 if (stroke.points.length === 0) continue;
                 
-                const bbox = Helpers.getStrokeBBox(stroke, Helpers.estimateTextWidth);
+                const bbox = Helpers.getStrokeBBox(stroke, window.measureTextBounds);
                 const pad = 12 + stroke.width * 2;
                 if (sx >= bbox.minX - pad && sx <= bbox.maxX + pad && sy >= bbox.minY - pad && sy <= bbox.maxY + pad) {
                     found = i;

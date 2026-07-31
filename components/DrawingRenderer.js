@@ -17,7 +17,8 @@ function canvasFontFamily(family) {
     if (normalized === "") return fallback;
 
     const lower = normalized.toLowerCase();
-    if (lower === "sans-serif" || lower === "serif" || lower === "monospace") {
+    if (lower === "sans-serif" || lower === "serif" || lower === "monospace" ||
+        lower === "cursive" || lower === "fantasy" || lower === "system-ui") {
         return normalized;
     }
 
@@ -27,6 +28,80 @@ function canvasFontFamily(family) {
     }
 
     return `"${normalized.replace(/"/g, "\\\"")}"`;
+}
+
+function textFontFamily(stroke, Theme) {
+    const systemFamily = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
+    const family = (stroke.fontFamily && stroke.fontFamily !== "system") ? stroke.fontFamily : systemFamily;
+    return canvasFontFamily(family);
+}
+
+function configureTextContext(ctx, stroke, Theme) {
+    let style = "";
+    if (stroke.isItalic) style += "italic ";
+    if (stroke.isBold) style += "bold ";
+    ctx.font = `${style}${Math.round(stroke.width)}px ${textFontFamily(stroke, Theme)}`;
+    ctx.textAlign = "left";
+    ctx.textBaseline = "middle";
+}
+
+/**
+ * Measures the same multiline text layout used by drawStroke(). Width comes
+ * from Canvas and vertical bounds come from the renderer's line boxes.
+ */
+function measureTextLayout(ctx, stroke, Theme) {
+    if (!ctx || !stroke || !stroke.points || stroke.points.length === 0) return null;
+
+    const pt = (stroke.isSpeechBubble && stroke.points.length >= 2) ? stroke.points[1] : stroke.points[0];
+    const fontSize = stroke.width;
+    const lines = String(stroke.text || "").split("\n");
+    const lineHeight = fontSize * Constants.textLineHeightMultiplier;
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+    let maxAdvanceWidth = 0;
+
+    ctx.save();
+    configureTextContext(ctx, stroke, Theme);
+
+    for (let i = 0; i < lines.length; i++) {
+        const metrics = ctx.measureText(lines[i]);
+        const advance = metrics.width || 0;
+        const left = pt.x;
+        const right = pt.x + advance;
+        const top = pt.y + i * lineHeight;
+        const bottom = top + fontSize;
+
+        minX = Math.min(minX, left);
+        minY = Math.min(minY, top);
+        maxX = Math.max(maxX, right);
+        maxY = Math.max(maxY, bottom);
+        maxAdvanceWidth = Math.max(maxAdvanceWidth, advance);
+
+        if (stroke.isUnderline) {
+            const underlineY = pt.y + i * lineHeight + fontSize * 1.1;
+            const halfWidth = Math.max(1.5, Math.round(fontSize * 0.08)) / 2;
+            minX = Math.min(minX, pt.x);
+            maxX = Math.max(maxX, pt.x + advance);
+            minY = Math.min(minY, underlineY - halfWidth);
+            maxY = Math.max(maxY, underlineY + halfWidth);
+        }
+    }
+
+    if (stroke.hasBackground || stroke.isSpeechBubble) {
+        const isBubble = stroke.isSpeechBubble && stroke.points.length >= 2;
+        const padX = fontSize * (isBubble ? Constants.textBubblePaddingMultiplierX : Constants.textPaddingMultiplierX);
+        const padY = fontSize * (isBubble ? Constants.textBubblePaddingMultiplierY : Constants.textPaddingMultiplierY);
+        const lineBoxHeight = fontSize + (lines.length - 1) * lineHeight;
+        minX = Math.min(minX, pt.x - padX);
+        minY = Math.min(minY, pt.y - padY);
+        maxX = Math.max(maxX, pt.x + maxAdvanceWidth + padX);
+        maxY = Math.max(maxY, pt.y + lineBoxHeight + padY);
+    }
+
+    ctx.restore();
+    return { minX: minX, minY: minY, maxX: maxX, maxY: maxY };
 }
 
 /**
@@ -767,15 +842,7 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         const pt = (stroke.isSpeechBubble && stroke.points.length >= 2) ? stroke.points[1] : stroke.points[0];
         ctx.fillStyle = stroke.color;
         
-        let styleStr = "";
-        if (stroke.isItalic) styleStr += "italic ";
-        if (stroke.isBold) styleStr += "bold ";
-        const sysFont = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
-        const fFamily = (stroke.fontFamily && stroke.fontFamily !== "system") ? stroke.fontFamily : (stroke.isMonospace ? "monospace" : sysFont);
-        
-        ctx.font = `${styleStr}${Math.round(stroke.width)}px ${fFamily}`;
-        ctx.textAlign = "left";
-        ctx.textBaseline = "middle";
+        configureTextContext(ctx, stroke, Theme);
 
         const lines = (stroke.text || "").split("\n");
         const lineHeight = stroke.width * Constants.textLineHeightMultiplier;
@@ -984,11 +1051,10 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
  * @param {object} ctx - The Canvas 2D context.
  * @param {object} stroke - The selected stroke data object.
  * @param {object} Theme - The Theme object.
- * @param {function} estimateTextWidthFn - Text width estimation function.
  * @param {object} Qt - The Qt object for color utilities.
  * @param {object} Helpers - The Helpers module for utility functions.
  */
-function drawSelectionHandles(ctx, stroke, Theme, estimateTextWidthFn, Qt, Helpers) {
+function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
     if (!stroke || !stroke.points || stroke.points.length === 0) return;
 
     const hs = Constants.selectionHandleSize;
@@ -1131,29 +1197,12 @@ function drawSelectionHandles(ctx, stroke, Theme, estimateTextWidthFn, Qt, Helpe
             return;
         }
 
-        const p = stroke.points[0];
-        const fontSize = stroke.width;
-        const txt = stroke.text || "";
-        const lines = String(txt).split("\n");
-        const numLines = lines.length || 1;
-        const lineH = fontSize * Constants.textLineHeightMultiplier;
-        let tw = Constants.minTextWidth;
-        if (estimateTextWidthFn) {
-            tw = Math.max(Constants.minTextWidth, estimateTextWidthFn(txt, fontSize, stroke.isBold === true, stroke.isMonospace === true));
-        }
-        let th = fontSize + (numLines - 1) * lineH;
-        let tx = p.x;
-        let ty = p.y;
-        if (stroke.hasBackground) {
-            const px = fontSize * Constants.textPaddingMultiplierX;
-            const py = fontSize * Constants.textPaddingMultiplierY;
-            tx -= px;
-            ty -= py;
-            tw += px * 2;
-            th += py * 2;
-        }
+        const bounds = measureTextLayout(ctx, stroke, Theme);
+        if (!bounds) return;
         const sp = 6;
-        drawHighContrastDashedRect(ctx, tx - sp, ty - sp, tw + sp * 2, th + sp * 2);
+        drawHighContrastDashedRect(ctx, bounds.minX - sp, bounds.minY - sp,
+                                   bounds.maxX - bounds.minX + sp * 2,
+                                   bounds.maxY - bounds.minY + sp * 2);
         return;
     }
 

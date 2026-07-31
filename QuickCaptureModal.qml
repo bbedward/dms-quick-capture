@@ -868,8 +868,6 @@ DankModal {
 
     readonly property var pluginData: (window.parentWidget && window.parentWidget.pluginData) ? window.parentWidget.pluginData : ({})
 
-    readonly property bool textMonospace: pluginData.textMonospace !== undefined ? pluginData.textMonospace : false
-    
     // Rich Text Options
     property bool textBold: pluginData.textBold !== undefined ? pluginData.textBold : false
     onTextBoldChanged: {
@@ -891,7 +889,7 @@ DankModal {
     onTextCornerRadiusChanged: {
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
-    property string textFontFamily: (pluginData.textFontFamily && pluginData.textFontFamily !== "system") ? pluginData.textFontFamily : (textMonospace ? "monospace" : (Theme.fontFamily || "sans-serif"))
+    property string textFontFamily: (pluginData.textFontFamily && pluginData.textFontFamily !== "system") ? pluginData.textFontFamily : (Theme.fontFamily || "sans-serif")
     onTextFontFamilyChanged: {
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
@@ -1339,7 +1337,7 @@ DankModal {
 
         const handleStroke = pastePreview || selectedStroke;
         if (handleStroke && window.currentTool === "select") {
-            DrawingRenderer.drawSelectionHandles(ctx, handleStroke, Theme, window.estimateTextWidth, Qt, Helpers);
+            DrawingRenderer.drawSelectionHandles(ctx, handleStroke, Theme, Qt, Helpers);
         }
     }
 
@@ -1352,7 +1350,7 @@ DankModal {
         if (window.textItalic) styleStr += "italic ";
         if (window.textBold) styleStr += "bold ";
 
-        ctx.font = `${styleStr}${Math.round(window.textFontSize)}px ${window.textFontFamily}`;
+        ctx.font = `${styleStr}${Math.round(window.textFontSize)}px ${DrawingRenderer.canvasFontFamily(window.textFontFamily)}`;
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
@@ -1846,17 +1844,19 @@ DankModal {
         return config.resolveColor(val);
     }
 
-    function estimateTextWidth(text, fontSize, isBold, isMonospace) {
-        return Helpers.estimateTextWidth(text, fontSize, isBold, isMonospace);
+    function measureTextBounds(stroke) {
+        if (!window.activeCanvas) return null;
+        const ctx = window.activeCanvas.getContext("2d");
+        return DrawingRenderer.measureTextLayout(ctx, stroke, Theme);
     }
 
     function findStrokeAt(mx, my) {
-        return Helpers.findStrokeAt(mx, my, window.strokes, window.estimateTextWidth);
+        return Helpers.findStrokeAt(mx, my, window.strokes, window.measureTextBounds);
     }
 
     function getSelectedStrokeHandleAt(mx, my) {
         if (!window.selectedStroke) return "none";
-        return Helpers.getStrokeHandleAt(mx, my, window.selectedStroke, window.estimateTextWidth);
+        return Helpers.getStrokeHandleAt(mx, my, window.selectedStroke);
     }
 
     function exportAndExecute(callback) {
@@ -3698,7 +3698,7 @@ DankModal {
         window.textUnderline = stroke.isUnderline;
         window.textBackground = stroke.hasBackground;
         window.textCornerRadius = stroke.cornerRadius;
-        window.textFontFamily = stroke.fontFamily;
+        window.textFontFamily = stroke.fontFamily || (Theme.fontFamily || "sans-serif");
         window.openTypingDialog(dialog);
         window.repaintActiveCanvas();
     }
@@ -3725,7 +3725,6 @@ DankModal {
             tool: "text",
             color: window.currentColor.toString(),
             width: window.textFontSize,
-            isMonospace: window.textFontFamily === "monospace",
             fontFamily: window.textFontFamily,
             isBold: window.textBold,
             isItalic: window.textItalic,
@@ -3741,7 +3740,6 @@ DankModal {
         stroke.text = style.text;
         stroke.color = style.color;
         stroke.width = style.width;
-        stroke.isMonospace = style.isMonospace;
         stroke.fontFamily = style.fontFamily;
         stroke.isBold = style.isBold;
         stroke.isItalic = style.isItalic;

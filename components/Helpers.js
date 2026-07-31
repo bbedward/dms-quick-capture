@@ -10,9 +10,8 @@
  *   2. UI / formatting     — formatCounter, shortcutToken, formatWatermarkText, findByKey
  *   3. Geometry            — constrainSquarePoint, distance, clamp, isInsideCropRect, smoothStrokePoints
  *   4. Color analysis      — extractDominantColors, getBoundaryColorOrGradient
- *   5. Text measurement    — estimateTextWidth
- *   6. Stroke geometry     — getStrokeBBox, findStrokeAt, getStrokeHandleAt
- *   7. Stroke data         — copyStrokeProperties
+ *   5. Stroke geometry     — getStrokeBBox, findStrokeAt, getStrokeHandleAt
+ *   6. Stroke data         — copyStrokeProperties
  */
 
 // ─── 1. Color utilities ────────────────────────────────────────────────────────
@@ -393,109 +392,32 @@ function extractDominantColors(imgData, Qt) {
     };
 }
 
-// ─── 5. Text measurement ──────────────────────────────────────────────────────
+// ─── 5. Stroke geometry & hit-testing ────────────────────────────────────────
 
-/**
- * Estimates text width based on characters and properties.
- * @param {string} text - The text string.
- * @param {number} fontSize - Font size in pixels.
- * @param {boolean} isBold - True if bold.
- * @param {boolean} isMonospace - True if monospace.
- * @returns {number} Estimated text width.
- */
-function estimateTextWidth(text, fontSize, isBold, isMonospace) {
-    if (!text) return 0;
-    const lines = String(text).split("\n");
-    let maxWidth = 0;
-    for (let li = 0; li < lines.length; li++) {
-        const line = lines[li];
-        if (!line) continue;
-        let charWidthRatio = isMonospace ? 0.6 : 0.52;
-        if (isBold) charWidthRatio += 0.05;
-
-        let estWidth = 0;
-        for (let c = 0; c < line.length; c++) {
-            const charCode = line.charCodeAt(c);
-            if (charCode > 255) {
-                const isCJKOrWideScript =
-                        (charCode >= 0x3400 && charCode <= 0x4DBF) ||
-                        (charCode >= 0x4E00 && charCode <= 0x9FFF) ||
-                        (charCode >= 0xF900 && charCode <= 0xFAFF) ||
-                        (charCode >= 0x3040 && charCode <= 0x309F) ||
-                        (charCode >= 0x30A0 && charCode <= 0x30FF) ||
-                        (charCode >= 0xAC00 && charCode <= 0xD7AF);
-
-                if (isCJKOrWideScript) {
-                    estWidth += fontSize * 0.9;
-                } else {
-                    estWidth += fontSize * charWidthRatio;
-                }
-            } else if (isMonospace) {
-                estWidth += fontSize * charWidthRatio;
-            } else {
-                const ch = line.charAt(c);
-                if ("iIlldt1|()[]{}".indexOf(ch) !== -1) {
-                    estWidth += fontSize * 0.28;
-                } else if ("mwMW".indexOf(ch) !== -1) {
-                    estWidth += fontSize * 0.8;
-                } else if (ch >= "A" && ch <= "Z") {
-                    estWidth += fontSize * 0.65;
-                } else {
-                    estWidth += fontSize * charWidthRatio;
-                }
-            }
-        }
-
-        const maxW = fontSize * line.length * (isMonospace ? 1.2 : 1.6);
-        estWidth = Math.min(estWidth, maxW);
-        if (estWidth > maxWidth) maxWidth = estWidth;
-    }
-
-    return maxWidth;
+function getTextBBox(stroke, measureTextBoundsFn) {
+    const txtPt = (stroke.isSpeechBubble && stroke.points.length >= 2) ? stroke.points[1] : stroke.points[0];
+    const measured = measureTextBoundsFn ? measureTextBoundsFn(stroke) : null;
+    return measured || { minX: txtPt.x, minY: txtPt.y, maxX: txtPt.x, maxY: txtPt.y };
 }
-
-// ─── 6. Stroke geometry & hit-testing ────────────────────────────────────────
 
 /**
  * Calculates the bounding box of a stroke.
  * @param {object} stroke - The stroke object.
- * @param {function} estimateTextWidthFn - Text width estimation function.
+ * @param {function} measureTextBoundsFn - Exact Canvas text bounds function.
  * @returns {object} { minX, minY, maxX, maxY }
  */
-function getStrokeBBox(stroke, estimateTextWidthFn) {
+function getStrokeBBox(stroke, measureTextBoundsFn) {
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
     const pts = stroke.points;
     const len = pts.length;
     if (len === 0) return { minX: 0, minY: 0, maxX: 0, maxY: 0 };
 
     if (stroke.tool === "text") {
-        const txtPt = (stroke.isSpeechBubble && len >= 2) ? pts[1] : pts[0];
-        const fontSize = stroke.width;
-        const txt = stroke.text || "";
-        const lines = String(txt).split("\n");
-        const numLines = lines.length || 1;
-        const lineHeight = fontSize * 1.35;
-
-        let textW = Constants.minTextWidth;
-        if (estimateTextWidthFn) {
-            textW = Math.max(Constants.minTextWidth, estimateTextWidthFn(txt, fontSize, stroke.isBold === true, stroke.isMonospace === true));
-        }
-        let textH = fontSize + (numLines - 1) * lineHeight;
-        let textX = txtPt.x;
-        let textY = txtPt.y;
-
-        if (stroke.hasBackground || stroke.isSpeechBubble) {
-            const padX = fontSize * (stroke.isSpeechBubble ? Constants.textBubblePaddingMultiplierX : Constants.textPaddingMultiplierX);
-            const padY = fontSize * (stroke.isSpeechBubble ? Constants.textBubblePaddingMultiplierY : Constants.textPaddingMultiplierY);
-            textX -= padX;
-            textY -= padY;
-            textW += padX * 2;
-            textH += padY * 2;
-        }
-        minX = textX;
-        maxX = textX + textW;
-        minY = textY;
-        maxY = textY + textH;
+        const textBounds = getTextBBox(stroke, measureTextBoundsFn);
+        minX = textBounds.minX;
+        minY = textBounds.minY;
+        maxX = textBounds.maxX;
+        maxY = textBounds.maxY;
 
         if (stroke.isSpeechBubble && len >= 2) {
             const pTarget = pts[0];
@@ -537,10 +459,10 @@ function getStrokeBBox(stroke, estimateTextWidthFn) {
  * @param {number} mx - X coordinate.
  * @param {number} my - Y coordinate.
  * @param {array} strokes - List of strokes.
- * @param {function} estimateTextWidthFn - Text width estimation function.
+ * @param {function} measureTextBoundsFn - Exact Canvas text bounds function.
  * @returns {number} Stroke index or -1.
  */
-function findStrokeAt(mx, my, strokes, estimateTextWidthFn) {
+function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
     for (let i = strokes.length - 1; i >= 0; i--) {
         const stroke = strokes[i];
         if (stroke.points.length === 0) continue;
@@ -548,7 +470,7 @@ function findStrokeAt(mx, my, strokes, estimateTextWidthFn) {
         const threshold = Constants.selectionThresholdBase + stroke.width;
 
         // Fast bounding box reject check
-        const bbox = getStrokeBBox(stroke, estimateTextWidthFn);
+        const bbox = getStrokeBBox(stroke, measureTextBoundsFn);
         const pad = threshold + 2;
         if (mx < bbox.minX - pad || mx > bbox.maxX + pad ||
             my < bbox.minY - pad || my > bbox.maxY + pad) {
@@ -678,30 +600,14 @@ function findStrokeAt(mx, my, strokes, estimateTextWidthFn) {
                 if (distSq <= radius * radius) return i;
             }
         } else if (stroke.tool === "text") {
-            const txtPt = (stroke.isSpeechBubble && stroke.points.length >= 2) ? stroke.points[1] : stroke.points[0];
-            const fontSize = stroke.width;
-            const txt = stroke.text || "";
-            const lines = String(txt).split("\n");
-            const numLines = lines.length || 1;
-            const lineHeight = fontSize * 1.35;
-
-            let textW = Math.max(Constants.minTextWidth, estimateTextWidthFn(txt, fontSize, stroke.isBold === true, stroke.isMonospace === true));
-            let textH = fontSize + (numLines - 1) * lineHeight;
-            let textY = txtPt.y;
-            let textX = txtPt.x;
+            const textBounds = getTextBBox(stroke, measureTextBoundsFn);
+            if (mx >= textBounds.minX - Constants.ocrSelectionPadding && mx <= textBounds.maxX + Constants.ocrSelectionPadding &&
+                my >= textBounds.minY - Constants.ocrSelectionPadding && my <= textBounds.maxY + Constants.ocrSelectionPadding) {
+                return i;
+            }
 
             if (stroke.isSpeechBubble) {
-                const padX = fontSize * Constants.textBubblePaddingMultiplierX;
-                const padY = fontSize * Constants.textBubblePaddingMultiplierY;
-                textX -= padX;
-                textY -= padY;
-                textW += padX * 2;
-                textH += padY * 2;
-
-                if (mx >= textX - Constants.ocrSelectionPadding && mx <= textX + textW + Constants.ocrSelectionPadding && my >= textY - Constants.ocrSelectionPadding && my <= textY + textH + Constants.ocrSelectionPadding) {
-                    return i;
-                }
-
+                const txtPt = stroke.points[1];
                 if (stroke.points.length >= 2) {
                     const pTarget = stroke.points[0];
                     const dx = pTarget.x - txtPt.x;
@@ -718,19 +624,6 @@ function findStrokeAt(mx, my, strokes, estimateTextWidthFn) {
                         dist = Math.sqrt((mx - px) * (mx - px) + (my - py) * (my - py));
                     }
                     if (dist < threshold) return i;
-                }
-            } else {
-                if (stroke.hasBackground) {
-                    const padX = fontSize * Constants.textPaddingMultiplierX;
-                    const padY = fontSize * Constants.textPaddingMultiplierY;
-                    textX -= padX;
-                    textY -= padY;
-                    textW += padX * 2;
-                    textH += padY * 2;
-                }
-
-                if (mx >= textX - Constants.ocrSelectionPadding && mx <= textX + textW + Constants.ocrSelectionPadding && my >= textY - Constants.ocrSelectionPadding && my <= textY + textH + Constants.ocrSelectionPadding) {
-                    return i;
                 }
             }
         } else if (stroke.tool === "callout" && stroke.points.length === 4) {
@@ -769,7 +662,7 @@ function findStrokeAt(mx, my, strokes, estimateTextWidthFn) {
  * Shapes: tl, tr, bl, br, tc, bc, lc, rc
  * Lines: start, end
  */
-function getStrokeHandleAt(mx, my, stroke, estimateTextWidthFn) {
+function getStrokeHandleAt(mx, my, stroke) {
     if (!stroke || !stroke.points || stroke.points.length === 0) return "none";
     const threshold = Constants.selectionHandleSize + 4;
 
@@ -1022,12 +915,11 @@ function colorEquals(c1, c2, Qt) {
     return toHex6(c1, Qt) === toHex6(c2, Qt);
 }
 
-// ─── 7. Stroke data ───────────────────────────────────────────────────────────
+// ─── 6. Stroke data ───────────────────────────────────────────────────────────
 
 function copyStrokeProperties(source, target) {
     if (!source || !target) return;
     if (source.text !== undefined) target.text = source.text;
-    if (source.isMonospace !== undefined) target.isMonospace = source.isMonospace;
     if (source.fontFamily !== undefined) target.fontFamily = source.fontFamily;
     if (source.isBold !== undefined) target.isBold = source.isBold;
     if (source.isItalic !== undefined) target.isItalic = source.isItalic;
@@ -1072,4 +964,3 @@ function distance(p1, p2) {
 function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
 }
-
