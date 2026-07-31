@@ -1274,7 +1274,7 @@ PluginSettings {
         }
 
         InfoText {
-            text: I18n.tr("Lower the resolution limit if you experience lag while editing.")
+            text: I18n.tr("Lower the resolution limit if you experience lag while editing. Does not affect the final saved image quality.")
             opacity: 0.8
         }
 
