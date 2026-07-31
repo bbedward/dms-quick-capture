@@ -1643,18 +1643,11 @@ DankModal {
 
         const absPt = window.getCursorAbsolutePoint();
 
-        // Calculate the bounding box center of the copied stroke
-        let minX = Infinity, maxX = -Infinity;
-        let minY = Infinity, maxY = -Infinity;
-        for (let i = 0; i < window.copiedStroke.points.length; i++) {
-            const p = window.copiedStroke.points[i];
-            if (p.x < minX) minX = p.x;
-            if (p.x > maxX) maxX = p.x;
-            if (p.y < minY) minY = p.y;
-            if (p.y > maxY) maxY = p.y;
-        }
-        const centerX = (minX + maxX) / 2;
-        const centerY = (minY + maxY) / 2;
+        // Center using the rendered bounds, not just control points. Text stores its
+        // origin as a top-left point, so point bounds alone place it beside the cursor.
+        const bbox = Helpers.getStrokeBBox(window.copiedStroke, window.measureTextBounds);
+        const centerX = (bbox.minX + bbox.maxX) / 2;
+        const centerY = (bbox.minY + bbox.maxY) / 2;
 
         // Shift points so the pasted stroke is centered exactly at the current cursor position
         const dx = absPt.x - (isFinite(centerX) ? centerX : 0);
