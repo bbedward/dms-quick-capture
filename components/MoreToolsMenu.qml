@@ -15,6 +15,7 @@ Rectangle {
     z: 10000
 
     property bool opened: false
+    property bool watermarkEnabled: false
     visible: opacity > 0
     opacity: 0
     scale: 0.9
@@ -29,6 +30,7 @@ Rectangle {
     signal qrScanRequested()
     signal copyColorRequested()
     signal eraserRequested()
+    signal watermarkToggled(bool enabled)
 
     states: [
         State {
@@ -227,6 +229,48 @@ Rectangle {
         }
 
         // ── Separator ─────────────────────────────────────────────────────
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Theme.withAlpha(Theme.outline, 0.15)
+        }
+
+        // ── Watermark ─────────────────────────────────────────────────────
+        Rectangle {
+            width: parent.width
+            height: 36
+            radius: Theme.cornerRadius - 2
+            color: menuRoot.watermarkEnabled ? Theme.withAlpha(Theme.primary, 0.15) :
+                   (watermarkMouseArea.containsMouse ? Theme.withAlpha(Theme.primary, 0.10) : "transparent")
+
+            DankIcon {
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.spacingS
+                anchors.verticalCenter: parent.verticalCenter
+                name: "branding_watermark"
+                size: 16
+                color: menuRoot.watermarkEnabled ? Theme.primary : Theme.surfaceText
+            }
+
+            StyledText {
+                anchors.left: parent.left
+                anchors.leftMargin: Theme.spacingS + 16 + Theme.spacingS
+                anchors.verticalCenter: parent.verticalCenter
+                text: I18n.tr("Watermark")
+                font.pixelSize: Theme.fontSizeSmall
+                font.weight: menuRoot.watermarkEnabled ? Font.Bold : Font.Normal
+                color: menuRoot.watermarkEnabled ? Theme.primary : Theme.surfaceText
+            }
+
+            MouseArea {
+                id: watermarkMouseArea
+                anchors.fill: parent
+                hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
+                onClicked: menuRoot.watermarkToggled(!menuRoot.watermarkEnabled)
+            }
+        }
+
         Rectangle {
             width: parent.width
             height: 1

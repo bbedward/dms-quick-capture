@@ -990,7 +990,16 @@ DankModal {
     property real cursorY: 0
 
     property bool showAnnotations: true
+    property bool watermarkEnabled: false
     onShowAnnotationsChanged: {
+        window.requestPaintAll();
+    }
+
+    function setWatermarkEnabled(enabled) {
+        window.watermarkEnabled = enabled;
+        if (window.parentWidget && window.parentWidget.pluginService) {
+            window.parentWidget.pluginService.savePluginData("quickCapture", "enableWatermark", enabled);
+        }
         window.requestPaintAll();
     }
     property var copiedStroke: null
@@ -1719,7 +1728,7 @@ DankModal {
     function getWatermarkRenderConfig(enabled) {
         const pData = (window.parentWidget && window.parentWidget.pluginData) || {};
         return {
-            enabled: enabled && pData.enableWatermark,
+            enabled: enabled && window.watermarkEnabled,
             type: pData.watermarkType || "text",
             opacity: (pData.watermarkOpacity !== undefined ? pData.watermarkOpacity : 20) / 100.0,
             position: pData.watermarkPosition || "bottom_right",
@@ -2710,6 +2719,7 @@ DankModal {
             window.floatService.hideAllWindows();
         }
         window.updateRadialPresets();
+        window.watermarkEnabled = config.pluginData.enableWatermark === true;
 
         let startTool = "pen";
         let startThickness = Constants.getToolMeta("pen").defaultValue;
@@ -3776,6 +3786,7 @@ DankModal {
 
                 MoreToolsMenu {
                     id: moreToolsMenu
+                    watermarkEnabled: window.watermarkEnabled
                     onRotateLeftRequested: window.rotateScreenshot("left")
                     onRotateRightRequested: window.rotateScreenshot("right")
                     onFlipHorizontalRequested: window.mirrorScreenshot("horizontal")
@@ -3785,6 +3796,7 @@ DankModal {
                     onOcrRequested: window.runOcr()
                     onQrScanRequested: window.runQrScan()
                     onEraserRequested: window.currentTool = "eraser"
+                    onWatermarkToggled: (enabled) => window.setWatermarkEnabled(enabled)
                     onCopyColorRequested: {
                         window.colorPickerMode = "copy";
                         window.currentTool = "colorpicker";
