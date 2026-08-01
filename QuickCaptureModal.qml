@@ -49,7 +49,8 @@ DankModal {
 
     Image {
         id: backdropImageLoader
-        source: window.localImageSource(window.effectiveBackdropImagePath)
+        source: window.backdropMode === "image"
+            ? window.localImageSource(window.effectiveBackdropImagePath) : ""
         visible: false
         cache: true
         asynchronous: true
@@ -171,6 +172,9 @@ DankModal {
         if (window.backdropMode !== "none") return;
         const defaultMode = (config && config.pluginData && config.pluginData["backdropDefaultMode"]) || Constants.defaultBackdropMode;
         window.backdropMode = defaultMode;
+        if (defaultMode === "image") {
+            window.refreshBackdropBlurCache(false);
+        }
     }
 
     function enterSelectTool() {
@@ -355,7 +359,21 @@ DankModal {
         Proc.runCommand("cleanup-backdrop-blur-cache", ["rm", "-f", "--", path]);
     }
 
+    function cancelBackdropBlurPreparation() {
+        if (!window.backdropBlurLoading) return;
+        window.backdropBlurGeneration += 1;
+        window.backdropBlurPendingSourcePath = "";
+        window.backdropBlurLoading = false;
+        window.backdropBlurShowIndicator = false;
+    }
+
     function refreshBackdropBlurCache(showIndicator) {
+        if (window.backdropMode !== "image") {
+            window.cancelBackdropBlurPreparation();
+            window.requestPaintAll();
+            return;
+        }
+
         const inputPath = window.localFolderPath(window.backdropImagePath);
         if (inputPath && window.backdropBlurredImagePath && window.backdropBlurredSourcePath === inputPath) {
             window.backdropBlurLoading = false;
@@ -406,12 +424,14 @@ DankModal {
             }
 
             window.cleanupBackdropBlurCache(outputPath);
-            window.backdropImageBlur = false;
-            if (window.parentWidget && window.parentWidget.pluginService) {
-                window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageBlur", false);
-            }
-            if (typeof ToastService !== "undefined" && ToastService) {
-                ToastService.showError(I18n.tr("Failed to generate blurred backdrop image"));
+            if (window.backdropImageBlur) {
+                window.backdropImageBlur = false;
+                if (window.parentWidget && window.parentWidget.pluginService) {
+                    window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageBlur", false);
+                }
+                if (typeof ToastService !== "undefined" && ToastService) {
+                    ToastService.showError(I18n.tr("Failed to generate blurred backdrop image"));
+                }
             }
             window.requestPaintAll();
         });
@@ -430,7 +450,11 @@ DankModal {
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
             window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageBlur", enabled);
         }
-        window.requestPaintAll();
+        if (enabled && window.backdropMode === "image" && !window.backdropBlurredImagePath && !window.backdropBlurLoading) {
+            window.refreshBackdropBlurCache(true);
+        } else {
+            window.requestPaintAll();
+        }
     }
 
     function setBackdropImageDimStrength(value, persist) {
@@ -2844,7 +2868,9 @@ DankModal {
         }
 
         Qt.callLater(() => {
-            window.refreshBackdropBlurCache(false);
+            if (window.backdropMode === "image") {
+                window.refreshBackdropBlurCache(false);
+            }
             if (modalFocusScope) modalFocusScope.forceActiveFocus();
         });
     }
@@ -3260,8 +3286,10 @@ DankModal {
                     onChangeBackdropMode: (mode, controlItem) => {
                         window.backdropMode = mode;
                         if (mode === "image") {
+                            window.refreshBackdropBlurCache(false);
                             window.showBackdropImagePopover(backdropImagePopover, controlItem, toolbarCard, contentRoot);
                         } else {
+                            window.cancelBackdropBlurPreparation();
                             backdropImagePopover.close();
                         }
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
@@ -4152,6 +4180,7 @@ DankModal {
         window.restoreSource = "";
         window.bgImageSource = "";
         window.exportCallback = null;
+        window.cancelBackdropBlurPreparation();
     }
 
     Component.onCompleted: {
