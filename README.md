@@ -157,8 +157,13 @@ Commands that capture or open images accept an `action` parameter — use `edit`
 
 ```bash
 dms ipc call quickCapture <command> [arg] edit|float
+```
 
+```bash
 dms ipc call quickCapture screenshot region edit   # open editor
+```
+
+```bash
 dms ipc call quickCapture screenshot region float  # float directly
 ```
 
@@ -171,16 +176,10 @@ dms ipc call quickCapture screenshot region float  # float directly
 | `close` | — | Close the annotator window |
 | `showHistory` | — | Open Recent Edits history carousel |
 
-### Keybinding Examples (Niri)
+### Keybinding Examples 
 
-```kdl
-binds {
-    Print { spawn "dms" "ipc" "call" "quickCapture" "screenshot" "region" "edit"; }
-    Meta+Print { spawn "dms" "ipc" "call" "quickCapture" "screenshot" "window" "edit"; }
-    # Float without editor:
-    # Control+Print { spawn "dms" "ipc" "call" "quickCapture" "screenshot" "full" "float"; }
-}
-```
+![Setup Example](setup_example.png)
+
 
 ## Roadmap
 
