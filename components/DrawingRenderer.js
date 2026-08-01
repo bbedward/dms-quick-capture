@@ -626,8 +626,17 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
             ctx.restore();
         }
 
-        // Draw stamp circle background at stamp position
+        // Draw a distinct contrast band outside the stamp background.
         ctx.save();
+        if (!config || config.stampOuterRing !== false) {
+            const ringWidth = Math.max(1.5, stroke.width * 0.5);
+            ctx.fillStyle = textColor;
+            ctx.beginPath();
+            ctx.arc(stampPt.x, stampPt.y, radius + ringWidth, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // Draw stamp circle background at stamp position.
         ctx.fillStyle = stroke.color;
         ctx.beginPath();
         ctx.arc(stampPt.x, stampPt.y, radius, 0, 2 * Math.PI);

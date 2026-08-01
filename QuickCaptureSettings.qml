@@ -1564,10 +1564,12 @@ PluginSettings {
         SectionTitle {
             text: I18n.tr("Shapes")
             icon: "category"
-            showReset: roundRect.isDirty || roundHighlighter.isDirty
+            showReset: roundRect.isDirty || textCornerRadius.isDirty || roundHighlighter.isDirty || stampOuterRing.isDirty
             onResetClicked: {
                 roundRect.resetToDefault();
+                textCornerRadius.resetToDefault();
                 roundHighlighter.resetToDefault();
+                stampOuterRing.resetToDefault();
             }
         }
 
@@ -1599,6 +1601,16 @@ PluginSettings {
             settingKey: "roundHighlighter"
             label: I18n.tr("Round Highlighter Tips")
             defaultValue: false
+        }
+
+        Separator {}
+
+        ToggleSettingPlus {
+            id: stampOuterRing
+            settingKey: "stampOuterRing"
+            label: I18n.tr("Stamp Contrast Ring")
+            description: I18n.tr("Draw an outer ring using the stamp number color")
+            defaultValue: true
         }
     }
 

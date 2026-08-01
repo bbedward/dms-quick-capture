@@ -1127,6 +1127,8 @@ DankModal {
     onStampFontFamilyChanged: {
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
+    property bool stampOuterRing: pluginData.stampOuterRing !== undefined ? pluginData.stampOuterRing : true
+    onStampOuterRingChanged: window.requestPaintAll()
     readonly property string textInputMode: pluginData.textInputMode !== undefined ? pluginData.textInputMode : "inline"
     readonly property string toolbarPosition: pluginData.toolbarPosition !== undefined ? pluginData.toolbarPosition : "bottom"
     readonly property bool configShowToolbar: pluginData.showToolbar !== undefined ? pluginData.showToolbar : true
@@ -1485,7 +1487,8 @@ DankModal {
             canvasHeight: window.canvasHeight,
             canvasMinX: window.hasActiveCropSelection ? window.cropRect.x : 0,
             canvasMinY: window.hasActiveCropSelection ? window.cropRect.y : 0,
-            stampFontFamily: window.stampFontFamily
+            stampFontFamily: window.stampFontFamily,
+            stampOuterRing: window.stampOuterRing
         });
     }
 
