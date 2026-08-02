@@ -1906,7 +1906,34 @@ DankModal {
             points: newPoints
         };
         Helpers.copyStrokeProperties(window.copiedStroke, pasted);
+        window.prepareStampCopyForPaste(pasted);
         return pasted;
+    }
+
+    function getStampCount() {
+        let count = 0;
+        for (let i = 0; i < window.strokes.length; i++) {
+            if (window.strokes[i] && window.strokes[i].tool === "stamp") count++;
+        }
+        return count;
+    }
+
+    function getNextStampId() {
+        let maxId = 0;
+        for (let i = 0; i < window.strokes.length; i++) {
+            const stroke = window.strokes[i];
+            if (!stroke || stroke.tool !== "stamp") continue;
+            const id = Number(stroke.id);
+            if (isFinite(id)) maxId = Math.max(maxId, id);
+        }
+        return Math.max(maxId + 1, window.stampIdCounter);
+    }
+
+    function prepareStampCopyForPaste(stroke) {
+        if (!stroke || stroke.tool !== "stamp") return;
+        stroke.id = window.getNextStampId();
+        stroke.counter = window.getStampCount() + 1;
+        stroke.format = window.stampCounterFormat;
     }
 
     function beginPastePreview() {
@@ -2120,19 +2147,31 @@ DankModal {
 
     function reindexStamps() {
         let stamps = [];
+        let maxId = 0;
         for (let i = 0; i < window.strokes.length; i++) {
             let stroke = window.strokes[i];
             if (stroke && stroke.tool === "stamp") {
-                if (stroke.id === undefined) {
-                    stroke.id = window.stampIdCounter++;
-                }
                 stamps.push(stroke);
+                const id = Number(stroke.id);
+                if (isFinite(id)) maxId = Math.max(maxId, id);
             }
         }
 
-        stamps.sort((a, b) => a.id - b.id);
-
         let modified = false;
+        let nextId = Math.max(maxId + 1, window.stampIdCounter);
+        let usedIds = {};
+        for (let i = 0; i < stamps.length; i++) {
+            let stroke = stamps[i];
+            const id = Number(stroke.id);
+            if (!isFinite(id) || usedIds[id]) {
+                stroke.id = nextId++;
+                modified = true;
+            }
+            usedIds[Number(stroke.id)] = true;
+        }
+
+        stamps.sort((a, b) => Number(a.id) - Number(b.id));
+
         for (let i = 0; i < stamps.length; i++) {
             let stroke = stamps[i];
             let stampCount = i + 1;
@@ -2149,6 +2188,9 @@ DankModal {
         const nextCounter = stamps.length + 1;
         if (window.stampCounter !== nextCounter) {
             window.stampCounter = nextCounter;
+        }
+        if (window.stampIdCounter !== nextId) {
+            window.stampIdCounter = nextId;
         }
         if (modified && window.activeCanvas) {
             window.activeCanvas.requestPaint();
@@ -2538,6 +2580,7 @@ DankModal {
                     points: window.selectedStroke.points.map(p => Qt.point(p.x, p.y))
                 };
                 Helpers.copyStrokeProperties(window.selectedStroke, window.copiedStroke);
+                window.prepareStampCopyForPaste(window.copiedStroke);
                 window.beginPastePreview();
                 return window.acceptKeyEvent(event);
             } else if (window.copiedStroke) {
