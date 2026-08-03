@@ -183,6 +183,89 @@ DankModal {
         window.selectStrokeForEditing(window.strokes[window.strokes.length - 1], true);
     }
 
+    function isIntensityTool(tool) {
+        return tool === "pen" || tool === "line" || tool === "arrow" || tool === "rect"
+            || tool === "ellipse" || tool === "highlighter" || tool === "redact"
+            || tool === "stamp" || tool === "text" || tool === "pixelate"
+            || tool === "spotlight" || tool === "callout";
+    }
+
+    function intensitySettingKey(tool) {
+        const keys = {
+            pen: "defaultPenThickness",
+            line: "defaultLineThickness",
+            arrow: "defaultArrowThickness",
+            rect: "defaultRectThickness",
+            ellipse: "defaultEllipseThickness",
+            highlighter: "defaultHighlighterThickness",
+            redact: "defaultRedactThickness",
+            stamp: "defaultStampSize",
+            text: "textFontSize",
+            pixelate: "defaultPixelateIntensity",
+            spotlight: "defaultSpotlightIntensity",
+            callout: "defaultCalloutZoom"
+        };
+        return keys[tool] || "";
+    }
+
+    function clampToolIntensity(tool, value) {
+        const meta = Constants.getToolMeta(tool);
+        const parsed = parseInt(value, 10);
+        const fallback = meta.defaultValue;
+        const nextValue = isNaN(parsed) ? fallback : parsed;
+        return Math.max(meta.min, Math.min(meta.max, nextValue));
+    }
+
+    function configuredToolIntensity(tool) {
+        const key = window.intensitySettingKey(tool);
+        let rawValue = key ? window.pluginData[key] : undefined;
+        if (rawValue === undefined && tool === "pen") {
+            rawValue = window.pluginData.defaultThickness;
+        }
+        return window.clampToolIntensity(tool, rawValue);
+    }
+
+    function resetSessionToolIntensities() {
+        const tools = ["pen", "line", "arrow", "rect", "ellipse", "highlighter", "redact", "stamp", "text", "pixelate", "spotlight", "callout"];
+        const values = {};
+        for (let i = 0; i < tools.length; i++) {
+            const tool = tools[i];
+            values[tool] = window.configuredToolIntensity(tool);
+        }
+        window.sessionToolIntensities = values;
+    }
+
+    function updateSessionToolIntensity(tool, value) {
+        if (!window.isIntensityTool(tool)) return;
+        const nextValues = Object.assign({}, window.sessionToolIntensities);
+        nextValues[tool] = window.clampToolIntensity(tool, value);
+        window.sessionToolIntensities = nextValues;
+    }
+
+    function sessionToolIntensity(tool) {
+        if (!window.isIntensityTool(tool)) return window.strokeWidth;
+        const current = window.sessionToolIntensities[tool];
+        if (current !== undefined) return window.clampToolIntensity(tool, current);
+        return window.configuredToolIntensity(tool);
+    }
+
+    function applyToolIntensity(tool, value) {
+        const clamped = window.clampToolIntensity(tool, value);
+        if (tool === "text") window.textFontSize = clamped;
+        else if (tool === "pixelate") window.pixelateIntensity = clamped;
+        else if (tool === "spotlight") {
+            window.spotlightIntensity = clamped;
+            window.preGrabSpotlightIntensity = clamped;
+        }
+        else if (tool === "callout") window.calloutZoom = clamped;
+        else window.strokeWidth = clamped;
+    }
+
+    function applyCurrentToolSessionIntensity() {
+        if (!window.isIntensityTool(window.currentTool)) return;
+        window.applyToolIntensity(window.currentTool, window.sessionToolIntensity(window.currentTool));
+    }
+
     function handleCurrentToolChanged() {
         if (window.currentTool !== "colorpicker") {
             window.backdropColorPickingSlot = "none";
@@ -193,6 +276,7 @@ DankModal {
         if (window.currentTool !== "crop" && window.currentTool !== "backdrop" && window.currentTool !== "select" && window.currentTool !== "colorpicker") {
             window.lastActiveTool = window.currentTool;
         }
+        window.applyCurrentToolSessionIntensity();
         if (window.currentTool !== "select" && window.selectedStroke) {
             window.deselectStrokeForEditing(true);
             window.requestActiveCanvasPaint();
@@ -503,6 +587,7 @@ DankModal {
     property real penSmoothingAlpha: 0.4
     property int strokeWidth: 8
     property int pixelateIntensity: 8
+    property var sessionToolIntensities: ({})
 
     property int spotlightIntensity: 50
     onSpotlightIntensityChanged: {
@@ -574,6 +659,8 @@ DankModal {
     function updateActiveIntensity(val) {
         const meta = Constants.getToolMeta(effectiveTool);
         const clamped = Math.max(meta.min, Math.min(meta.max, val));
+
+        window.updateSessionToolIntensity(effectiveTool, clamped);
 
         if (effectiveTool === "text") textFontSize = clamped;
         else if (effectiveTool === "pixelate") pixelateIntensity = clamped;
@@ -2700,7 +2787,8 @@ DankModal {
             const target = isP0 ? p1 : p0;
             window.currentTool = target.tool;
             window.currentColor = target.color;
-            window.strokeWidth = target.thickness;
+            window.applyToolIntensity(target.tool, target.thickness);
+            window.updateSessionToolIntensity(target.tool, target.thickness);
             window.recordPresetUsage(target);
         } else {
             window.currentTool = "select";
@@ -2774,6 +2862,8 @@ DankModal {
         let startThickness = Constants.getToolMeta("pen").defaultValue;
         let startColor = Theme.primary;
 
+        window.resetSessionToolIntensities();
+
         const defaultToolMode = config.pluginData.defaultToolMode || "preset";
         if (defaultToolMode === "preset") {
             const presetIdxRaw = config.pluginData.defaultPresetIndex || "0";
@@ -2786,16 +2876,17 @@ DankModal {
                 startThickness = window.getPresetThickness(presetIdx);
             } else {
                 startTool = config.pluginData.defaultTool || "pen";
-                startThickness = config.pluginData.defaultThickness || Constants.getToolMeta("pen").defaultValue;
+                startThickness = window.sessionToolIntensity(startTool);
             }
         } else {
             startTool = config.pluginData.defaultTool || "pen";
-            startThickness = config.pluginData.defaultThickness || Constants.getToolMeta("pen").defaultValue;
+            startThickness = window.sessionToolIntensity(startTool);
         }
 
         window.currentTool = startTool;
         window.toolbarVisible = window.configShowToolbar;
-        window.strokeWidth = startThickness;
+        window.applyToolIntensity(startTool, startThickness);
+        window.updateSessionToolIntensity(startTool, startThickness);
         window.currentColor = startColor;
         window.recordPresetUsage({ tool: startTool, color: startColor, thickness: startThickness });
 
@@ -3773,11 +3864,8 @@ DankModal {
                         window.currentColor = preset.color;
                         const meta = Constants.getToolMeta(preset.tool);
                         const clamped = Math.max(meta.min, Math.min(meta.max, preset.thickness));
-                        if (preset.tool === "text") window.textFontSize = clamped;
-                        else if (preset.tool === "pixelate") window.pixelateIntensity = clamped;
-                        else if (preset.tool === "spotlight") window.spotlightIntensity = clamped;
-                        else if (preset.tool === "callout") window.calloutZoom = clamped;
-                        else window.strokeWidth = clamped;
+                        window.applyToolIntensity(preset.tool, clamped);
+                        window.updateSessionToolIntensity(preset.tool, clamped);
                         window.recordPresetUsage(preset);
                     }
                     onCenterClicked: {

@@ -49,12 +49,12 @@ git checkout main && git pull
 
 ## Quick Start
 
-| Action | Result |
-|--------|--------|
-| **Left Click** (bar icon) | Open widget popout |
-| **Middle Click** (bar icon) | Middle click action (configured in settings) |
-| **Right Click** (bar icon) | Right click action (configured in settings) |
-| **Drop Image** (bar icon) | Drag any image onto the icon to annotate |
+| Action                          | Result                                              |
+| ------------------------------- | --------------------------------------------------- |
+| **Left Click** (bar icon)       | Open widget popout                                  |
+| **Middle Click** (bar icon)     | Middle click action (configured in settings)        |
+| **Right Click** (bar icon)      | Right click action (configured in settings)         |
+| **Drop Image** (bar icon)       | Drag any image onto the icon to annotate            |
 | **<kbd>Print</kbd>** (keyboard) | Capture using default mode (requires keybind setup) |
 
 **Typical workflow:**
@@ -70,28 +70,28 @@ git checkout main && git pull
 
 ### Tool Selection
 
-| Shortcut | Tool |
-|----------|------|
-| <kbd>1</kbd> | Pen |
-| <kbd>2</kbd> | Line |
-| <kbd>3</kbd> | Arrow |
-| <kbd>4</kbd> | Rectangle |
-| <kbd>Q</kbd> | Ellipse |
-| <kbd>W</kbd> | Text |
-| <kbd>E</kbd> | Pixelate |
-| <kbd>R</kbd> | Redact |
-| <kbd>A</kbd> | Stamp |
-| <kbd>S</kbd> | Highlighter |
-| <kbd>D</kbd> | Focus Spotlight |
-| <kbd>F</kbd> | Color Picker (Ink/Eyedropper) |
-| <kbd>T</kbd> | Eraser |
-| <kbd>Z</kbd> | Area Zoom (Callout) |
-| <kbd>B</kbd> | Backdrop Options |
-| <kbd>O</kbd> | OCR Text Recognition |
-| <kbd>G</kbd> (Hold) | Magnifier Lens (Cursor Zoom) |
-| <kbd>V</kbd> | Select |
-| <kbd>X</kbd> | Toggle Hide/Show Annotations |
-| <kbd>Tab</kbd> | Toggle between Select tool and last active tool, or between 2 latest radial presets |
+| Shortcut            | Tool                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| <kbd>1</kbd>        | Pen                                                                                 |
+| <kbd>2</kbd>        | Line                                                                                |
+| <kbd>3</kbd>        | Arrow                                                                               |
+| <kbd>4</kbd>        | Rectangle                                                                           |
+| <kbd>Q</kbd>        | Ellipse                                                                             |
+| <kbd>W</kbd>        | Text                                                                                |
+| <kbd>E</kbd>        | Pixelate                                                                            |
+| <kbd>R</kbd>        | Redact                                                                              |
+| <kbd>A</kbd>        | Stamp                                                                               |
+| <kbd>S</kbd>        | Highlighter                                                                         |
+| <kbd>D</kbd>        | Focus Spotlight                                                                     |
+| <kbd>F</kbd>        | Color Picker (Ink/Eyedropper)                                                       |
+| <kbd>T</kbd>        | Eraser                                                                              |
+| <kbd>Z</kbd>        | Area Zoom (Callout)                                                                 |
+| <kbd>B</kbd>        | Backdrop Options                                                                    |
+| <kbd>O</kbd>        | OCR Text Recognition                                                                |
+| <kbd>G</kbd> (Hold) | Magnifier Lens (Cursor Zoom)                                                        |
+| <kbd>V</kbd>        | Select                                                                              |
+| <kbd>X</kbd>        | Toggle Hide/Show Annotations                                                        |
+| <kbd>Tab</kbd>      | Toggle between Select tool and last active tool, or between 2 latest radial presets |
 
 ### Drawing & Editing
 
@@ -104,21 +104,21 @@ git checkout main && git pull
 - **Leader Line (Stamp Tool):** Click and drag to create a stamp with a leader line. The click location points to the target, and the release location places the stamp body. A single click without dragging drops a normal stamp.
 - **Shift Constraint:** Hold **<kbd>Shift</kbd>** while drawing to constrain shapes:
 
-  | Tool | Shift Behavior |
-  |------|----------------|
-  | Pen | Draws straight lines |
-  | Line, Arrow, Highlighter | Snaps angle to 15° increments |
-  | Ellipse | Perfect circle |
-  | Rectangle, Redact, Pixelate | Perfect square |
+    | Tool                        | Shift Behavior                |
+    | --------------------------- | ----------------------------- |
+    | Pen                         | Draws straight lines          |
+    | Line, Arrow, Highlighter    | Snaps angle to 15° increments |
+    | Ellipse                     | Perfect circle                |
+    | Rectangle, Redact, Pixelate | Perfect square                |
 
 ### Popover Toolbars & Radial Menus
 
-| Interaction | Menu / Popover |
-|-------------|----------------|
-| **Right-click** on canvas | 8 customizable tool presets |
-| **<kbd>Shift</kbd>+Right-click** (Stamp active) | Open Stamp Options mini-toolbar (Numeric, Alphabetic, Roman) |
-| **<kbd>Shift</kbd>+Right-click** (Text active) | Open Text Options mini-toolbar (Bold, Italic, Underline, Background) |
-| **<kbd>Shift</kbd>+Right-click** (Line active) | Open Line Options mini-toolbar (Solid, Dashed, Dotted) |
+| Interaction                                     | Menu / Popover                                                       |
+| ----------------------------------------------- | -------------------------------------------------------------------- |
+| **Right-click** on canvas                       | 8 customizable tool presets                                          |
+| **<kbd>Shift</kbd>+Right-click** (Stamp active) | Open Stamp Options mini-toolbar (Numeric, Alphabetic, Roman)         |
+| **<kbd>Shift</kbd>+Right-click** (Text active)  | Open Text Options mini-toolbar (Bold, Italic, Underline, Background) |
+| **<kbd>Shift</kbd>+Right-click** (Line active)  | Open Line Options mini-toolbar (Solid, Dashed, Dotted)               |
 
 ### Special Tools
 
@@ -128,20 +128,20 @@ git checkout main && git pull
 
 ## Keyboard Shortcuts
 
-| Key | Action |
-|-----|--------|
-| <kbd>Enter</kbd> | Done (save/copy per settings) |
-| <kbd>Esc</kbd> | Discard & Close |
-| <kbd>Ctrl</kbd> + <kbd>Z</kbd> | Undo last stroke (or Mouse Back Button) |
-| <kbd>Ctrl</kbd> + <kbd>Y</kbd> / <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Redo last undone stroke (or Mouse Forward Button) |
-| <kbd>Ctrl</kbd> + <kbd>S</kbd> | Save to file |
-| <kbd>Ctrl</kbd> + <kbd>C</kbd> | Copy to clipboard |
-| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd> | Anonymous Copy (randomized filename & stripped metadata / Right-click Copy) |
-| <kbd>Ctrl</kbd> + <kbd>A</kbd> | Copy & Save |
-| <kbd>Ctrl</kbd> + <kbd>F</kbd> | Float image to always-on-top window |
-| <kbd>Ctrl</kbd> + <kbd>X</kbd> | Crop / Resize |
-| <kbd>Ctrl</kbd> + <kbd>1</kbd> – <kbd>4</kbd> | Select color slots 1 – 4 |
-| <kbd>Ctrl</kbd> + <kbd>Q</kbd> – <kbd>R</kbd> | Select color slots 5 – 8 (Q, W, E, R) |
+| Key                                                                                | Action                                                                      |
+| ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------- |
+| <kbd>Enter</kbd>                                                                   | Done (save/copy per settings)                                               |
+| <kbd>Esc</kbd>                                                                     | Discard & Close                                                             |
+| <kbd>Ctrl</kbd> + <kbd>Z</kbd>                                                     | Undo last stroke (or Mouse Back Button)                                     |
+| <kbd>Ctrl</kbd> + <kbd>Y</kbd> / <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>Z</kbd> | Redo last undone stroke (or Mouse Forward Button)                           |
+| <kbd>Ctrl</kbd> + <kbd>S</kbd>                                                     | Save to file                                                                |
+| <kbd>Ctrl</kbd> + <kbd>C</kbd>                                                     | Copy to clipboard                                                           |
+| <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>C</kbd>                                  | Anonymous Copy (randomized filename & stripped metadata / Right-click Copy) |
+| <kbd>Ctrl</kbd> + <kbd>A</kbd>                                                     | Copy & Save                                                                 |
+| <kbd>Ctrl</kbd> + <kbd>F</kbd>                                                     | Float image to always-on-top window                                         |
+| <kbd>Ctrl</kbd> + <kbd>X</kbd>                                                     | Crop / Resize                                                               |
+| <kbd>Ctrl</kbd> + <kbd>1</kbd> – <kbd>4</kbd>                                      | Select color slots 1 – 4                                                    |
+| <kbd>Ctrl</kbd> + <kbd>Q</kbd> – <kbd>R</kbd>                                      | Select color slots 5 – 8 (Q, W, E, R)                                       |
 
 ## Pin-to-Desktop (Float)
 
@@ -167,19 +167,18 @@ dms ipc call quickCapture screenshot region edit   # open editor
 dms ipc call quickCapture screenshot region float  # float directly
 ```
 
-| Command | Arguments | Description |
-|---------|-----------|-------------|
-| `screenshot` | `mode` (`region`, `full`, `all`, `output`, `window`, `last`, `scroll`) | Trigger capture |
-| `selectFile` | `action` | Open file browser to pick an image |
-| `fromClipboard` | `action` | Annotate image from clipboard |
-| `openImage` | `path`, `action` | Open a specific image in the annotator |
-| `close` | — | Close the annotator window |
-| `showHistory` | — | Open Recent Edits history carousel |
+| Command         | Arguments                                                              | Description                            |
+| --------------- | ---------------------------------------------------------------------- | -------------------------------------- |
+| `screenshot`    | `mode` (`region`, `full`, `all`, `output`, `window`, `last`, `scroll`) | Trigger capture                        |
+| `selectFile`    | `action`                                                               | Open file browser to pick an image     |
+| `fromClipboard` | `action`                                                               | Annotate image from clipboard          |
+| `openImage`     | `path`, `action`                                                       | Open a specific image in the annotator |
+| `close`         | —                                                                      | Close the annotator window             |
+| `showHistory`   | —                                                                      | Open Recent Edits history carousel     |
 
-### Keybinding Examples 
+### Keybinding Examples
 
 ![Setup Example](setup_example.png)
-
 
 ## Roadmap
 
@@ -189,11 +188,11 @@ dms ipc call quickCapture screenshot region float  # float directly
 - [ ] Image Filters (Grayscale, negative, brightness/contrast)
 - [ ] Image Backdrop Mode: Support setting a custom image file as the screenshot background
 - [x] Expanded tool option popovers:
-  - **Arrow tool**: Double-headed arrows, line styles (dashed, dotted)
-  - **Line tool**: Line styles (dashed, dotted)
-  - **Rectangle tool**: Border styles (dashed, dotted)
-  - **Redact tool**: Clean text eraser (dominant color/gradient background matcher)
-  - **Callout tool**: Ellipse callout shape support
+    - **Arrow tool**: Double-headed arrows, line styles (dashed, dotted)
+    - **Line tool**: Line styles (dashed, dotted)
+    - **Rectangle tool**: Border styles (dashed, dotted)
+    - **Redact tool**: Clean text eraser (dominant color/gradient background matcher)
+    - **Callout tool**: Ellipse callout shape support
 
 ## Credits
 
@@ -203,7 +202,6 @@ dms ipc call quickCapture screenshot region float  # float directly
 - **vky** and **bodify** (Discord) — Actively reporting bugs and contributing valuable feedback to help polish and improve the plugin
 
 Thanks to everyone who supported, contributed code, gave feedback, and the DankMaterialShell community.
-
 
 ## License
 

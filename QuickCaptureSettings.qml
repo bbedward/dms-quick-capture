@@ -1307,12 +1307,11 @@ PluginSettings {
         SectionTitle {
             text: I18n.tr("Drawing")
             icon: "brush"
-            showReset: defaultToolMode.isDirty || defaultPresetIndex.isDirty || defaultTool.isDirty || defaultThickness.isDirty || penAutoClose.isDirty
+            showReset: defaultToolMode.isDirty || defaultPresetIndex.isDirty || defaultTool.isDirty || penAutoClose.isDirty
             onResetClicked: {
                 defaultToolMode.resetToDefault();
                 defaultPresetIndex.resetToDefault();
                 defaultTool.resetToDefault();
-                defaultThickness.resetToDefault();
                 penAutoClose.resetToDefault();
             }
         }
@@ -1403,24 +1402,6 @@ PluginSettings {
             visible: defaultToolMode.value === "custom"
         }
 
-        SliderSettingPlus {
-            id: defaultThickness
-            label: I18n.tr("Default Stroke Thickness")
-            settingKey: "defaultThickness"
-            defaultValue: Constants.getToolMeta("pen").defaultValue
-            minimum: Constants.getToolMeta("pen").min
-            maximum: Constants.getToolMeta("pen").max
-            leftLabel: Constants.getToolMeta("pen").min.toString()
-            rightLabel: Constants.getToolMeta("pen").max.toString()
-            previewType: "thickness"
-            visible: defaultToolMode.value === "custom"
-        }
-
-        Separator {
-            visible: defaultToolMode.value === "custom"
-        }
-
-
         ToggleSettingPlus {
             id: penAutoClose
             settingKey: "penAutoClose"
@@ -1429,6 +1410,183 @@ PluginSettings {
             defaultValue: true
         }
     }
+
+            SettingsCard {
+                id: toolDefaultsCard
+                SectionTitle {
+                    text: I18n.tr("Tool Defaults")
+                    icon: "tune"
+                    showReset: defaultPenThickness.isDirty || defaultLineThickness.isDirty || defaultArrowThickness.isDirty
+                        || defaultRectThickness.isDirty || defaultEllipseThickness.isDirty || defaultHighlighterThickness.isDirty
+                        || defaultRedactThickness.isDirty || defaultStampSize.isDirty || defaultPixelateIntensity.isDirty
+                        || defaultSpotlightIntensity.isDirty || defaultCalloutZoom.isDirty
+                    onResetClicked: {
+                        defaultPenThickness.resetToDefault();
+                        defaultLineThickness.resetToDefault();
+                        defaultArrowThickness.resetToDefault();
+                        defaultRectThickness.resetToDefault();
+                        defaultEllipseThickness.resetToDefault();
+                        defaultHighlighterThickness.resetToDefault();
+                        defaultRedactThickness.resetToDefault();
+                        defaultStampSize.resetToDefault();
+                        defaultPixelateIntensity.resetToDefault();
+                        defaultSpotlightIntensity.resetToDefault();
+                        defaultCalloutZoom.resetToDefault();
+                    }
+                }
+
+                SliderSettingPlus {
+                    id: defaultPenThickness
+                    label: I18n.tr("Pen Thickness")
+                    settingKey: "defaultPenThickness"
+                    defaultValue: Constants.getToolMeta("pen").defaultValue
+                    minimum: Constants.getToolMeta("pen").min
+                    maximum: Constants.getToolMeta("pen").max
+                    leftLabel: Constants.getToolMeta("pen").min.toString()
+                    rightLabel: Constants.getToolMeta("pen").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultLineThickness
+                    label: I18n.tr("Line Thickness")
+                    settingKey: "defaultLineThickness"
+                    defaultValue: Constants.getToolMeta("line").defaultValue
+                    minimum: Constants.getToolMeta("line").min
+                    maximum: Constants.getToolMeta("line").max
+                    leftLabel: Constants.getToolMeta("line").min.toString()
+                    rightLabel: Constants.getToolMeta("line").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultArrowThickness
+                    label: I18n.tr("Arrow Thickness")
+                    settingKey: "defaultArrowThickness"
+                    defaultValue: Constants.getToolMeta("arrow").defaultValue
+                    minimum: Constants.getToolMeta("arrow").min
+                    maximum: Constants.getToolMeta("arrow").max
+                    leftLabel: Constants.getToolMeta("arrow").min.toString()
+                    rightLabel: Constants.getToolMeta("arrow").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultRectThickness
+                    label: I18n.tr("Rectangle Thickness")
+                    settingKey: "defaultRectThickness"
+                    defaultValue: Constants.getToolMeta("rect").defaultValue
+                    minimum: Constants.getToolMeta("rect").min
+                    maximum: Constants.getToolMeta("rect").max
+                    leftLabel: Constants.getToolMeta("rect").min.toString()
+                    rightLabel: Constants.getToolMeta("rect").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultEllipseThickness
+                    label: I18n.tr("Ellipse Thickness")
+                    settingKey: "defaultEllipseThickness"
+                    defaultValue: Constants.getToolMeta("ellipse").defaultValue
+                    minimum: Constants.getToolMeta("ellipse").min
+                    maximum: Constants.getToolMeta("ellipse").max
+                    leftLabel: Constants.getToolMeta("ellipse").min.toString()
+                    rightLabel: Constants.getToolMeta("ellipse").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultHighlighterThickness
+                    label: I18n.tr("Highlighter Thickness")
+                    settingKey: "defaultHighlighterThickness"
+                    defaultValue: Constants.getToolMeta("highlighter").defaultValue
+                    minimum: Constants.getToolMeta("highlighter").min
+                    maximum: Constants.getToolMeta("highlighter").max
+                    leftLabel: Constants.getToolMeta("highlighter").min.toString()
+                    rightLabel: Constants.getToolMeta("highlighter").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultRedactThickness
+                    label: I18n.tr("Redact Thickness")
+                    settingKey: "defaultRedactThickness"
+                    defaultValue: Constants.getToolMeta("redact").defaultValue
+                    minimum: Constants.getToolMeta("redact").min
+                    maximum: Constants.getToolMeta("redact").max
+                    leftLabel: Constants.getToolMeta("redact").min.toString()
+                    rightLabel: Constants.getToolMeta("redact").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultStampSize
+                    label: I18n.tr("Stamp Size")
+                    settingKey: "defaultStampSize"
+                    defaultValue: Constants.getToolMeta("stamp").defaultValue
+                    minimum: Constants.getToolMeta("stamp").min
+                    maximum: Constants.getToolMeta("stamp").max
+                    leftLabel: Constants.getToolMeta("stamp").min.toString()
+                    rightLabel: Constants.getToolMeta("stamp").max.toString()
+                    previewType: "thickness"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultPixelateIntensity
+                    label: I18n.tr("Pixelate Intensity")
+                    settingKey: "defaultPixelateIntensity"
+                    defaultValue: Constants.getToolMeta("pixelate").defaultValue
+                    minimum: Constants.getToolMeta("pixelate").min
+                    maximum: Constants.getToolMeta("pixelate").max
+                    leftLabel: Constants.getToolMeta("pixelate").min.toString()
+                    rightLabel: Constants.getToolMeta("pixelate").max.toString()
+                    previewType: "none"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultSpotlightIntensity
+                    label: I18n.tr("Spotlight Opacity")
+                    settingKey: "defaultSpotlightIntensity"
+                    defaultValue: Constants.getToolMeta("spotlight").defaultValue
+                    minimum: Constants.getToolMeta("spotlight").min
+                    maximum: Constants.getToolMeta("spotlight").max
+                    leftLabel: Constants.getToolMeta("spotlight").min.toString()
+                    rightLabel: Constants.getToolMeta("spotlight").max.toString()
+                    previewType: "none"
+                }
+
+                Separator {}
+
+                SliderSettingPlus {
+                    id: defaultCalloutZoom
+                    label: I18n.tr("Callout Zoom")
+                    settingKey: "defaultCalloutZoom"
+                    defaultValue: Constants.getToolMeta("callout").defaultValue
+                    minimum: Constants.getToolMeta("callout").min
+                    maximum: Constants.getToolMeta("callout").max
+                    leftLabel: Constants.getToolMeta("callout").min.toString()
+                    rightLabel: Constants.getToolMeta("callout").max.toString()
+                    previewType: "none"
+                }
+            }
         }
     }
 
