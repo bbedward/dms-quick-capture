@@ -1878,8 +1878,12 @@ DankModal {
     }
 
     function getCursorAbsolutePoint() {
-        const mx = window.cursorX;
-        const my = window.cursorY;
+        let mx = window.cursorX;
+        let my = window.cursorY;
+        if (window.effectiveBackdropMode !== "none") {
+            mx = (mx - window.screenshotXOffset) / window.backdropScaleFactor;
+            my = (my - window.screenshotYOffset) / window.backdropScaleFactor;
+        }
         return window.hasActiveCropSelection ? Qt.point(mx + window.cropRect.x, my + window.cropRect.y) : Qt.point(mx, my);
     }
 
