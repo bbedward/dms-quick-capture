@@ -67,6 +67,7 @@ DankModal {
     property var paletteWarningDialogRef: null
     property var toolbarItem: null
     property int activeColorSlotIndex: 0
+    property var scanResultPopoverRef: null
     property color pendingColorToSave: "transparent"
     property int pendingSlotToSave: -1
     property string currentTool: "crop" // crop, select, pen, line, arrow, rect, ellipse, text, pixelate, redact, stamp, highlighter, eraser, spotlight, backdrop
@@ -1262,6 +1263,12 @@ DankModal {
         window.startRegionScanTool("ocr");
     }
 
+    function showScanResult(type, text) {
+        if (window.scanResultPopoverRef) {
+            window.scanResultPopoverRef.show(type, text);
+        }
+    }
+
     function executeOcr() {
         const crop = window.getRegionScanCrop();
         if (!crop) {
@@ -1282,11 +1289,7 @@ DankModal {
                     if (exitCode2 === 0) {
                         const result = stdout2.trim();
                         if (result) {
-                            DMSService.sendRequest("clipboard.copy", { "text": result }, function(response) {
-                                if (typeof ToastService !== "undefined" && ToastService) {
-                                    ToastService.showInfo(I18n.tr("OCR: %1 chars copied to clipboard").arg(result.length));
-                                }
-                            });
+                            window.showScanResult("ocr", result);
                         } else {
                             if (typeof ToastService !== "undefined" && ToastService) {
                                 ToastService.showInfo(I18n.tr("OCR: No text detected"));
@@ -1331,11 +1334,7 @@ DankModal {
                     if (exitCode2 === 0) {
                         const result = stdout2.trim();
                         if (result) {
-                            DMSService.sendRequest("clipboard.copy", { "text": result }, function(response) {
-                                if (typeof ToastService !== "undefined" && ToastService) {
-                                    ToastService.showInfo(I18n.tr("QR Decoded: Copied to clipboard"));
-                                }
-                            });
+                            window.showScanResult("qr", result);
                         } else {
                             if (typeof ToastService !== "undefined" && ToastService) {
                                 ToastService.showInfo(I18n.tr("QR Scan: No QR code detected"));
@@ -3517,6 +3516,14 @@ DankModal {
                         window.boardContainerItem = boardContainer;
                     }
 
+                    ScanResultPopover {
+                        id: scanResultPopover
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: Theme.spacingM
+                        Component.onCompleted: window.scanResultPopoverRef = scanResultPopover
+                    }
+
                     Rectangle {
                         anchors.fill: parent
                         color: "transparent"
@@ -4241,6 +4248,7 @@ DankModal {
         window.currentCapturePath = "";
         window.restoreSource = "";
         window.bgImageSource = "";
+        window.scanResultPopoverRef = null;
         window.exportCallback = null;
         window.cancelBackdropBlurPreparation();
     }
