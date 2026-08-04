@@ -1215,7 +1215,7 @@ DankModal {
     onStampFontFamilyChanged: {
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
-    property bool stampOuterRing: pluginData.stampOuterRing !== undefined ? pluginData.stampOuterRing : true
+    property bool stampOuterRing: pluginData.stampOuterRing !== undefined ? pluginData.stampOuterRing : false
     onStampOuterRingChanged: window.requestPaintAll()
     readonly property string textInputMode: pluginData.textInputMode !== undefined ? pluginData.textInputMode : "inline"
     readonly property string toolbarPosition: pluginData.toolbarPosition !== undefined ? pluginData.toolbarPosition : "bottom"

@@ -603,68 +603,60 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         const textColor = Helpers.getContrastingColor(stroke.color, Qt);
         const hasLeader = stroke.hasLeaderLine && stroke.points.length >= 2;
         const stampPt = hasLeader ? stroke.points[1] : stroke.points[0];
-        const drawOuterRing = !config || config.stampOuterRing !== false;
+        const drawOuterRing = config && config.stampOuterRing === true;
         const ringWidth = Math.max(1.5, stroke.width * 0.5);
         const leaderStartPt = hasLeader ? stroke.points[0] : null;
-        const leaderWidth = Math.max(2, stroke.width);
-        const pointerRadius = Math.max(4, stroke.width * 1.5);
+        const tailBaseHalfWidth = Math.max(4, Math.min(radius * 0.28, stroke.width * 1.15));
 
-        if (hasLeader) {
-            if (drawOuterRing) {
-                ctx.save();
-                ctx.strokeStyle = textColor;
-                ctx.lineWidth = leaderWidth + ringWidth * 2;
-                ctx.lineCap = "round";
-                ctx.beginPath();
-                ctx.moveTo(leaderStartPt.x, leaderStartPt.y);
-                ctx.lineTo(stampPt.x, stampPt.y);
-                ctx.stroke();
-                ctx.fillStyle = textColor;
-                ctx.beginPath();
-                ctx.arc(leaderStartPt.x, leaderStartPt.y, pointerRadius + ringWidth, 0, 2 * Math.PI);
-                ctx.fill();
-                ctx.restore();
-            }
+        function drawStampTail(fillColor, shapeRadius, baseHalfWidth, tipInset) {
+            if (!hasLeader) return;
+            const dx = leaderStartPt.x - stampPt.x;
+            const dy = leaderStartPt.y - stampPt.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance <= 0.001) return;
 
-            // Connection line
-            ctx.save();
-            ctx.strokeStyle = stroke.color;
-            ctx.lineWidth = leaderWidth;
-            ctx.lineCap = "round";
+            const ux = dx / distance;
+            const uy = dy / distance;
+            const px = -uy;
+            const py = ux;
+            const overlap = Math.max(1.5, Math.min(shapeRadius * 0.18, baseHalfWidth * 0.35));
+            const edge = {
+                x: stampPt.x + ux * (shapeRadius - overlap),
+                y: stampPt.y + uy * (shapeRadius - overlap)
+            };
+            const base1 = {
+                x: edge.x + px * baseHalfWidth,
+                y: edge.y + py * baseHalfWidth
+            };
+            const base2 = {
+                x: edge.x - px * baseHalfWidth,
+                y: edge.y - py * baseHalfWidth
+            };
+            const tip = {
+                x: leaderStartPt.x - ux * tipInset,
+                y: leaderStartPt.y - uy * tipInset
+            };
+
+            ctx.fillStyle = fillColor;
             ctx.beginPath();
-            ctx.moveTo(leaderStartPt.x, leaderStartPt.y);
-            ctx.lineTo(stampPt.x, stampPt.y);
-            ctx.stroke();
-            ctx.restore();
-
-            // Pointer dot at start point
-            ctx.save();
-            ctx.fillStyle = stroke.color;
-            ctx.beginPath();
-            ctx.arc(leaderStartPt.x, leaderStartPt.y, pointerRadius, 0, 2 * Math.PI);
+            ctx.moveTo(base1.x, base1.y);
+            ctx.lineTo(tip.x, tip.y);
+            ctx.lineTo(base2.x, base2.y);
+            ctx.closePath();
             ctx.fill();
-            ctx.restore();
         }
 
-        // Draw a distinct contrast band outside the stamp background.
         ctx.save();
         if (drawOuterRing) {
-            const ringRadius = radius + ringWidth / 2;
-            ctx.strokeStyle = textColor;
-            ctx.lineWidth = ringWidth;
-            ctx.lineCap = "butt";
+            drawStampTail(textColor, radius + ringWidth, tailBaseHalfWidth + ringWidth, 0);
+            ctx.fillStyle = textColor;
             ctx.beginPath();
-            if (hasLeader) {
-                const leaderAngle = Math.atan2(leaderStartPt.y - stampPt.y, leaderStartPt.x - stampPt.x);
-                const gapAngle = Math.max(0.35, Math.min(0.9, (leaderWidth + ringWidth * 2) / ringRadius));
-                ctx.arc(stampPt.x, stampPt.y, ringRadius, leaderAngle + gapAngle / 2, leaderAngle - gapAngle / 2 + Math.PI * 2);
-            } else {
-                ctx.arc(stampPt.x, stampPt.y, ringRadius, 0, 2 * Math.PI);
-            }
-            ctx.stroke();
+            ctx.arc(stampPt.x, stampPt.y, radius + ringWidth, 0, 2 * Math.PI);
+            ctx.fill();
         }
 
-        // Draw stamp circle background at stamp position.
+        // Draw tail and stamp circle background at stamp position.
+        drawStampTail(stroke.color, radius, tailBaseHalfWidth, drawOuterRing ? ringWidth * 1.5 : 0);
         ctx.fillStyle = stroke.color;
         ctx.beginPath();
         ctx.arc(stampPt.x, stampPt.y, radius, 0, 2 * Math.PI);

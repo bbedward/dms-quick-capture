@@ -1768,7 +1768,7 @@ PluginSettings {
             settingKey: "stampOuterRing"
             label: I18n.tr("Stamp Contrast Ring")
             description: I18n.tr("Draw an outer ring using the stamp number color")
-            defaultValue: true
+            defaultValue: false
         }
     }
 
