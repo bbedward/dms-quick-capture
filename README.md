@@ -12,8 +12,8 @@ Screenshot and vector annotation plugin for DankMaterialShell (DMS).
 
 ## Requirements
 
-- DankMaterialShell >= 1.5.2 (scroll capture requires DMS >= 1.5.2)
-- **ImageMagick** (provides `magick`/`mogrify`, required for WebP/JPEG exports, rotation/mirroring, and OCR/QR crop)
+- DankMaterialShell >= 1.5.2 (scroll capture)
+- **ImageMagick** (provides `magick`/`mogrify`, required for WebP/JPEG exports, and OCR/QR crop)
 - **img2pdf** (required for PDF export)
 - **tesseract** (required for OCR text scanner)
 - **zbar** (provides `zbarimg`, required for QR scanner)
@@ -46,12 +46,6 @@ To track the development branch again:
 ```bash
 git checkout main && git pull
 ```
-
-## Release Notes
-
-### 4.0.0
-
-Breaking change: the old Backdrop feature has been renamed to Background across the UI, tool id, QML properties, and plugin setting keys. Existing Backdrop settings are not migrated and will reset to the new Background defaults after updating.
 
 ## Quick Start
 
@@ -192,7 +186,7 @@ dms ipc call quickCapture screenshot region float  # float directly
 - [x] QR Code Scanner
 - [x] Canvas Color Picker (Eyedropper tool)
 - [ ] Image Filters (Grayscale, negative, brightness/contrast)
-- [ ] Image Background Mode: Support setting a custom image file as the screenshot background
+- [x] Image Background Mode: Support setting a custom image file as the screenshot background
 - [x] Expanded tool option popovers:
     - **Arrow tool**: Double-headed arrows, line styles (dashed, dotted)
     - **Line tool**: Line styles (dashed, dotted)
