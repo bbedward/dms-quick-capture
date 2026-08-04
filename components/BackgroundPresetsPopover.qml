@@ -92,7 +92,7 @@ Rectangle {
             height: 24
 
             StyledText {
-                text: I18n.tr("Backdrop Presets")
+                text: I18n.tr("Background Presets")
                 font.pixelSize: Theme.fontSizeSmall
                 font.bold: true
                 color: Theme.surfaceText

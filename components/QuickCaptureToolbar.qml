@@ -22,37 +22,37 @@ Rectangle {
     property bool showAnnotations: true
     readonly property bool showShortcutHints: root.pluginData["show_shortcut_hints"] ?? false
 
-    // Backdrop configuration properties
-    property string backdropMode: "none"
-    property color backdropSolidColor: Theme.primary
-    property color backdropGradientStart: Theme.primary
-    property color backdropGradientEnd: Theme.secondary
-    property int backdropGradientAngle: 45
-    property int backdropPadding: 40
-    property int backdropCornerRadius: 12
-    property int backdropShadowStrength: 0
-    property string backdropAspectRatio: "auto"
+    // Background configuration properties
+    property string backgroundMode: "none"
+    property color backgroundSolidColor: Theme.primary
+    property color backgroundGradientStart: Theme.primary
+    property color backgroundGradientEnd: Theme.secondary
+    property int backgroundGradientAngle: 45
+    property int backgroundPadding: 40
+    property int backgroundCornerRadius: 12
+    property int backgroundShadowStrength: 0
+    property string backgroundAspectRatio: "auto"
     
     property real customAspectRatio: 1.50
-    property string backdropAlignment: "center"
-    property bool backdropImageBlur: false
-    property bool backdropImageDim: false
-    property int backdropImageDimStrength: 28
+    property string backgroundAlignment: "center"
+    property bool backgroundImageBlur: false
+    property bool backgroundImageDim: false
+    property int backgroundImageDimStrength: 28
 
     property string gradientActiveSlot: "start"
-    property string backdropColorPickingSlot: "none"
+    property string backgroundColorPickingSlot: "none"
 
-    signal changeBackdropMode(string mode, var controlItem)
-    signal changeBackdropSolidColor(color col)
-    signal changeBackdropGradientStart(color col)
-    signal changeBackdropGradientEnd(color col)
-    signal changeBackdropGradientAngle(int angle)
-    signal changeBackdropPadding(int padding)
-    signal changeBackdropCornerRadius(int radius)
-    signal changeBackdropShadowStrength(int strength)
-    signal changeBackdropAspectRatio(string ratio)
+    signal changeBackgroundMode(string mode, var controlItem)
+    signal changeBackgroundSolidColor(color col)
+    signal changeBackgroundGradientStart(color col)
+    signal changeBackgroundGradientEnd(color col)
+    signal changeBackgroundGradientAngle(int angle)
+    signal changeBackgroundPadding(int padding)
+    signal changeBackgroundCornerRadius(int radius)
+    signal changeBackgroundShadowStrength(int strength)
+    signal changeBackgroundAspectRatio(string ratio)
     signal changeCustomAspectRatio(real ratio)
-    signal changeBackdropAlignment(string alignment)
+    signal changeBackgroundAlignment(string alignment)
     signal rotateLeftRequested()
     signal rotateRightRequested()
     signal flipHorizontalRequested()
@@ -60,9 +60,9 @@ Rectangle {
     signal rotateRequested()
     signal mirrorRequested()
     signal moreToolsClicked(var buttonItem)
-    signal backdropControlHovered(string type, var controlItem)
-    signal backdropControlExited(string type)
-    signal backdropControlWheel(string type, int delta)
+    signal backgroundControlHovered(string type, var controlItem)
+    signal backgroundControlExited(string type)
+    signal backgroundControlWheel(string type, int delta)
     signal autoColorBalanceRequested()
 
     readonly property var toolbarPalette: {
@@ -90,14 +90,14 @@ Rectangle {
     signal copyAndSaveRequested()
     signal closeRequested()
     signal annotationsToggled()
-    signal backdropColorPickerRequested(color currentColor)
-    signal backdropEyedropperRequested(string slot)
-    signal changeBackdropImageBlur(bool enabled)
-    signal changeBackdropImageDim(bool enabled)
+    signal backgroundColorPickerRequested(color currentColor)
+    signal backgroundEyedropperRequested(string slot)
+    signal changeBackgroundImageBlur(bool enabled)
+    signal changeBackgroundImageDim(bool enabled)
 
-    readonly property color activeBackdropColor: root.backdropMode === "solid" ?
-        root.backdropSolidColor :
-        (root.gradientActiveSlot === "start" ? root.backdropGradientStart : root.backdropGradientEnd)
+    readonly property color activeBackgroundColor: root.backgroundMode === "solid" ?
+        root.backgroundSolidColor :
+        (root.gradientActiveSlot === "start" ? root.backgroundGradientStart : root.backgroundGradientEnd)
 
 
 
@@ -151,8 +151,8 @@ Rectangle {
             id: toolbarLoader
             anchors.centerIn: parent
             sourceComponent: {
-                if (root.currentTool === "backdrop" || (root.currentTool === "colorpicker" && root.backdropColorPickingSlot !== "none")) {
-                    return root.isVertical ? backdropVerticalLayout : backdropHorizontalLayout;
+                if (root.currentTool === "background" || (root.currentTool === "colorpicker" && root.backgroundColorPickingSlot !== "none")) {
+                    return root.isVertical ? backgroundVerticalLayout : backgroundHorizontalLayout;
                 }
                 return root.isVertical ? verticalLayout : horizontalLayout;
             }
@@ -448,7 +448,7 @@ Rectangle {
     }
 
     Component {
-        id: backdropHorizontalLayout
+        id: backgroundHorizontalLayout
         Row {
             spacing: Theme.spacingL
             anchors.verticalCenter: parent.verticalCenter
@@ -476,26 +476,26 @@ Rectangle {
                     iconName: "bookmarks"
                     buttonSize: Constants.btnSize
                     iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("Backdrop Presets")
+                    tooltipText: I18n.tr("Background Presets")
                     anchors.centerIn: parent
-                    onClicked: root.backdropControlHovered("presets", presetsControl)
+                    onClicked: root.backgroundControlHovered("presets", presetsControl)
                 }
 
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onEntered: root.backdropControlHovered("presets", presetsControl)
-                    onExited: root.backdropControlExited("presets")
+                    onEntered: root.backgroundControlHovered("presets", presetsControl)
+                    onExited: root.backgroundControlExited("presets")
                 }
             }
 
             Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
 
-            BackdropModeSelectors {
-                backdropMode: root.backdropMode
+            BackgroundModeSelectors {
+                backgroundMode: root.backgroundMode
                 isVertical: false
-                onChangeBackdropMode: (mode, controlItem) => root.changeBackdropMode(mode, controlItem)
+                onChangeBackgroundMode: (mode, controlItem) => root.changeBackgroundMode(mode, controlItem)
                 anchors.verticalCenter: parent.verticalCenter
             }
             
@@ -517,12 +517,12 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         DankIcon {
                             name: "padding"
-                            size: Constants.backdropIconSize
+                            size: Constants.backgroundIconSize
                             color: Theme.surfaceText
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         StyledText {
-                            text: root.backdropPadding + "px"
+                            text: root.backgroundPadding + "px"
                             width: 40; horizontalAlignment: Text.AlignRight
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
@@ -534,9 +534,9 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("padding", padControl)
-                        onExited: root.backdropControlExited("padding")
-                        onWheel: (wheel) => root.backdropControlWheel("padding", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("padding", padControl)
+                        onExited: root.backgroundControlExited("padding")
+                        onWheel: (wheel) => root.backgroundControlWheel("padding", wheel.angleDelta.y)
                     }
                 }
 
@@ -553,12 +553,12 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         DankIcon {
                             name: "rounded_corner"
-                            size: Constants.backdropIconSize
+                            size: Constants.backgroundIconSize
                             color: Theme.surfaceText
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         StyledText {
-                            text: root.backdropCornerRadius + "px"
+                            text: root.backgroundCornerRadius + "px"
                             width: 40; horizontalAlignment: Text.AlignRight
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
@@ -570,9 +570,9 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("radius", radControl)
-                        onExited: root.backdropControlExited("radius")
-                        onWheel: (wheel) => root.backdropControlWheel("radius", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("radius", radControl)
+                        onExited: root.backgroundControlExited("radius")
+                        onWheel: (wheel) => root.backgroundControlWheel("radius", wheel.angleDelta.y)
                     }
                 }
 
@@ -589,12 +589,12 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         DankIcon {
                             name: "blur_on"
-                            size: Constants.backdropIconSize
+                            size: Constants.backgroundIconSize
                             color: Theme.surfaceText
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         StyledText {
-                            text: root.backdropShadowStrength + "%"
+                            text: root.backgroundShadowStrength + "%"
                             width: 40; horizontalAlignment: Text.AlignRight
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
@@ -606,16 +606,16 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("shadow", shadowControl)
-                        onExited: root.backdropControlExited("shadow")
-                        onWheel: (wheel) => root.backdropControlWheel("shadow", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("shadow", shadowControl)
+                        onExited: root.backgroundControlExited("shadow")
+                        onWheel: (wheel) => root.backgroundControlWheel("shadow", wheel.angleDelta.y)
                     }
                 }
 
                 // Angle Control (Linear and Conic gradients)
                 Item {
                     id: angleControl
-                    visible: root.backdropMode === "gradient" || root.backdropMode === "conic"
+                    visible: root.backgroundMode === "gradient" || root.backgroundMode === "conic"
                     width: visible ? angleRow.implicitWidth : 0
                     height: Constants.btnSize
                     anchors.verticalCenter: parent.verticalCenter
@@ -626,12 +626,12 @@ Rectangle {
                         anchors.verticalCenter: parent.verticalCenter
                         DankIcon {
                             name: "rotate_right"
-                            size: Constants.backdropIconSize
+                            size: Constants.backgroundIconSize
                             color: Theme.surfaceText
                             anchors.verticalCenter: parent.verticalCenter
                         }
                         StyledText {
-                            text: root.backdropGradientAngle + "°"
+                            text: root.backgroundGradientAngle + "°"
                             width: 40; horizontalAlignment: Text.AlignRight
                             font.pixelSize: Theme.fontSizeSmall
                             color: Theme.surfaceText
@@ -643,85 +643,85 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("angle", angleControl)
-                        onExited: root.backdropControlExited("angle")
-                        onWheel: (wheel) => root.backdropControlWheel("angle", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("angle", angleControl)
+                        onExited: root.backgroundControlExited("angle")
+                        onWheel: (wheel) => root.backgroundControlWheel("angle", wheel.angleDelta.y)
                     }
                 }
 
                 // Aspect Ratio Control (Hover to reveal preset grid + custom slider popover)
                 AspectRatioControl {
                     id: aspectControl
-                    backdropAspectRatio: root.backdropAspectRatio
+                    backgroundAspectRatio: root.backgroundAspectRatio
                     customAspectRatio: root.customAspectRatio
                     compact: false
                     anchors.verticalCenter: parent.verticalCenter
-                    onHovered: root.backdropControlHovered("aspectRatio", aspectControl)
-                    onExited: root.backdropControlExited("aspectRatio")
-                    onWheeled: (delta) => root.backdropControlWheel("aspectRatio", delta)
+                    onHovered: root.backgroundControlHovered("aspectRatio", aspectControl)
+                    onExited: root.backgroundControlExited("aspectRatio")
+                    onWheeled: (delta) => root.backgroundControlWheel("aspectRatio", delta)
                 }
 
                 // Alignment Control (Hover to reveal 3x3 position grid popover)
                 AlignmentControl {
                     id: alignControl
-                    backdropAlignment: root.backdropAlignment
+                    backgroundAlignment: root.backgroundAlignment
                     compact: false
                     anchors.verticalCenter: parent.verticalCenter
-                    onHovered: root.backdropControlHovered("alignment", alignControl)
-                    onExited: root.backdropControlExited("alignment")
+                    onHovered: root.backgroundControlHovered("alignment", alignControl)
+                    onExited: root.backgroundControlExited("alignment")
                 }
             }
             
             Rectangle { 
-                opacity: root.backdropMode !== "none" ? 1 : 0
-                enabled: root.backdropMode !== "none"
+                opacity: root.backgroundMode !== "none" ? 1 : 0
+                enabled: root.backgroundMode !== "none"
                 width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter 
             }
             
             // Colors (Solid or Gradient)
             Row {
-                opacity: root.backdropMode !== "none" ? 1 : 0
-                enabled: root.backdropMode !== "none"
+                opacity: root.backgroundMode !== "none" ? 1 : 0
+                enabled: root.backgroundMode !== "none"
                 spacing: Theme.spacingS
                 anchors.verticalCenter: parent.verticalCenter
-                                 BackdropColorSelectors {
-                    backdropMode: root.backdropMode
-                    backdropSolidColor: root.backdropSolidColor
-                    backdropGradientStart: root.backdropGradientStart
-                    backdropGradientEnd: root.backdropGradientEnd
+                                 BackgroundColorSelectors {
+                    backgroundMode: root.backgroundMode
+                    backgroundSolidColor: root.backgroundSolidColor
+                    backgroundGradientStart: root.backgroundGradientStart
+                    backgroundGradientEnd: root.backgroundGradientEnd
                     gradientActiveSlot: root.gradientActiveSlot
-                    imageBlurEnabled: root.backdropImageBlur
-                    imageDimEnabled: root.backdropImageDim
-                    imageDimStrength: root.backdropImageDimStrength
+                    imageBlurEnabled: root.backgroundImageBlur
+                    imageDimEnabled: root.backgroundImageDim
+                    imageDimStrength: root.backgroundImageDimStrength
                     itemSize: 24
                     iconSize: 18
                     onSetGradientActiveSlot: (slot) => root.gradientActiveSlot = slot
                     onAutoColorBalanceRequested: root.autoColorBalanceRequested()
-                    onColorPickerRequested: (currentColor) => root.backdropColorPickerRequested(currentColor)
-                    onEyedropperRequested: (slot) => root.backdropEyedropperRequested(slot)
-                    onImageBlurToggled: (enabled) => root.changeBackdropImageBlur(enabled)
-                    onImageDimToggled: (enabled) => root.changeBackdropImageDim(enabled)
-                    onImageDimControlHovered: (controlItem) => root.backdropControlHovered("imageDim", controlItem)
-                    onImageDimControlExited: root.backdropControlExited("imageDim")
-                    onImageDimControlWheel: (delta) => root.backdropControlWheel("imageDim", delta)
+                    onColorPickerRequested: (currentColor) => root.backgroundColorPickerRequested(currentColor)
+                    onEyedropperRequested: (slot) => root.backgroundEyedropperRequested(slot)
+                    onImageBlurToggled: (enabled) => root.changeBackgroundImageBlur(enabled)
+                    onImageDimToggled: (enabled) => root.changeBackgroundImageDim(enabled)
+                    onImageDimControlHovered: (controlItem) => root.backgroundControlHovered("imageDim", controlItem)
+                    onImageDimControlExited: root.backgroundControlExited("imageDim")
+                    onImageDimControlWheel: (delta) => root.backgroundControlWheel("imageDim", delta)
                 }
                 
                 ColorPaletteGrid {
-                    visible: root.backdropMode !== "image"
-                    activeColor: root.activeBackdropColor
+                    visible: root.backgroundMode !== "image"
+                    activeColor: root.activeBackgroundColor
                     activeSlotIndex: -1
                     swatchSize: Constants.swatchSize
                     swatchRadius: Constants.swatchRadius
                     cols: 4
                     anchors.verticalCenter: parent.verticalCenter
                     onColorSelected: (col, idx) => {
-                        if (root.backdropMode === "solid") {
-                            root.changeBackdropSolidColor(col);
-                        } else if (root.backdropMode === "gradient" || root.backdropMode === "radial" || root.backdropMode === "conic") {
+                        if (root.backgroundMode === "solid") {
+                            root.changeBackgroundSolidColor(col);
+                        } else if (root.backgroundMode === "gradient" || root.backgroundMode === "radial" || root.backgroundMode === "conic") {
                             if (root.gradientActiveSlot === "start") {
-                                root.changeBackdropGradientStart(col);
+                                root.changeBackgroundGradientStart(col);
                             } else {
-                                root.changeBackdropGradientEnd(col);
+                                root.changeBackgroundGradientEnd(col);
                             }
                         }
                     }
@@ -731,7 +731,7 @@ Rectangle {
     }
 
     Component {
-        id: backdropVerticalLayout
+        id: backgroundVerticalLayout
         Column {
             spacing: Theme.spacingL
             anchors.horizontalCenter: parent.horizontalCenter
@@ -758,26 +758,26 @@ Rectangle {
                     iconName: "bookmarks"
                     buttonSize: Constants.btnSize
                     iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("Backdrop Presets")
+                    tooltipText: I18n.tr("Background Presets")
                     anchors.centerIn: parent
-                    onClicked: root.backdropControlHovered("presets", presetsControlVert)
+                    onClicked: root.backgroundControlHovered("presets", presetsControlVert)
                 }
 
                 MouseArea {
                     anchors.fill: parent
                     hoverEnabled: true
                     cursorShape: Qt.PointingHandCursor
-                    onEntered: root.backdropControlHovered("presets", presetsControlVert)
-                    onExited: root.backdropControlExited("presets")
+                    onEntered: root.backgroundControlHovered("presets", presetsControlVert)
+                    onExited: root.backgroundControlExited("presets")
                 }
             }
 
             Rectangle { width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter }
 
-            BackdropModeSelectors {
-                backdropMode: root.backdropMode
+            BackgroundModeSelectors {
+                backgroundMode: root.backgroundMode
                 isVertical: true
-                onChangeBackdropMode: (mode, controlItem) => root.changeBackdropMode(mode, controlItem)
+                onChangeBackgroundMode: (mode, controlItem) => root.changeBackgroundMode(mode, controlItem)
                 anchors.horizontalCenter: parent.horizontalCenter
             }
             
@@ -805,7 +805,7 @@ Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         StyledText {
-                            text: root.backdropPadding
+                            text: root.backgroundPadding
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: Theme.fontSizeSmall
@@ -818,9 +818,9 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("padding", padControlVert)
-                        onExited: root.backdropControlExited("padding")
-                        onWheel: (wheel) => root.backdropControlWheel("padding", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("padding", padControlVert)
+                        onExited: root.backgroundControlExited("padding")
+                        onWheel: (wheel) => root.backgroundControlWheel("padding", wheel.angleDelta.y)
                     }
                 }
 
@@ -841,7 +841,7 @@ Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         StyledText {
-                            text: root.backdropCornerRadius
+                            text: root.backgroundCornerRadius
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: Theme.fontSizeSmall
@@ -854,9 +854,9 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("radius", radControlVert)
-                        onExited: root.backdropControlExited("radius")
-                        onWheel: (wheel) => root.backdropControlWheel("radius", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("radius", radControlVert)
+                        onExited: root.backgroundControlExited("radius")
+                        onWheel: (wheel) => root.backgroundControlWheel("radius", wheel.angleDelta.y)
                     }
                 }
 
@@ -877,7 +877,7 @@ Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         StyledText {
-                            text: root.backdropShadowStrength
+                            text: root.backgroundShadowStrength
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: Theme.fontSizeSmall
@@ -890,16 +890,16 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("shadow", shadowControlVert)
-                        onExited: root.backdropControlExited("shadow")
-                        onWheel: (wheel) => root.backdropControlWheel("shadow", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("shadow", shadowControlVert)
+                        onExited: root.backgroundControlExited("shadow")
+                        onWheel: (wheel) => root.backgroundControlWheel("shadow", wheel.angleDelta.y)
                     }
                 }
 
                 // Angle Control (Linear and Conic gradients)
                 Item {
                     id: angleControlVert
-                    visible: root.backdropMode === "gradient" || root.backdropMode === "conic"
+                    visible: root.backgroundMode === "gradient" || root.backgroundMode === "conic"
                     width: Constants.btnSize
                     height: visible ? 40 : 0
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -914,7 +914,7 @@ Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
                         }
                         StyledText {
-                            text: root.backdropGradientAngle
+                            text: root.backgroundGradientAngle
                             width: parent.width
                             horizontalAlignment: Text.AlignHCenter
                             font.pixelSize: Theme.fontSizeSmall
@@ -927,86 +927,86 @@ Rectangle {
                         anchors.fill: parent
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backdropControlHovered("angle", angleControlVert)
-                        onExited: root.backdropControlExited("angle")
-                        onWheel: (wheel) => root.backdropControlWheel("angle", wheel.angleDelta.y)
+                        onEntered: root.backgroundControlHovered("angle", angleControlVert)
+                        onExited: root.backgroundControlExited("angle")
+                        onWheel: (wheel) => root.backgroundControlWheel("angle", wheel.angleDelta.y)
                     }
                 }
 
                 // Custom Aspect Ratio Control
                 AspectRatioControl {
                     id: aspectControlVert
-                    backdropAspectRatio: root.backdropAspectRatio
+                    backgroundAspectRatio: root.backgroundAspectRatio
                     customAspectRatio: root.customAspectRatio
                     compact: true
                     anchors.horizontalCenter: parent.horizontalCenter
-                    onHovered: root.backdropControlHovered("aspectRatio", aspectControlVert)
-                    onExited: root.backdropControlExited("aspectRatio")
-                    onWheeled: (delta) => root.backdropControlWheel("aspectRatio", delta)
+                    onHovered: root.backgroundControlHovered("aspectRatio", aspectControlVert)
+                    onExited: root.backgroundControlExited("aspectRatio")
+                    onWheeled: (delta) => root.backgroundControlWheel("aspectRatio", delta)
                 }
 
                 // Alignment Control
                 AlignmentControl {
                     id: alignControlVert
-                    backdropAlignment: root.backdropAlignment
+                    backgroundAlignment: root.backgroundAlignment
                     compact: true
                     anchors.horizontalCenter: parent.horizontalCenter
-                    onHovered: root.backdropControlHovered("alignment", alignControlVert)
-                    onExited: root.backdropControlExited("alignment")
+                    onHovered: root.backgroundControlHovered("alignment", alignControlVert)
+                    onExited: root.backgroundControlExited("alignment")
                 }
             }
             
             Rectangle { 
-                opacity: root.backdropMode !== "none" ? 1 : 0
-                enabled: root.backdropMode !== "none"
+                opacity: root.backgroundMode !== "none" ? 1 : 0
+                enabled: root.backgroundMode !== "none"
                 width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter 
             }
             
             // Colors (Solid or Gradient)
             Column {
-                opacity: root.backdropMode !== "none" ? 1 : 0
-                enabled: root.backdropMode !== "none"
+                opacity: root.backgroundMode !== "none" ? 1 : 0
+                enabled: root.backgroundMode !== "none"
                 spacing: Theme.spacingS
                 anchors.horizontalCenter: parent.horizontalCenter
-                                 BackdropColorSelectors {
+                                 BackgroundColorSelectors {
                     isVertical: true
-                    backdropMode: root.backdropMode
-                    backdropSolidColor: root.backdropSolidColor
-                    backdropGradientStart: root.backdropGradientStart
-                    backdropGradientEnd: root.backdropGradientEnd
+                    backgroundMode: root.backgroundMode
+                    backgroundSolidColor: root.backgroundSolidColor
+                    backgroundGradientStart: root.backgroundGradientStart
+                    backgroundGradientEnd: root.backgroundGradientEnd
                     gradientActiveSlot: root.gradientActiveSlot
-                    imageBlurEnabled: root.backdropImageBlur
-                    imageDimEnabled: root.backdropImageDim
-                    imageDimStrength: root.backdropImageDimStrength
+                    imageBlurEnabled: root.backgroundImageBlur
+                    imageDimEnabled: root.backgroundImageDim
+                    imageDimStrength: root.backgroundImageDimStrength
                     itemSize: 24
                     iconSize: 18
                     onSetGradientActiveSlot: (slot) => root.gradientActiveSlot = slot
                     onAutoColorBalanceRequested: root.autoColorBalanceRequested()
-                    onColorPickerRequested: (currentColor) => root.backdropColorPickerRequested(currentColor)
-                    onEyedropperRequested: (slot) => root.backdropEyedropperRequested(slot)
-                    onImageBlurToggled: (enabled) => root.changeBackdropImageBlur(enabled)
-                    onImageDimToggled: (enabled) => root.changeBackdropImageDim(enabled)
-                    onImageDimControlHovered: (controlItem) => root.backdropControlHovered("imageDim", controlItem)
-                    onImageDimControlExited: root.backdropControlExited("imageDim")
-                    onImageDimControlWheel: (delta) => root.backdropControlWheel("imageDim", delta)
+                    onColorPickerRequested: (currentColor) => root.backgroundColorPickerRequested(currentColor)
+                    onEyedropperRequested: (slot) => root.backgroundEyedropperRequested(slot)
+                    onImageBlurToggled: (enabled) => root.changeBackgroundImageBlur(enabled)
+                    onImageDimToggled: (enabled) => root.changeBackgroundImageDim(enabled)
+                    onImageDimControlHovered: (controlItem) => root.backgroundControlHovered("imageDim", controlItem)
+                    onImageDimControlExited: root.backgroundControlExited("imageDim")
+                    onImageDimControlWheel: (delta) => root.backgroundControlWheel("imageDim", delta)
                 }
                 
                 ColorPaletteGrid {
-                    visible: root.backdropMode !== "image"
-                    activeColor: root.activeBackdropColor
+                    visible: root.backgroundMode !== "image"
+                    activeColor: root.activeBackgroundColor
                     activeSlotIndex: -1
                     swatchSize: Constants.swatchSizeVert
                     swatchRadius: Constants.swatchRadiusVert
                     cols: 2
                     anchors.horizontalCenter: parent.horizontalCenter
                     onColorSelected: (col, idx) => {
-                        if (root.backdropMode === "solid") {
-                            root.changeBackdropSolidColor(col);
-                        } else if (root.backdropMode === "gradient" || root.backdropMode === "radial" || root.backdropMode === "conic") {
+                        if (root.backgroundMode === "solid") {
+                            root.changeBackgroundSolidColor(col);
+                        } else if (root.backgroundMode === "gradient" || root.backgroundMode === "radial" || root.backgroundMode === "conic") {
                             if (root.gradientActiveSlot === "start") {
-                                root.changeBackdropGradientStart(col);
+                                root.changeBackgroundGradientStart(col);
                             } else {
-                                root.changeBackdropGradientEnd(col);
+                                root.changeBackgroundGradientEnd(col);
                             }
                         }
                     }

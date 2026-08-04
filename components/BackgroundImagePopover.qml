@@ -62,7 +62,7 @@ Rectangle {
                 spacing: 1
 
                 StyledText {
-                    text: I18n.tr("Backdrop Images")
+                    text: I18n.tr("Background Images")
                     font.pixelSize: Theme.fontSizeSmall
                     font.bold: true
                     color: Theme.surfaceText

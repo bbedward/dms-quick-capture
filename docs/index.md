@@ -14,7 +14,7 @@ Welcome to the official developer and user documentation for **DMS Quick Capture
 2. **[Annotation Engine](annotation-engine.md)**
    - Canvas coordinate systems and drawing pipeline.
    - Vector tools and presets.
-   - Backdrop system (solid, gradient, aspect ratio, padding).
+   - Background system (solid, gradient, aspect ratio, padding).
    - Magnifier and Zoom callout implementation.
 
 3. **[IPC and Settings Reference](ipc-and-settings.md)**

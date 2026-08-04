@@ -72,7 +72,7 @@ Pressing these keys changes the active tool:
 - `T`: Eraser (Individual vector click eraser)
 - `Z`: Area Zoom / Callout box
 - `V`: Select / Move tool
-- `B`: Backdrop options
+- `B`: Background options
 - `O`: OCR Text Recognition
 - `G` (hold): Magnifier Lens (Cursor zoom)
 - `Tab`: Swap between the two most recently used tool presets.
@@ -122,7 +122,7 @@ The following settings are registered inside DMS settings manager and stored in 
     "image_padding": 40,
     "image_corner_radius": 12,
     "image_shadow_strength": 50,
-    "backdrop_mode": "gradient"
+    "background_mode": "gradient"
   }
 }
 ```

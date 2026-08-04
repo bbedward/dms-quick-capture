@@ -233,7 +233,7 @@ function formatWatermarkText(pattern, Quickshell) {
 // ─── 4. Color analysis ────────────────────────────────────────────────────────
 
 /**
- * Downsamples screenshot pixels to extract a matching backdrop gradient.
+ * Downsamples screenshot pixels to extract a matching background gradient.
  * @param {object} imgData - Canvas getImageData object of size 4x4.
  * @param {object} Qt - The Qt object.
  * @returns {object} { start, end } QML color values.
@@ -343,11 +343,11 @@ function extractDominantColors(imgData, Qt) {
         let targetLStart;
         let targetLEnd;
         if (imgLuminance > 0.5) {
-            // Image is light -> Make backdrop darker
+            // Image is light -> Make background darker
             targetLStart = Math.max(0.05, (imgLuminance + 0.05) / 4.5 - 0.05);
             targetLEnd = Math.max(0.02, targetLStart * 0.65); // Make end color even darker
         } else {
-            // Image is dark -> Make backdrop lighter
+            // Image is dark -> Make background lighter
             targetLStart = Math.min(0.95, 4.5 * (imgLuminance + 0.05) - 0.05);
             targetLEnd = Math.min(0.98, targetLStart + (1.0 - targetLStart) * 0.35); // Make end color even lighter
         }

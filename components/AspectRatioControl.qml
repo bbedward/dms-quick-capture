@@ -6,7 +6,7 @@ import "Constants.js" as Constants
 Item {
     id: control
 
-    property string backdropAspectRatio: "auto"
+    property string backgroundAspectRatio: "auto"
     property real customAspectRatio: 1.50
     property bool compact: false
 
@@ -31,9 +31,9 @@ Item {
         }
         StyledText {
             text: {
-                if (control.backdropAspectRatio === "auto") return I18n.tr("AUTO");
-                if (control.backdropAspectRatio === "custom") return control.customAspectRatio.toFixed(2);
-                return control.backdropAspectRatio;
+                if (control.backgroundAspectRatio === "auto") return I18n.tr("AUTO");
+                if (control.backgroundAspectRatio === "custom") return control.customAspectRatio.toFixed(2);
+                return control.backgroundAspectRatio;
             }
             width: 46; horizontalAlignment: Text.AlignLeft
             font.pixelSize: Theme.fontSizeSmall
@@ -57,9 +57,9 @@ Item {
         }
         StyledText {
             text: {
-                if (control.backdropAspectRatio === "auto") return "AT";
-                if (control.backdropAspectRatio === "custom") return control.customAspectRatio.toFixed(2);
-                return control.backdropAspectRatio;
+                if (control.backgroundAspectRatio === "auto") return "AT";
+                if (control.backgroundAspectRatio === "custom") return control.customAspectRatio.toFixed(2);
+                return control.backgroundAspectRatio;
             }
             width: parent.width
             horizontalAlignment: Text.AlignHCenter

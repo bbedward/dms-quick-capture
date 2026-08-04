@@ -36,7 +36,7 @@ The main user interface for drawing annotations.
 - **Fullscreen Overlay:** Uses `Quickshell.PanelWindow` or fullscreen shell containers.
 - **Input Grabbing:** Commands focus immediately upon opening to ensure all key events (`1`–`9`, `Ctrl+Z`, `Enter`, `Esc`) are intercepted by the drawing engine rather than passing through to system applications.
 - **Layers:**
-  1. **Background Layer:** Screen/Image capture backdrop (supports solid color, gradients, and custom paddings).
+  1. **Background Layer:** Screen/Image capture background (supports solid color, gradients, and custom paddings).
   2. **Canvas Layer:** An interactive HTML5-like canvas for vector paths and text boxes.
   3. **Control Overlays:** Toolbars, magnifier lens, callout zoom boxes, and radial presets.
 

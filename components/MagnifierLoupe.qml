@@ -72,8 +72,8 @@ Rectangle {
             ctx.translate(-window.cursorX, -window.cursorY);
 
             // 1. Draw background image
-            if (window.effectiveBackdropMode !== "none") {
-                window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
+            if (window.effectiveBackgroundMode !== "none") {
+                window.drawEditorBackground(ctx, window.canvasWidth, window.canvasHeight);
                 window.drawScreenshotShadow(ctx, magnifier.zoomFactor);
                 
                 // Draw screenshot image directly to bypass nested clip path bug in Qt Canvas
@@ -89,7 +89,7 @@ Rectangle {
                 if (window.showAnnotations) {
                     ctx.save();
                     ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
-                    ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
+                    ctx.scale(window.backgroundScaleFactor, window.backgroundScaleFactor);
                     const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
                     const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
                     ctx.translate(-cropX, -cropY);

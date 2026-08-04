@@ -115,8 +115,8 @@ function measureTextLayout(ctx, stroke, Theme) {
  *   - spotlightIntensity: 0-100 opacity value
  *   - hasActiveCropSelection: boolean
  *   - cropRect: {x, y, width, height}
- *   - effectiveBackdropMode: "none" | "solid" | "gradient" | etc.
- *   - backdropCornerRadius: number
+ *   - effectiveBackgroundMode: "none" | "solid" | "gradient" | etc.
+ *   - backgroundCornerRadius: number
  *   - roundRect: boolean
  *   - cornerRadius: number (Theme.cornerRadius)
  */
@@ -132,9 +132,9 @@ function drawSpotlightOverlay(ctx, spotlights, config) {
     ctx.save();
     ctx.beginPath();
 
-    // Outer rectangle covering the whole view (rounded if backdrop active)
-    if (config.effectiveBackdropMode !== "none" && config.backdropCornerRadius > 0) {
-        const r = Math.min(config.backdropCornerRadius, sw / 2, sh / 2);
+    // Outer rectangle covering the whole view (rounded if background active)
+    if (config.effectiveBackgroundMode !== "none" && config.backgroundCornerRadius > 0) {
+        const r = Math.min(config.backgroundCornerRadius, sw / 2, sh / 2);
         ctx.moveTo(cropX + r, cropY);
         ctx.lineTo(cropX + sw - r, cropY);
         ctx.arcTo(cropX + sw, cropY, cropX + sw, cropY + r, r);

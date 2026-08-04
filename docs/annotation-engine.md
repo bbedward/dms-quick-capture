@@ -11,7 +11,7 @@ Annotations are rendered dynamically using a QML `Canvas` component. Rather than
 ### Rendering Lifecycle
 1. When a user draws or edits a shape, a new element is appended or updated in the `drawModel` array.
 2. The canvas requests a redraw via `canvas.requestPaint()`.
-3. The `onPaint` handler clears the context, redraws the background image, applies the backdrop style, and loops through all active model shapes to draw them in sequence.
+3. The `onPaint` handler clears the context, redraws the background image, applies the background style, and loops through all active model shapes to draw them in sequence.
 
 ```
 [User Action] ➔ [Update Shape Model] ➔ [requestPaint()] ➔ [onPaint() Redraw Loop] ➔ [Screen Output]
@@ -46,13 +46,13 @@ Allows highlighting and enlarging a specific rectangular area:
 
 ---
 
-## 4. Backdrop Layout Wrapping
+## 4. Background Layout Wrapping
 
-When a backdrop mode (Solid or Gradient) is active, the screenshot is wrapped within a padded canvas container:
+When a background mode (Solid or Gradient) is active, the screenshot is wrapped within a padded canvas container:
 
 ```
 +-------------------------------------------------------+
-|  Backdrop Background (Solid / Gradient / Image)       |
+|  Background Layer (Solid / Gradient / Image)            |
 |                                                       |
 |     +-------------------------------------------+     |
 |     |  Padded Margins (Adjustable)              |     |
@@ -66,8 +66,8 @@ When a backdrop mode (Solid or Gradient) is active, the screenshot is wrapped wi
 +-------------------------------------------------------+
 ```
 
-### Key Backdrop Properties
-- **Padding:** Outer margins separating the screenshot edge from the backdrop canvas boundary.
+### Key Background Properties
+- **Padding:** Outer margins separating the screenshot edge from the background canvas boundary.
 - **Corner Radius:** Applies a smooth clipping path on the screenshot image.
 - **Drop Shadow:** Emulates depth around the screenshot frame using multi-pass blur shaders or shadow container margins.
 - **Aspect Ratio:** Resizes the background wrapper to match "1:1", "16:9", "4:3", or "Auto" (fitting exactly to the screenshot).

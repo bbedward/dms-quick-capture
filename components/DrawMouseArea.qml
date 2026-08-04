@@ -36,9 +36,9 @@ MouseArea {
     function getAbsolutePoint(mx, my) {
         let rx = mx / window.editScale;
         let ry = my / window.editScale;
-        if (window.effectiveBackdropMode !== "none") {
-            rx = (rx - window.screenshotXOffset) / window.backdropScaleFactor;
-            ry = (ry - window.screenshotYOffset) / window.backdropScaleFactor;
+        if (window.effectiveBackgroundMode !== "none") {
+            rx = (rx - window.screenshotXOffset) / window.backgroundScaleFactor;
+            ry = (ry - window.screenshotYOffset) / window.backgroundScaleFactor;
         }
         if (window.hasActiveCropSelection) {
             return Qt.point(rx + window.cropRect.x, ry + window.cropRect.y);
@@ -639,17 +639,17 @@ MouseArea {
          if (window.currentTool === "colorpicker") {
               if (mouse.button === Qt.LeftButton) {
                   const pickedColor = window.sampleCanvasColor(mouse.x, mouse.y);
-                  if (window.backdropColorPickingSlot !== "none") {
-                      if (window.backdropColorPickingSlot === "solid") {
-                          window.backdropSolidColor = pickedColor;
-                      } else if (window.backdropColorPickingSlot === "start") {
-                          window.backdropGradientStart = pickedColor;
-                      } else if (window.backdropColorPickingSlot === "end") {
-                          window.backdropGradientEnd = pickedColor;
+                  if (window.backgroundColorPickingSlot !== "none") {
+                      if (window.backgroundColorPickingSlot === "solid") {
+                          window.backgroundSolidColor = pickedColor;
+                      } else if (window.backgroundColorPickingSlot === "start") {
+                          window.backgroundGradientStart = pickedColor;
+                      } else if (window.backgroundColorPickingSlot === "end") {
+                          window.backgroundGradientEnd = pickedColor;
                       }
-                      window.hasUserCustomizedBackdrop = true;
-                      window.backdropColorPickingSlot = "none";
-                      window.currentTool = "backdrop";
+                      window.hasUserCustomizedBackground = true;
+                      window.backgroundColorPickingSlot = "none";
+                      window.currentTool = "background";
                   } else {
                       const hexStr = window.formatHexColor(pickedColor).toUpperCase();
                       if (window.colorPickerMode === "copy") {

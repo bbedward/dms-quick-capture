@@ -252,7 +252,7 @@ PluginSettings {
     }
 
 
-    component BackdropColorSetting : Column {
+    component BackgroundColorSetting : Column {
         id: bcsRoot
         required property string settingKey
         required property string label
@@ -476,7 +476,7 @@ PluginSettings {
                     { label: I18n.tr("Drawing"),       icon: "brush"              },
                     { label: I18n.tr("Text"),          icon: "format_size"        },
                     { label: I18n.tr("Shapes"),        icon: "category"           },
-                    { label: I18n.tr("Backdrop"),      icon: "wallpaper"          },
+                    { label: I18n.tr("Background"),      icon: "wallpaper"          },
                     { label: I18n.tr("Watermark"),     icon: "branding_watermark" },
                     { label: I18n.tr("Float Window"),  icon: "open_in_new"        },
                     { label: I18n.tr("Radial Menu"),   icon: "mouse"              },
@@ -1181,7 +1181,7 @@ PluginSettings {
             width: parent.width
             spacing: Theme.spacingM
             SettingsCard {
-                id: backdropStylesCard
+                id: backgroundStylesCard
         SectionTitle {
             text: I18n.tr("Editor")
             icon: "aspect_ratio"
@@ -1775,55 +1775,55 @@ PluginSettings {
         }
     }
 
-    // ── Tab 9: Backdrop ──────────────────────────────────────────────────────────
+    // ── Tab 9: Background ──────────────────────────────────────────────────────────
     Item {
         visible: tabBar.currentIndex === 9
         width: parent.width
         height: visible ? implicitHeight : 0
-        implicitHeight: backdropTabCol.implicitHeight
+        implicitHeight: backgroundTabCol.implicitHeight
         Column {
-            id: backdropTabCol
+            id: backgroundTabCol
             width: parent.width
             spacing: Theme.spacingM
     SettingsCard {
         SectionTitle {
-            text: I18n.tr("Backdrop Defaults")
+            text: I18n.tr("Background Defaults")
             icon: "wallpaper"
-            showReset: backdropAutoApply.isDirty || backdropDefaultMode.isDirty || backdropImageFolderSetting.isDirty || backdropDefaultImageSetting.isDirty || backdropImageBlurSetting.isDirty || backdropImageDimSetting.isDirty || backdropImageDimStrengthSetting.isDirty || backdropDefaultPadding.isDirty || backdropDefaultRadius.isDirty || backdropDefaultShadow.isDirty || backdropDefaultAngle.isDirty || backdropDefaultAspectRatio.isDirty || backdropDefaultAlignment.isDirty || backdropDefaultSolidColor.isDirty || backdropDefaultGradientStart.isDirty || backdropDefaultGradientEnd.isDirty
+            showReset: backgroundAutoApply.isDirty || backgroundDefaultMode.isDirty || backgroundImageFolderSetting.isDirty || backgroundDefaultImageSetting.isDirty || backgroundImageBlurSetting.isDirty || backgroundImageDimSetting.isDirty || backgroundImageDimStrengthSetting.isDirty || backgroundDefaultPadding.isDirty || backgroundDefaultRadius.isDirty || backgroundDefaultShadow.isDirty || backgroundDefaultAngle.isDirty || backgroundDefaultAspectRatio.isDirty || backgroundDefaultAlignment.isDirty || backgroundDefaultSolidColor.isDirty || backgroundDefaultGradientStart.isDirty || backgroundDefaultGradientEnd.isDirty
             onResetClicked: {
-                backdropAutoApply.resetToDefault();
-                backdropDefaultMode.resetToDefault();
-                backdropImageFolderSetting.resetToDefault();
-                backdropDefaultImageSetting.resetToDefault();
-                backdropImageBlurSetting.resetToDefault();
-                backdropImageDimSetting.resetToDefault();
-                backdropImageDimStrengthSetting.resetToDefault();
-                backdropDefaultSolidColor.resetToDefault();
-                backdropDefaultGradientStart.resetToDefault();
-                backdropDefaultGradientEnd.resetToDefault();
-                backdropDefaultPadding.resetToDefault();
-                backdropDefaultRadius.resetToDefault();
-                backdropDefaultShadow.resetToDefault();
-                backdropDefaultAngle.resetToDefault();
-                backdropDefaultAspectRatio.resetToDefault();
-                backdropDefaultAlignment.resetToDefault();
+                backgroundAutoApply.resetToDefault();
+                backgroundDefaultMode.resetToDefault();
+                backgroundImageFolderSetting.resetToDefault();
+                backgroundDefaultImageSetting.resetToDefault();
+                backgroundImageBlurSetting.resetToDefault();
+                backgroundImageDimSetting.resetToDefault();
+                backgroundImageDimStrengthSetting.resetToDefault();
+                backgroundDefaultSolidColor.resetToDefault();
+                backgroundDefaultGradientStart.resetToDefault();
+                backgroundDefaultGradientEnd.resetToDefault();
+                backgroundDefaultPadding.resetToDefault();
+                backgroundDefaultRadius.resetToDefault();
+                backgroundDefaultShadow.resetToDefault();
+                backgroundDefaultAngle.resetToDefault();
+                backgroundDefaultAspectRatio.resetToDefault();
+                backgroundDefaultAlignment.resetToDefault();
             }
         }
 
         ToggleSettingPlus {
-            id: backdropAutoApply
-            settingKey: "backdropAutoApply"
-            label: I18n.tr("Auto-apply backdrop defaults")
-            description: I18n.tr("Enable backdrop automatically when opening the editor")
+            id: backgroundAutoApply
+            settingKey: "backgroundAutoApply"
+            label: I18n.tr("Auto-apply background defaults")
+            description: I18n.tr("Enable background automatically when opening the editor")
             defaultValue: false
         }
 
         Separator {}
 
         SelectionSettingPlus {
-            id: backdropDefaultMode
-            settingKey: "backdropDefaultMode"
-            label: I18n.tr("Default Backdrop Mode")
+            id: backgroundDefaultMode
+            settingKey: "backgroundDefaultMode"
+            label: I18n.tr("Default Background Mode")
             options: [
                 { label: I18n.tr("Solid Color"), value: "solid" },
                 { label: I18n.tr("Linear Gradient"), value: "gradient" },
@@ -1835,72 +1835,72 @@ PluginSettings {
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
         }
 
         StringSettingPlus {
-            id: backdropImageFolderSetting
-            settingKey: "backdropImageFolder"
-            label: I18n.tr("Backdrop Image Folder")
+            id: backgroundImageFolderSetting
+            settingKey: "backgroundImageFolder"
+            label: I18n.tr("Background Image Folder")
             placeholder: "~/Pictures/Wallpaper"
             defaultValue: "~/Pictures/Wallpaper"
             isDirectory: true
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
         }
 
         StringSettingPlus {
-            id: backdropDefaultImageSetting
-            settingKey: "backdropDefaultImagePath"
-            label: I18n.tr("Default Backdrop Image")
-            description: I18n.tr("Image selected automatically when using Image Backdrop mode")
+            id: backgroundDefaultImageSetting
+            settingKey: "backgroundDefaultImagePath"
+            label: I18n.tr("Default Background Image")
+            description: I18n.tr("Image selected automatically when using Image Background mode")
             placeholder: "~/Pictures/Wallpaper/image.jpg"
             defaultValue: ""
             isFile: true
             fileExtensions: ["Image files (*.png *.jpg *.jpeg *.webp *.bmp)", "All files (*)"]
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
         }
 
         ToggleSettingPlus {
-            id: backdropImageBlurSetting
-            settingKey: "backdropImageBlur"
-            label: I18n.tr("Blur Backdrop Image")
+            id: backgroundImageBlurSetting
+            settingKey: "backgroundImageBlur"
+            label: I18n.tr("Blur Background Image")
             description: I18n.tr("Soften image details so screenshot content stands out")
             defaultValue: false
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
             height: visible ? 36 : 0
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
         }
 
         ToggleSettingPlus {
-            id: backdropImageDimSetting
-            settingKey: "backdropImageDim"
-            label: I18n.tr("Dim Backdrop Image")
+            id: backgroundImageDimSetting
+            settingKey: "backgroundImageDim"
+            label: I18n.tr("Dim Background Image")
             description: I18n.tr("Darken the image to improve foreground contrast")
             defaultValue: false
-            visible: backdropDefaultMode.value === "image"
+            visible: backgroundDefaultMode.value === "image"
             height: visible ? 36 : 0
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "image" && backdropImageDimSetting.value
+            visible: backgroundDefaultMode.value === "image" && backgroundImageDimSetting.value
         }
 
         SliderSettingPlus {
-            id: backdropImageDimStrengthSetting
-            settingKey: "backdropImageDimStrength"
+            id: backgroundImageDimStrengthSetting
+            settingKey: "backgroundImageDimStrength"
             label: I18n.tr("Dim Intensity")
             defaultValue: 28
             minimum: 0
@@ -1908,51 +1908,51 @@ PluginSettings {
             unit: "%"
             leftLabel: "0"
             rightLabel: "80"
-            visible: backdropDefaultMode.value === "image" && backdropImageDimSetting.value
+            visible: backgroundDefaultMode.value === "image" && backgroundImageDimSetting.value
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "solid"
+            visible: backgroundDefaultMode.value === "solid"
         }
 
-        BackdropColorSetting {
-            id: backdropDefaultSolidColor
-            settingKey: "backdropDefaultSolidColor"
+        BackgroundColorSetting {
+            id: backgroundDefaultSolidColor
+            settingKey: "backgroundDefaultSolidColor"
             label: I18n.tr("Default Solid Color")
             defaultValue: "slot_1"
-            visible: backdropDefaultMode.value === "solid"
+            visible: backgroundDefaultMode.value === "solid"
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
+            visible: backgroundDefaultMode.value === "gradient" || backgroundDefaultMode.value === "radial" || backgroundDefaultMode.value === "conic"
         }
 
-        BackdropColorSetting {
-            id: backdropDefaultGradientStart
-            settingKey: "backdropDefaultGradientStart"
+        BackgroundColorSetting {
+            id: backgroundDefaultGradientStart
+            settingKey: "backgroundDefaultGradientStart"
             label: I18n.tr("Default Gradient Start")
             defaultValue: "slot_1"
-            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
+            visible: backgroundDefaultMode.value === "gradient" || backgroundDefaultMode.value === "radial" || backgroundDefaultMode.value === "conic"
         }
 
         Separator {
-            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
+            visible: backgroundDefaultMode.value === "gradient" || backgroundDefaultMode.value === "radial" || backgroundDefaultMode.value === "conic"
         }
 
-        BackdropColorSetting {
-            id: backdropDefaultGradientEnd
-            settingKey: "backdropDefaultGradientEnd"
+        BackgroundColorSetting {
+            id: backgroundDefaultGradientEnd
+            settingKey: "backgroundDefaultGradientEnd"
             label: I18n.tr("Default Gradient End")
             defaultValue: "slot_2"
-            visible: backdropDefaultMode.value === "gradient" || backdropDefaultMode.value === "radial" || backdropDefaultMode.value === "conic"
+            visible: backgroundDefaultMode.value === "gradient" || backgroundDefaultMode.value === "radial" || backgroundDefaultMode.value === "conic"
         }
 
         Separator {}
 
         SliderSettingPlus {
-            id: backdropDefaultPadding
-            settingKey: "backdropDefaultPadding"
+            id: backgroundDefaultPadding
+            settingKey: "backgroundDefaultPadding"
             label: I18n.tr("Default Padding")
             defaultValue: 40
             minimum: 0
@@ -1965,8 +1965,8 @@ PluginSettings {
         Separator {}
 
         SliderSettingPlus {
-            id: backdropDefaultRadius
-            settingKey: "backdropDefaultRadius"
+            id: backgroundDefaultRadius
+            settingKey: "backgroundDefaultRadius"
             label: I18n.tr("Default Corner Radius")
             defaultValue: 12
             minimum: 0
@@ -1979,8 +1979,8 @@ PluginSettings {
         Separator {}
 
         SliderSettingPlus {
-            id: backdropDefaultShadow
-            settingKey: "backdropDefaultShadow"
+            id: backgroundDefaultShadow
+            settingKey: "backgroundDefaultShadow"
             label: I18n.tr("Default Shadow Strength")
             defaultValue: 0
             minimum: 0
@@ -1993,8 +1993,8 @@ PluginSettings {
         Separator {}
 
         SliderSettingPlus {
-            id: backdropDefaultAngle
-            settingKey: "backdropDefaultAngle"
+            id: backgroundDefaultAngle
+            settingKey: "backgroundDefaultAngle"
             label: I18n.tr("Default Gradient Angle")
             defaultValue: 45
             minimum: 0
@@ -2007,8 +2007,8 @@ PluginSettings {
         Separator {}
 
             SelectionSettingPlus {
-                id: backdropDefaultAspectRatio
-                settingKey: "backdropDefaultAspectRatio"
+                id: backgroundDefaultAspectRatio
+                settingKey: "backgroundDefaultAspectRatio"
                 label: I18n.tr("Default Aspect Ratio")
                 options: [
                     { label: I18n.tr("Auto"), value: "auto" },
@@ -2025,8 +2025,8 @@ PluginSettings {
             Separator {}
 
             SelectionSettingPlus {
-                id: backdropDefaultAlignment
-                settingKey: "backdropDefaultAlignment"
+                id: backgroundDefaultAlignment
+                settingKey: "backgroundDefaultAlignment"
                 label: I18n.tr("Default Alignment")
                 options: [
                     { label: I18n.tr("Top Left"), value: "top-left" },
@@ -2247,7 +2247,7 @@ PluginSettings {
                 color: Theme.surfaceContainer
                 clip: true
 
-                // A dark checkered/gradient backdrop representing a mock captured screenshot
+                // A dark checkered/gradient background representing a mock captured screenshot
                 Rectangle {
                     anchors.fill: parent
                     gradient: Gradient {
@@ -3401,7 +3401,7 @@ PluginSettings {
                 ShortcutRow { keyText: "1 - 4"; actionText: I18n.tr("Pen, Line, Arrow, Rect") }
                 ShortcutRow { keyText: "Q - R"; actionText: I18n.tr("Ellipse, Text, Pixelate, Redact (Q, W, E, R)") }
                 ShortcutRow { keyText: "A - D"; actionText: I18n.tr("Stamp, Highlighter, Spotlight (A, S, D)") }
-                ShortcutRow { keyText: "Z / B"; actionText: I18n.tr("Callout, Backdrop (Z, B)") }
+                ShortcutRow { keyText: "Z / B"; actionText: I18n.tr("Callout, Background (Z, B)") }
                 ShortcutRow { keyText: "F / T"; actionText: I18n.tr("Color Picker, Eraser (F, T)") }
             }
 

@@ -6,17 +6,17 @@ import "Constants.js" as Constants
 Rectangle {
     id: popoverRoot
 
-    property string backdropAspectRatio: "auto"
+    property string backgroundAspectRatio: "auto"
     property real customAspectRatio: 1.50
     property real customRatioMin: 0.50
     property real customRatioMax: 2.50
     property var presets: []
     property bool opened: false
 
-    signal changeBackdropAspectRatio(string ratio)
+    signal changeBackgroundAspectRatio(string ratio)
     signal changeCustomAspectRatio(real ratio)
 
-    readonly property bool customActive: backdropAspectRatio === "custom"
+    readonly property bool customActive: backgroundAspectRatio === "custom"
     readonly property int _sliderMin: Math.round(customRatioMin * 100)
     readonly property int _sliderMax: Math.round(customRatioMax * 100)
 
@@ -103,22 +103,22 @@ Rectangle {
                         width: Constants.presetBtnWidth
                         height: Constants.presetBtnHeight
                         radius: Theme.cornerRadius / 2
-                        color: popoverRoot.backdropAspectRatio === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceVariant, 0.4)
-                        border.color: popoverRoot.backdropAspectRatio === modelData.value ? "transparent" : Theme.withAlpha(Theme.outline, 0.15)
+                        color: popoverRoot.backgroundAspectRatio === modelData.value ? Theme.primary : Theme.withAlpha(Theme.surfaceVariant, 0.4)
+                        border.color: popoverRoot.backgroundAspectRatio === modelData.value ? "transparent" : Theme.withAlpha(Theme.outline, 0.15)
                         border.width: 1
 
                         StyledText {
                             text: modelData.label
                             font.pixelSize: Constants.presetFontSize
-                            font.weight: popoverRoot.backdropAspectRatio === modelData.value ? Font.DemiBold : Font.Normal
-                            color: popoverRoot.backdropAspectRatio === modelData.value ? Theme.onPrimary : Theme.surfaceVariantText
+                            font.weight: popoverRoot.backgroundAspectRatio === modelData.value ? Font.DemiBold : Font.Normal
+                            color: popoverRoot.backgroundAspectRatio === modelData.value ? Theme.onPrimary : Theme.surfaceVariantText
                             anchors.centerIn: parent
                         }
 
                         MouseArea {
                             anchors.fill: parent
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: popoverRoot.changeBackdropAspectRatio(modelData.value)
+                            onClicked: popoverRoot.changeBackgroundAspectRatio(modelData.value)
                         }
                     }
                 }

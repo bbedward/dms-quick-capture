@@ -18,7 +18,7 @@ DMS Quick Capture is an interactive vector annotation and screenshot utility for
 | :--- | :--- | :--- |
 | [QuickCaptureModal.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureModal.qml) | Fullscreen annotation interface | Main drawing canvas, mouse tracking, keyboard shortcut handlers, cropping math. |
 | [QuickCaptureWidget.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureWidget.qml) | DMS Bar Widget | Capture triggers, clipboard pastes, drag-drop handling, IPC endpoint registry. |
-| [QuickCaptureDaemon.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureDaemon.qml) | Background daemon | Listens to IPC requests, triggers screenshot portal capture, saves backdrop configs. |
+| [QuickCaptureDaemon.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureDaemon.qml) | Background daemon | Listens to IPC requests, triggers screenshot portal capture, saves background configs. |
 | [QuickCaptureSettings.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureSettings.qml) | Settings Panel UI | Visual settings for brushes, watermarks, radial menus, and preset bindings. |
 | [CaptureConfig.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/CaptureConfig.qml) | Configuration model | Defines tool properties, keyboard shortcuts, color palette mappings, watermark templates. |
 | [components/QuickCaptureActions.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/QuickCaptureActions.qml) | Export action processor | Coordinates file saving, clipboard copy, desktop floating, and system notifications. |
@@ -54,7 +54,7 @@ Key events are intercepted at the root Modal level via `modalFocusScope.Keys.onP
 | `A`, `S`, `D` | Stamp, Highlighter, Spotlight | Selects tool |
 | `F`, `T` | Color Picker, Eraser | Selects tool |
 | `Z` | Callout | Selects tool |
-| `B` | Backdrop Options Toggle | Selects backdrop panel |
+| `B` | Background Options Toggle | Selects background panel |
 | `O` | OCR Text Recognition | Toggles OCR tool |
 | `V` | Select / Move Tool | Selects tool |
 | `G` (Hold) | Magnifier Loupe | Enables circular magnifying zoom |

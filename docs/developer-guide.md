@@ -23,10 +23,10 @@ dms-quick-capture/
 │   ├── RecentEditsCarousel.qml      # History carousel overlay
 │   ├── MoreToolsMenu.qml            # Secondary actions menu (rotate, mirror, OCR, QR)
 │   ├── TextInputDialog.qml          # Inline text editing dialog
-│   ├── BackdropPresetsPopover.qml   # Backdrop preset picker
-│   ├── BackdropModeSelectors.qml    # Backdrop mode toggle buttons
-│   ├── BackdropColorSelectors.qml   # Backdrop color pickers
-│   ├── BackdropAspectRatioPopover.qml
+│   ├── BackgroundPresetsPopover.qml   # Background preset picker
+│   ├── BackgroundModeSelectors.qml    # Background mode toggle buttons
+│   ├── BackgroundColorSelectors.qml   # Background color pickers
+│   ├── BackgroundAspectRatioPopover.qml
 │   ├── *OptionsToolbar.qml          # Per-tool sub-toolbars (Arrow, Line, Text, Stamp, Redact, Callout)
 │   └── AlignmentControl.qml / AspectRatioControl.qml / HoverSliderPopover.qml
 ├── dms-common/                      # Shared DMS UI primitives (sliders, toggles, settings cards)

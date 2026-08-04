@@ -388,7 +388,7 @@ QtObject {
 
         var annotationState = {
             strokes: serializedStrokes,
-            originalBackground: root.modal.bgImageSource,
+            originalImageSource: root.modal.bgImageSource,
             stampCounter: root.modal.stampCounter,
             bgRotation: root.modal.bgRotation,
             bgFlipH: root.modal.bgFlipH,
@@ -400,24 +400,25 @@ QtObject {
                 height: root.modal.cropRect.height
             },
             hasSelection: root.modal.hasSelection,
-            backdropMode: root.modal.backdropMode,
-            backdropImagePath: root.modal.backdropImagePath,
-            backdropImageBlur: root.modal.backdropImageBlur,
-            backdropImageDim: root.modal.backdropImageDim,
-            backdropImageDimStrength: root.modal.backdropImageDimStrength,
-            backdropSolidColor: root.modal.backdropSolidColor,
-            backdropGradientStart: root.modal.backdropGradientStart,
-            backdropGradientEnd: root.modal.backdropGradientEnd,
-            backdropGradientAngle: root.modal.backdropGradientAngle,
-            backdropPadding: root.modal.backdropPadding,
-            backdropCornerRadius: root.modal.backdropCornerRadius,
-            backdropShadowStrength: root.modal.backdropShadowStrength,
-            backdropAspectRatio: root.modal.backdropAspectRatio,
+            backgroundMode: root.modal.backgroundMode,
+            backgroundImagePath: root.modal.backgroundImagePath,
+            backgroundImageBlur: root.modal.backgroundImageBlur,
+            backgroundImageDim: root.modal.backgroundImageDim,
+            backgroundImageDimStrength: root.modal.backgroundImageDimStrength,
+            backgroundSolidColor: root.modal.backgroundSolidColor,
+            backgroundGradientStart: root.modal.backgroundGradientStart,
+            backgroundGradientEnd: root.modal.backgroundGradientEnd,
+            backgroundGradientAngle: root.modal.backgroundGradientAngle,
+            backgroundPadding: root.modal.backgroundPadding,
+            backgroundCornerRadius: root.modal.backgroundCornerRadius,
+            backgroundShadowStrength: root.modal.backgroundShadowStrength,
+            backgroundAspectRatio: root.modal.backgroundAspectRatio,
+            backgroundAlignment: root.modal.backgroundAlignment,
             customAspectRatio: root.modal.customAspectRatio,
-            hasUserCustomizedBackdrop: root.modal.hasUserCustomizedBackdrop,
-            autoBackdropGradientStart: root.modal.autoBackdropGradientStart,
-            autoBackdropGradientEnd: root.modal.autoBackdropGradientEnd,
-            autoBackdropSolidColor: root.modal.autoBackdropSolidColor
+            hasUserCustomizedBackground: root.modal.hasUserCustomizedBackground,
+            autoBackgroundGradientStart: root.modal.autoBackgroundGradientStart,
+            autoBackgroundGradientEnd: root.modal.autoBackgroundGradientEnd,
+            autoBackgroundSolidColor: root.modal.autoBackgroundSolidColor
         };
 
         withExport((pngPath) => {

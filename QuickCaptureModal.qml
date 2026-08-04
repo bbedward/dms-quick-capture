@@ -48,9 +48,9 @@ DankModal {
     }
 
     Image {
-        id: backdropImageLoader
-        source: window.backdropMode === "image"
-            ? window.localImageSource(window.effectiveBackdropImagePath) : ""
+        id: backgroundImageLoader
+        source: window.backgroundMode === "image"
+            ? window.localImageSource(window.effectiveBackgroundImagePath) : ""
         visible: false
         cache: true
         asynchronous: true
@@ -70,7 +70,7 @@ DankModal {
     property var scanResultPopoverRef: null
     property color pendingColorToSave: "transparent"
     property int pendingSlotToSave: -1
-    property string currentTool: "crop" // crop, select, pen, line, arrow, rect, ellipse, text, pixelate, redact, stamp, highlighter, eraser, spotlight, backdrop
+    property string currentTool: "crop" // crop, select, pen, line, arrow, rect, ellipse, text, pixelate, redact, stamp, highlighter, eraser, spotlight, background
     property string lastActiveTool: "pen"
     property string colorPickerMode: "draw" // draw, copy
     property color hoveredColor: "transparent"
@@ -169,12 +169,12 @@ DankModal {
         window.hoveredColor = window.sampleCanvasColor(window.cursorX * window.editScale, window.cursorY * window.editScale);
     }
 
-    function enterBackdropTool() {
-        if (window.backdropMode !== "none") return;
-        const defaultMode = (config && config.pluginData && config.pluginData["backdropDefaultMode"]) || Constants.defaultBackdropMode;
-        window.backdropMode = defaultMode;
+    function enterBackgroundTool() {
+        if (window.backgroundMode !== "none") return;
+        const defaultMode = (config && config.pluginData && config.pluginData["backgroundDefaultMode"]) || Constants.defaultBackgroundMode;
+        window.backgroundMode = defaultMode;
         if (defaultMode === "image") {
-            window.refreshBackdropBlurCache(false);
+            window.refreshBackgroundBlurCache(false);
         }
     }
 
@@ -268,12 +268,12 @@ DankModal {
 
     function handleCurrentToolChanged() {
         if (window.currentTool !== "colorpicker") {
-            window.backdropColorPickingSlot = "none";
+            window.backgroundColorPickingSlot = "none";
         }
         if (window.currentTool !== "text" && window.isTyping) {
             window.commitTypingText();
         }
-        if (window.currentTool !== "crop" && window.currentTool !== "backdrop" && window.currentTool !== "select" && window.currentTool !== "colorpicker") {
+        if (window.currentTool !== "crop" && window.currentTool !== "background" && window.currentTool !== "select" && window.currentTool !== "colorpicker") {
             window.lastActiveTool = window.currentTool;
         }
         window.applyCurrentToolSessionIntensity();
@@ -284,8 +284,8 @@ DankModal {
         if (window.currentTool === "colorpicker") {
             window.enterColorPickerTool();
         }
-        if (window.currentTool === "backdrop") {
-            window.enterBackdropTool();
+        if (window.currentTool === "background") {
+            window.enterBackgroundTool();
         }
         if (window.currentTool === "select") {
             window.enterSelectTool();
@@ -333,34 +333,34 @@ DankModal {
         window.handleCurrentToolChanged();
     }
 
-    // Backdrop State Variables
-    property string backdropMode: "none" // none, solid, gradient, radial, conic, image
-    property string backdropImagePath: ""
-    property string backdropImageFolder: "~/Pictures/Wallpaper"
-    property var backdropImages: []
-    property bool backdropImagesLoading: false
-    property bool backdropImageBlur: false
-    property bool backdropImageDim: false
-    property int backdropImageDimStrength: 28
-    property string backdropBlurredImagePath: ""
-    property string backdropBlurredSourcePath: ""
-    property string backdropBlurPendingSourcePath: ""
-    property bool backdropBlurLoading: false
-    property bool backdropBlurShowIndicator: false
-    property int backdropBlurGeneration: 0
-    readonly property string effectiveBackdropImagePath: window.backdropImageBlur && window.backdropBlurredImagePath
-        ? window.backdropBlurredImagePath : window.backdropImagePath
-    property color backdropSolidColor: Theme.primary
-    property color backdropGradientStart: Theme.primary
-    property color backdropGradientEnd: Theme.secondary
-    property int backdropGradientAngle: Constants.defaultBackdropGradientAngle
-    property int backdropPadding: Constants.defaultBackdropPadding
-    property int backdropCornerRadius: Constants.defaultBackdropCornerRadius
-    property int backdropShadowStrength: Constants.defaultBackdropShadowStrength
-    property string backdropAspectRatio: "auto"
+    // Background State Variables
+    property string backgroundMode: "none" // none, solid, gradient, radial, conic, image
+    property string backgroundImagePath: ""
+    property string backgroundImageFolder: "~/Pictures/Wallpaper"
+    property var backgroundImages: []
+    property bool backgroundImagesLoading: false
+    property bool backgroundImageBlur: false
+    property bool backgroundImageDim: false
+    property int backgroundImageDimStrength: 28
+    property string backgroundBlurredImagePath: ""
+    property string backgroundBlurredSourcePath: ""
+    property string backgroundBlurPendingSourcePath: ""
+    property bool backgroundBlurLoading: false
+    property bool backgroundBlurShowIndicator: false
+    property int backgroundBlurGeneration: 0
+    readonly property string effectiveBackgroundImagePath: window.backgroundImageBlur && window.backgroundBlurredImagePath
+        ? window.backgroundBlurredImagePath : window.backgroundImagePath
+    property color backgroundSolidColor: Theme.primary
+    property color backgroundGradientStart: Theme.primary
+    property color backgroundGradientEnd: Theme.secondary
+    property int backgroundGradientAngle: Constants.defaultBackgroundGradientAngle
+    property int backgroundPadding: Constants.defaultBackgroundPadding
+    property int backgroundCornerRadius: Constants.defaultBackgroundCornerRadius
+    property int backgroundShadowStrength: Constants.defaultBackgroundShadowStrength
+    property string backgroundAspectRatio: "auto"
     property real customAspectRatio: 1.50
-    property string backdropAlignment: "center"
-    property string backdropColorPickingSlot: "none" // none, solid, start, end
+    property string backgroundAlignment: "center"
+    property string backgroundColorPickingSlot: "none" // none, solid, start, end
     readonly property real customRatioMin: 0.50
     readonly property real customRatioMax: 2.50
     readonly property var aspectPresets: [
@@ -373,11 +373,11 @@ DankModal {
         { value: "21:9", label: "21:9" },
         { value: "custom", label: I18n.tr("CUST") }
     ]
-    property bool hasUserCustomizedBackdrop: false
-    property color autoBackdropGradientStart: Theme.primary
-    property color autoBackdropGradientEnd: Theme.secondary
-    property color autoBackdropSolidColor: Theme.primary
-    property var customBackdropPresets: []
+    property bool hasUserCustomizedBackground: false
+    property color autoBackgroundGradientStart: Theme.primary
+    property color autoBackgroundGradientEnd: Theme.secondary
+    property color autoBackgroundSolidColor: Theme.primary
+    property var customBackgroundPresets: []
     property var hiddenPresetIds: []
 
     function localImageSource(rawPath) {
@@ -402,10 +402,10 @@ DankModal {
         return path;
     }
 
-    function loadBackdropImages() {
-        const folder = window.localFolderPath(window.backdropImageFolder);
-        window.backdropImagesLoading = true;
-        Proc.runCommand("scan-backdrop-images", ["find", folder, "-maxdepth", "1", "-type", "f", "-printf", "%T@|%p\n"], (stdout, exitCode) => {
+    function loadBackgroundImages() {
+        const folder = window.localFolderPath(window.backgroundImageFolder);
+        window.backgroundImagesLoading = true;
+        Proc.runCommand("scan-background-images", ["find", folder, "-maxdepth", "1", "-type", "f", "-printf", "%T@|%p\n"], (stdout, exitCode) => {
             const images = [];
             if (exitCode === 0 && stdout) {
                 const lines = stdout.trim().split("\n");
@@ -422,64 +422,64 @@ DankModal {
                 }
                 images.sort((a, b) => b.timestamp - a.timestamp);
             }
-            window.backdropImages = images.slice(0, 100);
-            window.backdropImagesLoading = false;
+            window.backgroundImages = images.slice(0, 100);
+            window.backgroundImagesLoading = false;
         });
     }
 
-    function setBackdropImage(path, persist) {
+    function setBackgroundImage(path, persist) {
         if (!path) return;
-        window.backdropImagePath = String(path);
-        window.backdropMode = "image";
-        window.hasUserCustomizedBackdrop = true;
+        window.backgroundImagePath = String(path);
+        window.backgroundMode = "image";
+        window.hasUserCustomizedBackground = true;
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backdropDefaultImagePath", window.backdropImagePath);
+            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundDefaultImagePath", window.backgroundImagePath);
         }
-        window.refreshBackdropBlurCache(true);
+        window.refreshBackgroundBlurCache(true);
         window.requestPaintAll();
     }
 
-    function cleanupBackdropBlurCache(path) {
+    function cleanupBackgroundBlurCache(path) {
         if (!path) return;
-        Proc.runCommand("cleanup-backdrop-blur-cache", ["rm", "-f", "--", path]);
+        Proc.runCommand("cleanup-background-blur-cache", ["rm", "-f", "--", path]);
     }
 
-    function cancelBackdropBlurPreparation() {
-        if (!window.backdropBlurLoading) return;
-        window.backdropBlurGeneration += 1;
-        window.backdropBlurPendingSourcePath = "";
-        window.backdropBlurLoading = false;
-        window.backdropBlurShowIndicator = false;
+    function cancelBackgroundBlurPreparation() {
+        if (!window.backgroundBlurLoading) return;
+        window.backgroundBlurGeneration += 1;
+        window.backgroundBlurPendingSourcePath = "";
+        window.backgroundBlurLoading = false;
+        window.backgroundBlurShowIndicator = false;
     }
 
-    function refreshBackdropBlurCache(showIndicator) {
-        if (window.backdropMode !== "image") {
-            window.cancelBackdropBlurPreparation();
+    function refreshBackgroundBlurCache(showIndicator) {
+        if (window.backgroundMode !== "image") {
+            window.cancelBackgroundBlurPreparation();
             window.requestPaintAll();
             return;
         }
 
-        const inputPath = window.localFolderPath(window.backdropImagePath);
-        if (inputPath && window.backdropBlurredImagePath && window.backdropBlurredSourcePath === inputPath) {
-            window.backdropBlurLoading = false;
-            window.backdropBlurShowIndicator = false;
+        const inputPath = window.localFolderPath(window.backgroundImagePath);
+        if (inputPath && window.backgroundBlurredImagePath && window.backgroundBlurredSourcePath === inputPath) {
+            window.backgroundBlurLoading = false;
+            window.backgroundBlurShowIndicator = false;
             window.requestPaintAll();
             return;
         }
-        if (inputPath && window.backdropBlurLoading && window.backdropBlurPendingSourcePath === inputPath) {
-            if (showIndicator === true) window.backdropBlurShowIndicator = true;
+        if (inputPath && window.backgroundBlurLoading && window.backgroundBlurPendingSourcePath === inputPath) {
+            if (showIndicator === true) window.backgroundBlurShowIndicator = true;
             return;
         }
 
-        window.backdropBlurGeneration += 1;
-        const generation = window.backdropBlurGeneration;
-        const previousPath = window.backdropBlurredImagePath;
-        window.backdropBlurredImagePath = "";
-        window.backdropBlurredSourcePath = "";
-        window.backdropBlurPendingSourcePath = "";
-        window.backdropBlurLoading = false;
-        window.backdropBlurShowIndicator = false;
-        window.cleanupBackdropBlurCache(previousPath);
+        window.backgroundBlurGeneration += 1;
+        const generation = window.backgroundBlurGeneration;
+        const previousPath = window.backgroundBlurredImagePath;
+        window.backgroundBlurredImagePath = "";
+        window.backgroundBlurredSourcePath = "";
+        window.backgroundBlurPendingSourcePath = "";
+        window.backgroundBlurLoading = false;
+        window.backgroundBlurShowIndicator = false;
+        window.cleanupBackgroundBlurCache(previousPath);
 
         if (!inputPath) {
             window.requestPaintAll();
@@ -487,82 +487,82 @@ DankModal {
         }
 
         const tempDir = Quickshell.env("TMPDIR") || "/tmp";
-        const outputPath = `${tempDir}/dms-quick-capture-backdrop-blur-${Date.now()}-${generation}.jpg`;
-        window.backdropBlurLoading = true;
-        window.backdropBlurPendingSourcePath = inputPath;
-        window.backdropBlurShowIndicator = showIndicator === true;
+        const outputPath = `${tempDir}/dms-quick-capture-background-blur-${Date.now()}-${generation}.jpg`;
+        window.backgroundBlurLoading = true;
+        window.backgroundBlurPendingSourcePath = inputPath;
+        window.backgroundBlurShowIndicator = showIndicator === true;
 
-        Proc.runCommand("generate-backdrop-blur", ["magick", inputPath, "-auto-orient", "-blur", "0x18", "-quality", "88", outputPath], (stdout, exitCode) => {
-            if (generation !== window.backdropBlurGeneration) {
-                window.cleanupBackdropBlurCache(outputPath);
+        Proc.runCommand("generate-background-blur", ["magick", inputPath, "-auto-orient", "-blur", "0x18", "-quality", "88", outputPath], (stdout, exitCode) => {
+            if (generation !== window.backgroundBlurGeneration) {
+                window.cleanupBackgroundBlurCache(outputPath);
                 return;
             }
 
-            window.backdropBlurLoading = false;
-            window.backdropBlurPendingSourcePath = "";
-            window.backdropBlurShowIndicator = false;
+            window.backgroundBlurLoading = false;
+            window.backgroundBlurPendingSourcePath = "";
+            window.backgroundBlurShowIndicator = false;
             if (exitCode === 0) {
-                window.backdropBlurredImagePath = outputPath;
-                window.backdropBlurredSourcePath = inputPath;
+                window.backgroundBlurredImagePath = outputPath;
+                window.backgroundBlurredSourcePath = inputPath;
                 window.requestPaintAll();
                 return;
             }
 
-            window.cleanupBackdropBlurCache(outputPath);
-            if (window.backdropImageBlur) {
-                window.backdropImageBlur = false;
+            window.cleanupBackgroundBlurCache(outputPath);
+            if (window.backgroundImageBlur) {
+                window.backgroundImageBlur = false;
                 if (window.parentWidget && window.parentWidget.pluginService) {
-                    window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageBlur", false);
+                    window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageBlur", false);
                 }
                 if (typeof ToastService !== "undefined" && ToastService) {
-                    ToastService.showError(I18n.tr("Failed to generate blurred backdrop image"));
+                    ToastService.showError(I18n.tr("Failed to generate blurred background image"));
                 }
             }
             window.requestPaintAll();
         });
     }
 
-    function setBackdropImageDim(enabled, persist) {
-        window.backdropImageDim = enabled;
+    function setBackgroundImageDim(enabled, persist) {
+        window.backgroundImageDim = enabled;
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageDim", enabled);
+            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageDim", enabled);
         }
         window.requestPaintAll();
     }
 
-    function setBackdropImageBlur(enabled, persist) {
-        window.backdropImageBlur = enabled;
+    function setBackgroundImageBlur(enabled, persist) {
+        window.backgroundImageBlur = enabled;
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageBlur", enabled);
+            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageBlur", enabled);
         }
-        if (enabled && window.backdropMode === "image" && !window.backdropBlurredImagePath && !window.backdropBlurLoading) {
-            window.refreshBackdropBlurCache(true);
+        if (enabled && window.backgroundMode === "image" && !window.backgroundBlurredImagePath && !window.backgroundBlurLoading) {
+            window.refreshBackgroundBlurCache(true);
         } else {
             window.requestPaintAll();
         }
     }
 
-    function setBackdropImageDimStrength(value, persist) {
-        window.backdropImageDimStrength = Math.max(0, Math.min(80, Math.round(value)));
+    function setBackgroundImageDimStrength(value, persist) {
+        window.backgroundImageDimStrength = Math.max(0, Math.min(80, Math.round(value)));
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backdropImageDimStrength", window.backdropImageDimStrength);
+            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageDimStrength", window.backgroundImageDimStrength);
         }
         window.requestPaintAll();
     }
 
-    readonly property var backdropPresets: {
+    readonly property var backgroundPresets: {
         var customMap = {};
-        if (customBackdropPresets) {
-            for (var i = 0; i < customBackdropPresets.length; i++) {
-                var cp = customBackdropPresets[i];
+        if (customBackgroundPresets) {
+            for (var i = 0; i < customBackgroundPresets.length; i++) {
+                var cp = customBackgroundPresets[i];
                 customMap[cp.id] = cp;
             }
         }
 
         var list = [];
-        if (Constants && Constants.defaultBackdropPresets) {
-            for (var j = 0; j < Constants.defaultBackdropPresets.length; j++) {
-                var dp = Constants.defaultBackdropPresets[j];
+        if (Constants && Constants.defaultBackgroundPresets) {
+            for (var j = 0; j < Constants.defaultBackgroundPresets.length; j++) {
+                var dp = Constants.defaultBackgroundPresets[j];
                 if (!hiddenPresetIds || hiddenPresetIds.indexOf(dp.id) === -1) {
                     if (customMap[dp.id]) {
                         list.push(customMap[dp.id]);
@@ -572,9 +572,9 @@ DankModal {
                 }
             }
         }
-        if (customBackdropPresets) {
-            for (var k = 0; k < customBackdropPresets.length; k++) {
-                var up = customBackdropPresets[k];
+        if (customBackgroundPresets) {
+            for (var k = 0; k < customBackgroundPresets.length; k++) {
+                var up = customBackgroundPresets[k];
                 if (up.isCustomUserCreated && (!hiddenPresetIds || hiddenPresetIds.indexOf(up.id) === -1)) {
                     list.push(up);
                 }
@@ -760,8 +760,8 @@ DankModal {
     }
     readonly property real editScale: {
         if (!window.bgImageItem) return 1.0;
-        // When backdrop is active, render at screen resolution for sharp preview
-        if (window.effectiveBackdropMode !== "none") return Math.max(1e-3, window.fitScale);
+        // When background is active, render at screen resolution for sharp preview
+        if (window.effectiveBackgroundMode !== "none") return Math.max(1e-3, window.fitScale);
         const w = window.bgImageItem.sourceSize.width;
         const h = window.bgImageItem.sourceSize.height;
         const max = Math.max(w, h);
@@ -775,7 +775,7 @@ DankModal {
         return Math.min(baseScale, maxRequiredScale);
     }
 
-    readonly property string effectiveBackdropMode: window.currentTool === "crop" ? "none" : window.backdropMode
+    readonly property string effectiveBackgroundMode: window.currentTool === "crop" ? "none" : window.backgroundMode
 
     readonly property real screenshotWidth: {
         if (window.hasActiveCropSelection) {
@@ -808,15 +808,15 @@ DankModal {
     }
 
     readonly property real canvasWidth: {
-        if (window.effectiveBackdropMode === "none") {
+        if (window.effectiveBackgroundMode === "none") {
             return screenshotWidth;
         }
-        const baseW = screenshotWidth + 2 * window.backdropPadding;
-        const baseH = screenshotHeight + 2 * window.backdropPadding;
-        if (window.backdropAspectRatio === "auto") {
+        const baseW = screenshotWidth + 2 * window.backgroundPadding;
+        const baseH = screenshotHeight + 2 * window.backgroundPadding;
+        if (window.backgroundAspectRatio === "auto") {
             return baseW;
         }
-        const targetRatio = getTargetRatio(window.backdropAspectRatio);
+        const targetRatio = getTargetRatio(window.backgroundAspectRatio);
         if (!(targetRatio > 0.0)) {
             return baseW;
         }
@@ -829,15 +829,15 @@ DankModal {
     }
 
     readonly property real canvasHeight: {
-        if (window.effectiveBackdropMode === "none") {
+        if (window.effectiveBackgroundMode === "none") {
             return screenshotHeight;
         }
-        const baseW = screenshotWidth + 2 * window.backdropPadding;
-        const baseH = screenshotHeight + 2 * window.backdropPadding;
-        if (window.backdropAspectRatio === "auto") {
+        const baseW = screenshotWidth + 2 * window.backgroundPadding;
+        const baseH = screenshotHeight + 2 * window.backgroundPadding;
+        if (window.backgroundAspectRatio === "auto") {
             return baseH;
         }
-        const targetRatio = getTargetRatio(window.backdropAspectRatio);
+        const targetRatio = getTargetRatio(window.backgroundAspectRatio);
         if (!(targetRatio > 0.0)) {
             return baseH;
         }
@@ -849,77 +849,77 @@ DankModal {
         }
     }
 
-    readonly property real backdropScaleFactor: 1.0
+    readonly property real backgroundScaleFactor: 1.0
 
     readonly property real screenshotXOffset: {
-        if (window.effectiveBackdropMode === "none") return 0;
-        const align = window.backdropAlignment;
+        if (window.effectiveBackgroundMode === "none") return 0;
+        const align = window.backgroundAlignment;
         if (align.endsWith("-left"))  return 0;
         if (align.endsWith("-right")) return canvasWidth - screenshotWidth;
         return (canvasWidth - screenshotWidth) / 2;
     }
     readonly property real screenshotYOffset: {
-        if (window.effectiveBackdropMode === "none") return 0;
-        const align = window.backdropAlignment;
+        if (window.effectiveBackgroundMode === "none") return 0;
+        const align = window.backgroundAlignment;
         if (align.startsWith("top-"))    return 0;
         if (align.startsWith("bottom-")) return canvasHeight - screenshotHeight;
         return (canvasHeight - screenshotHeight) / 2;
     }
 
-    function drawBackdropBackground(ctx, w, h) {
-        if (window.backdropMode === "solid") {
-            ctx.fillStyle = window.backdropSolidColor.toString();
+    function drawEditorBackground(ctx, w, h) {
+        if (window.backgroundMode === "solid") {
+            ctx.fillStyle = window.backgroundSolidColor.toString();
             ctx.fillRect(0, 0, w, h);
-        } else if (window.backdropMode === "image") {
+        } else if (window.backgroundMode === "image") {
             // Keep exports deterministic while the image is loading or unavailable.
-            ctx.fillStyle = window.backdropSolidColor.toString();
+            ctx.fillStyle = window.backgroundSolidColor.toString();
             ctx.fillRect(0, 0, w, h);
 
-            if (backdropImageLoader.status === Image.Ready) {
-                const sourceW = backdropImageLoader.sourceSize.width;
-                const sourceH = backdropImageLoader.sourceSize.height;
+            if (backgroundImageLoader.status === Image.Ready) {
+                const sourceW = backgroundImageLoader.sourceSize.width;
+                const sourceH = backgroundImageLoader.sourceSize.height;
                 if (sourceW > 0 && sourceH > 0) {
                     const scale = Math.max(w / sourceW, h / sourceH);
                     const drawW = sourceW * scale;
                     const drawH = sourceH * scale;
-                    ctx.drawImage(backdropImageLoader, (w - drawW) / 2, (h - drawH) / 2, drawW, drawH);
+                    ctx.drawImage(backgroundImageLoader, (w - drawW) / 2, (h - drawH) / 2, drawW, drawH);
                 }
             }
 
-            if (window.backdropImageDim) {
-                ctx.fillStyle = Qt.rgba(0, 0, 0, window.backdropImageDimStrength / 100.0);
+            if (window.backgroundImageDim) {
+                ctx.fillStyle = Qt.rgba(0, 0, 0, window.backgroundImageDimStrength / 100.0);
                 ctx.fillRect(0, 0, w, h);
             }
-        } else if (window.backdropMode === "gradient") {
-            const angleRad = (window.backdropGradientAngle * Math.PI) / 180;
+        } else if (window.backgroundMode === "gradient") {
+            const angleRad = (window.backgroundGradientAngle * Math.PI) / 180;
             const x1 = w / 2 - Math.cos(angleRad) * w / 2;
             const y1 = h / 2 - Math.sin(angleRad) * h / 2;
             const x2 = w / 2 + Math.cos(angleRad) * w / 2;
             const y2 = h / 2 + Math.sin(angleRad) * h / 2;
             const grad = ctx.createLinearGradient(x1, y1, x2, y2);
-            grad.addColorStop(0, window.backdropGradientStart.toString());
-            grad.addColorStop(1, window.backdropGradientEnd.toString());
+            grad.addColorStop(0, window.backgroundGradientStart.toString());
+            grad.addColorStop(1, window.backgroundGradientEnd.toString());
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, w, h);
-        } else if (window.backdropMode === "radial") {
+        } else if (window.backgroundMode === "radial") {
             const cx = w / 2;
             const cy = h / 2;
             const r = Math.hypot(cx, cy);
             const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-            grad.addColorStop(0, window.backdropGradientStart.toString());
-            grad.addColorStop(1, window.backdropGradientEnd.toString());
+            grad.addColorStop(0, window.backgroundGradientStart.toString());
+            grad.addColorStop(1, window.backgroundGradientEnd.toString());
             ctx.fillStyle = grad;
             ctx.fillRect(0, 0, w, h);
-        } else if (window.backdropMode === "conic") {
+        } else if (window.backgroundMode === "conic") {
             const cx = w / 2;
             const cy = h / 2;
             const r = Math.hypot(cx, cy);
-            const startAngle = (window.backdropGradientAngle * Math.PI) / 180;
+            const startAngle = (window.backgroundGradientAngle * Math.PI) / 180;
             const numSlices = 240;
 
             // Cache color components to avoid JS-to-C++ property boundary crossing cost
-            const startCol = window.backdropGradientStart;
-            const endCol = window.backdropGradientEnd;
+            const startCol = window.backgroundGradientStart;
+            const endCol = window.backgroundGradientEnd;
             const sr = startCol.r * 255;
             const sg = startCol.g * 255;
             const sb = startCol.b * 255;
@@ -951,18 +951,18 @@ DankModal {
     }
 
     function getScreenshotLayout() {
-        const factor = window.backdropScaleFactor;
+        const factor = window.backgroundScaleFactor;
         return {
             x: window.screenshotXOffset,
             y: window.screenshotYOffset,
             w: window.screenshotWidth * factor,
             h: window.screenshotHeight * factor,
-            r: window.backdropCornerRadius * factor
+            r: window.backgroundCornerRadius * factor
         };
     }
 
     function drawScreenshotShadow(ctx, scale) {
-        if (window.backdropShadowStrength <= 0) return;
+        if (window.backgroundShadowStrength <= 0) return;
         ctx.save();
         const layout = window.getScreenshotLayout();
         const r = layout.r;
@@ -972,7 +972,7 @@ DankModal {
         const h = layout.h;
         
         const s = (scale !== undefined && scale > 0) ? scale : 1.0;
-        const opacity = (window.backdropShadowStrength / 100.0) * Constants.shadowBaseOpacityFactor;
+        const opacity = (window.backgroundShadowStrength / 100.0) * Constants.shadowBaseOpacityFactor;
         const STEPS = Constants.defaultShadowSteps;
         
         // Proportional shadow bounds for small layouts
@@ -1507,15 +1507,15 @@ DankModal {
     property var offscreenSamplerItem: null
 
     onSelectedStrokeChanged: window.requestPaintAll()
-    onEffectiveBackdropModeChanged: window.requestPaintAll()
-    onBackdropSolidColorChanged: window.requestPaintAll()
-    onBackdropGradientStartChanged: window.requestPaintAll()
-    onBackdropGradientEndChanged: window.requestPaintAll()
-    onBackdropPaddingChanged: window.requestPaintAll()
-    onBackdropCornerRadiusChanged: window.requestPaintAll()
-    onBackdropShadowStrengthChanged: window.requestPaintAll()
-    onBackdropGradientAngleChanged: window.requestPaintAll()
-    onBackdropAspectRatioChanged: window.requestPaintAll()
+    onEffectiveBackgroundModeChanged: window.requestPaintAll()
+    onBackgroundSolidColorChanged: window.requestPaintAll()
+    onBackgroundGradientStartChanged: window.requestPaintAll()
+    onBackgroundGradientEndChanged: window.requestPaintAll()
+    onBackgroundPaddingChanged: window.requestPaintAll()
+    onBackgroundCornerRadiusChanged: window.requestPaintAll()
+    onBackgroundShadowStrengthChanged: window.requestPaintAll()
+    onBackgroundGradientAngleChanged: window.requestPaintAll()
+    onBackgroundAspectRatioChanged: window.requestPaintAll()
     onEditScaleChanged: window.requestPaintAll()
 
     function requestPaintAll() {
@@ -1523,13 +1523,13 @@ DankModal {
         if (window.bakedCanvas) window.bakedCanvas.requestPaint();
     }
 
-    function applyEditorAnnotationTransform(ctx, isBackdropActive) {
-        if (isBackdropActive || window.hasActiveCropSelection) {
+    function applyEditorAnnotationTransform(ctx, isBackgroundActive) {
+        if (isBackgroundActive || window.hasActiveCropSelection) {
             const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
             const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
             ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
-            if (isBackdropActive) {
-                ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
+            if (isBackgroundActive) {
+                ctx.scale(window.backgroundScaleFactor, window.backgroundScaleFactor);
             }
             ctx.translate(-cropX, -cropY);
         } else if (window.hasSelection) {
@@ -1539,12 +1539,12 @@ DankModal {
         }
     }
 
-    function applyExportAnnotationTransform(ctx, isBackdropActive) {
-        if (isBackdropActive || window.hasActiveCropSelection) {
+    function applyExportAnnotationTransform(ctx, isBackgroundActive) {
+        if (isBackgroundActive || window.hasActiveCropSelection) {
             const cropX = window.hasActiveCropSelection ? window.cropRect.x : 0;
             const cropY = window.hasActiveCropSelection ? window.cropRect.y : 0;
             ctx.translate(window.screenshotXOffset, window.screenshotYOffset);
-            ctx.scale(window.backdropScaleFactor, window.backdropScaleFactor);
+            ctx.scale(window.backgroundScaleFactor, window.backgroundScaleFactor);
             ctx.translate(-cropX, -cropY);
         }
     }
@@ -1556,8 +1556,8 @@ DankModal {
             spotlightIntensity: window.spotlightIntensity,
             hasActiveCropSelection: window.hasActiveCropSelection,
             cropRect: window.cropRect,
-            effectiveBackdropMode: window.effectiveBackdropMode,
-            backdropCornerRadius: window.backdropCornerRadius,
+            effectiveBackgroundMode: window.effectiveBackgroundMode,
+            backgroundCornerRadius: window.backgroundCornerRadius,
             roundRect: window.roundRect,
             cornerRadius: Theme.cornerRadius
         };
@@ -1774,11 +1774,11 @@ DankModal {
         }
     }
 
-    function drawExportAnnotationLayer(ctx, isBackdropActive) {
+    function drawExportAnnotationLayer(ctx, isBackgroundActive) {
         if (!window.showAnnotations) return;
 
         ctx.save();
-        window.applyExportAnnotationTransform(ctx, isBackdropActive);
+        window.applyExportAnnotationTransform(ctx, isBackgroundActive);
 
         for (let i = 0; i < window.strokes.length; i++) {
             if (window.strokes[i].tool === "pixelate") {
@@ -1836,9 +1836,9 @@ DankModal {
         DrawingRenderer.drawWatermark(ctx, window.getWatermarkRenderConfig(enabled), config);
     }
 
-    function drawEditorBackgroundLayer(ctx, imgSource, isBackdropActive) {
-        if (isBackdropActive) {
-            window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
+    function drawEditorBackgroundLayer(ctx, imgSource, isBackgroundActive) {
+        if (isBackgroundActive) {
+            window.drawEditorBackground(ctx, window.canvasWidth, window.canvasHeight);
             window.drawScreenshotShadow(ctx, window.editScale);
             window.drawScreenshotImage(ctx, imgSource);
             return;
@@ -1853,9 +1853,9 @@ DankModal {
         }
     }
 
-    function drawExportBackgroundLayer(ctx, imgSource, isBackdropActive) {
-        if (isBackdropActive) {
-            window.drawBackdropBackground(ctx, window.canvasWidth, window.canvasHeight);
+    function drawExportBackgroundLayer(ctx, imgSource, isBackgroundActive) {
+        if (isBackgroundActive) {
+            window.drawEditorBackground(ctx, window.canvasWidth, window.canvasHeight);
             window.drawScreenshotShadow(ctx, 1 / window.dpr);
             window.drawScreenshotImage(ctx, imgSource);
             return;
@@ -1894,11 +1894,11 @@ DankModal {
         ctx.save();
         ctx.scale(window.editScale, window.editScale);
 
-        const isBackdropActive = window.effectiveBackdropMode !== "none";
-        window.drawEditorBackgroundLayer(ctx, imgSource, isBackdropActive);
+        const isBackgroundActive = window.effectiveBackgroundMode !== "none";
+        window.drawEditorBackgroundLayer(ctx, imgSource, isBackgroundActive);
 
         ctx.save();
-        window.applyEditorAnnotationTransform(ctx, isBackdropActive);
+        window.applyEditorAnnotationTransform(ctx, isBackgroundActive);
         window.drawBakedAnnotationLayer(ctx);
         ctx.restore();
 
@@ -1926,9 +1926,9 @@ DankModal {
         ctx.save();
         ctx.scale(1 / window.dpr, 1 / window.dpr);
 
-        const isBackdropActive = window.effectiveBackdropMode !== "none";
-        window.drawExportBackgroundLayer(ctx, imgSource, isBackdropActive);
-        window.drawExportAnnotationLayer(ctx, isBackdropActive);
+        const isBackgroundActive = window.effectiveBackgroundMode !== "none";
+        window.drawExportBackgroundLayer(ctx, imgSource, isBackgroundActive);
+        window.drawExportAnnotationLayer(ctx, isBackgroundActive);
         window.drawWatermarkLayer(ctx, true);
 
         ctx.restore();
@@ -1966,9 +1966,9 @@ DankModal {
     function getCursorAbsolutePoint() {
         let mx = window.cursorX;
         let my = window.cursorY;
-        if (window.effectiveBackdropMode !== "none") {
-            mx = (mx - window.screenshotXOffset) / window.backdropScaleFactor;
-            my = (my - window.screenshotYOffset) / window.backdropScaleFactor;
+        if (window.effectiveBackgroundMode !== "none") {
+            mx = (mx - window.screenshotXOffset) / window.backgroundScaleFactor;
+            my = (my - window.screenshotYOffset) / window.backgroundScaleFactor;
         }
         return window.hasActiveCropSelection ? Qt.point(mx + window.cropRect.x, my + window.cropRect.y) : Qt.point(mx, my);
     }
@@ -2185,13 +2185,13 @@ DankModal {
         return Qt.rect(cx, cy, cw, ch);
     }
 
-    function backdropConfigValue(key, defaultValue, numeric) {
+    function backgroundConfigValue(key, defaultValue, numeric) {
         const pd = config && config.pluginData;
         if (!pd || pd[key] === undefined || pd[key] === null) return defaultValue;
         return numeric ? parseInt(pd[key], 10) : pd[key];
     }
 
-    function backdropConfigColor(key, defaultValue) {
+    function backgroundConfigColor(key, defaultValue) {
         const pd = config && config.pluginData;
         if (!pd) return defaultValue;
         const val = pd[key];
@@ -2223,7 +2223,7 @@ DankModal {
             console.warn("exportCanvasItem is not initialized yet");
             return;
         }
-        if (window.hasSelection && window.effectiveBackdropMode === "none") {
+        if (window.hasSelection && window.effectiveBackgroundMode === "none") {
             window.exportCanvasItem.width = window.cropRect.width / window.dpr;
             window.exportCanvasItem.height = window.cropRect.height / window.dpr;
         } else if (window.activeCanvas) {
@@ -2731,7 +2731,7 @@ DankModal {
         }
 
         if (window.currentTool === toolShortcut.tool) {
-            if (toolShortcut.tool === "backdrop" || toolShortcut.tool === "crop") {
+            if (toolShortcut.tool === "background" || toolShortcut.tool === "crop") {
                 window.currentTool = window.lastActiveTool;
             }
         } else {
@@ -2873,17 +2873,17 @@ DankModal {
         window.cursorY = 0;
         window.hoveredColor = "transparent";
         window.colorPickerMode = "draw";
-        window.backdropColorPickingSlot = "none";
+        window.backgroundColorPickingSlot = "none";
         window.pressCoords = Qt.point(0, 0);
 
-        const previousBlurPath = window.backdropBlurredImagePath;
-        window.cancelBackdropBlurPreparation();
-        window.backdropBlurredImagePath = "";
-        window.backdropBlurredSourcePath = "";
-        window.backdropBlurPendingSourcePath = "";
-        window.backdropBlurLoading = false;
-        window.backdropBlurShowIndicator = false;
-        window.cleanupBackdropBlurCache(previousBlurPath);
+        const previousBlurPath = window.backgroundBlurredImagePath;
+        window.cancelBackgroundBlurPreparation();
+        window.backgroundBlurredImagePath = "";
+        window.backgroundBlurredSourcePath = "";
+        window.backgroundBlurPendingSourcePath = "";
+        window.backgroundBlurLoading = false;
+        window.backgroundBlurShowIndicator = false;
+        window.cleanupBackgroundBlurCache(previousBlurPath);
     }
 
     onBackgroundClicked: () => discardAndClose()
@@ -2952,31 +2952,31 @@ DankModal {
         }
         window.isScreenshotDark = false;
         window.hasSampledContrast = false;
-        window.backdropSolidColor = backdropConfigColor("backdropDefaultSolidColor", config.resolveColor("slot_1"));
-        window.backdropGradientStart = backdropConfigColor("backdropDefaultGradientStart", config.resolveColor("slot_1"));
-        window.backdropGradientEnd = backdropConfigColor("backdropDefaultGradientEnd", config.resolveColor("slot_2"));
-        window.backdropImagePath = backdropConfigValue("backdropDefaultImagePath", "", false);
-        window.backdropImageFolder = backdropConfigValue("backdropImageFolder", "~/Pictures/Wallpaper", false);
-        window.backdropImageBlur = backdropConfigValue("backdropImageBlur", false, false) === true;
-        window.backdropImageDim = backdropConfigValue("backdropImageDim", false, false) === true;
-        window.backdropImageDimStrength = backdropConfigValue("backdropImageDimStrength", 28, true);
+        window.backgroundSolidColor = backgroundConfigColor("backgroundDefaultSolidColor", config.resolveColor("slot_1"));
+        window.backgroundGradientStart = backgroundConfigColor("backgroundDefaultGradientStart", config.resolveColor("slot_1"));
+        window.backgroundGradientEnd = backgroundConfigColor("backgroundDefaultGradientEnd", config.resolveColor("slot_2"));
+        window.backgroundImagePath = backgroundConfigValue("backgroundDefaultImagePath", "", false);
+        window.backgroundImageFolder = backgroundConfigValue("backgroundImageFolder", "~/Pictures/Wallpaper", false);
+        window.backgroundImageBlur = backgroundConfigValue("backgroundImageBlur", false, false) === true;
+        window.backgroundImageDim = backgroundConfigValue("backgroundImageDim", false, false) === true;
+        window.backgroundImageDimStrength = backgroundConfigValue("backgroundImageDimStrength", 28, true);
 
         const pd = config && config.pluginData;
-        const hasCustomSolid = pd && pd["backdropDefaultSolidColor"] !== undefined;
-        const hasCustomGradStart = pd && pd["backdropDefaultGradientStart"] !== undefined;
-        const hasCustomGradEnd = pd && pd["backdropDefaultGradientEnd"] !== undefined;
-        window.hasUserCustomizedBackdrop = !!(hasCustomSolid || hasCustomGradStart || hasCustomGradEnd);
-        window.backdropMode = "none";
-        if (config && config.pluginData && config.pluginData["backdropAutoApply"] === true) {
-            const bm = config.pluginData["backdropDefaultMode"];
-            if (bm) window.backdropMode = bm;
+        const hasCustomSolid = pd && pd["backgroundDefaultSolidColor"] !== undefined;
+        const hasCustomGradStart = pd && pd["backgroundDefaultGradientStart"] !== undefined;
+        const hasCustomGradEnd = pd && pd["backgroundDefaultGradientEnd"] !== undefined;
+        window.hasUserCustomizedBackground = !!(hasCustomSolid || hasCustomGradStart || hasCustomGradEnd);
+        window.backgroundMode = "none";
+        if (config && config.pluginData && config.pluginData["backgroundAutoApply"] === true) {
+            const bm = config.pluginData["backgroundDefaultMode"];
+            if (bm) window.backgroundMode = bm;
         }
-        window.backdropPadding = backdropConfigValue("backdropDefaultPadding", Constants.defaultBackdropPadding, true);
-        window.backdropCornerRadius = backdropConfigValue("backdropDefaultRadius", Constants.defaultBackdropCornerRadius, true);
-        window.backdropShadowStrength = backdropConfigValue("backdropDefaultShadow", Constants.defaultBackdropShadowStrength, true);
-        window.backdropGradientAngle = backdropConfigValue("backdropDefaultAngle", Constants.defaultBackdropGradientAngle, true);
-        window.backdropAspectRatio = backdropConfigValue("backdropDefaultAspectRatio", Constants.defaultBackdropAspectRatio, false);
-        window.backdropAlignment = backdropConfigValue("backdropDefaultAlignment", Constants.defaultBackdropAlignment, false);
+        window.backgroundPadding = backgroundConfigValue("backgroundDefaultPadding", Constants.defaultBackgroundPadding, true);
+        window.backgroundCornerRadius = backgroundConfigValue("backgroundDefaultRadius", Constants.defaultBackgroundCornerRadius, true);
+        window.backgroundShadowStrength = backgroundConfigValue("backgroundDefaultShadow", Constants.defaultBackgroundShadowStrength, true);
+        window.backgroundGradientAngle = backgroundConfigValue("backgroundDefaultAngle", Constants.defaultBackgroundGradientAngle, true);
+        window.backgroundAspectRatio = backgroundConfigValue("backgroundDefaultAspectRatio", Constants.defaultBackgroundAspectRatio, false);
+        window.backgroundAlignment = backgroundConfigValue("backgroundDefaultAlignment", Constants.defaultBackgroundAlignment, false);
         // Restore state from FloatService if returning from float window
         if (window.restoreState) {
             const data = window.restoreState;
@@ -2995,8 +2995,8 @@ DankModal {
                 }
                 window.strokes = restoredStrokes;
             }
-            if (data.originalBackground) {
-                window.bgImageSource = data.originalBackground;
+            if (data.originalImageSource) {
+                window.bgImageSource = data.originalImageSource;
             }
             if (data.stampCounter !== undefined) {
                 window.stampCounter = data.stampCounter;
@@ -3014,41 +3014,41 @@ DankModal {
                 window.cropRect = Qt.rect(data.cropRect.x, data.cropRect.y, data.cropRect.width, data.cropRect.height);
                 window.hasSelection = (data.cropRect.width > 0 && data.cropRect.height > 0);
             }
-            if (data.backdropMode !== undefined) {
-                window.backdropMode = data.backdropMode;
-                window.backdropImagePath = data.backdropImagePath || "";
-                window.backdropImageBlur = data.backdropImageBlur === true;
-                window.backdropImageDim = data.backdropImageDim === true;
-                window.backdropImageDimStrength = data.backdropImageDimStrength !== undefined ? data.backdropImageDimStrength : 28;
-                window.backdropSolidColor = data.backdropSolidColor;
-                window.backdropGradientStart = data.backdropGradientStart;
-                window.backdropGradientEnd = data.backdropGradientEnd;
-                window.backdropGradientAngle = data.backdropGradientAngle;
-                window.backdropPadding = data.backdropPadding;
-                window.backdropCornerRadius = data.backdropCornerRadius;
-                window.backdropShadowStrength = data.backdropShadowStrength;
-                window.backdropAspectRatio = data.backdropAspectRatio;
+            if (data.backgroundMode !== undefined) {
+                window.backgroundMode = data.backgroundMode;
+                window.backgroundImagePath = data.backgroundImagePath || "";
+                window.backgroundImageBlur = data.backgroundImageBlur === true;
+                window.backgroundImageDim = data.backgroundImageDim === true;
+                window.backgroundImageDimStrength = data.backgroundImageDimStrength !== undefined ? data.backgroundImageDimStrength : 28;
+                window.backgroundSolidColor = data.backgroundSolidColor;
+                window.backgroundGradientStart = data.backgroundGradientStart;
+                window.backgroundGradientEnd = data.backgroundGradientEnd;
+                window.backgroundGradientAngle = data.backgroundGradientAngle;
+                window.backgroundPadding = data.backgroundPadding;
+                window.backgroundCornerRadius = data.backgroundCornerRadius;
+                window.backgroundShadowStrength = data.backgroundShadowStrength;
+                window.backgroundAspectRatio = data.backgroundAspectRatio;
                 window.customAspectRatio = data.customAspectRatio;
-                if (data.backdropAlignment) window.backdropAlignment = data.backdropAlignment;
-                window.hasUserCustomizedBackdrop = data.hasUserCustomizedBackdrop;
-                window.autoBackdropGradientStart = data.autoBackdropGradientStart;
-                window.autoBackdropGradientEnd = data.autoBackdropGradientEnd;
-                window.autoBackdropSolidColor = data.autoBackdropSolidColor;
+                if (data.backgroundAlignment) window.backgroundAlignment = data.backgroundAlignment;
+                window.hasUserCustomizedBackground = data.hasUserCustomizedBackground;
+                window.autoBackgroundGradientStart = data.autoBackgroundGradientStart;
+                window.autoBackgroundGradientEnd = data.autoBackgroundGradientEnd;
+                window.autoBackgroundSolidColor = data.autoBackgroundSolidColor;
             }
-            if (data.user_backdrop_presets) {
+            if (data.user_background_presets) {
                 try {
-                    const parsed = JSON.parse(data.user_backdrop_presets);
-                    if (Array.isArray(parsed)) window.customBackdropPresets = parsed;
+                    const parsed = JSON.parse(data.user_background_presets);
+                    if (Array.isArray(parsed)) window.customBackgroundPresets = parsed;
                 } catch (e) {
-                    console.error("Failed to parse user_backdrop_presets:", e);
+                    console.error("Failed to parse user_background_presets:", e);
                 }
             }
-            if (data.hidden_backdrop_presets) {
+            if (data.hidden_background_presets) {
                 try {
-                    const parsed = JSON.parse(data.hidden_backdrop_presets);
+                    const parsed = JSON.parse(data.hidden_background_presets);
                     if (Array.isArray(parsed)) window.hiddenPresetIds = parsed;
                 } catch (e) {
-                    console.error("Failed to parse hidden_backdrop_presets:", e);
+                    console.error("Failed to parse hidden_background_presets:", e);
                 }
             }
             if (window.activeCanvas) window.activeCanvas.requestPaint();
@@ -3057,153 +3057,153 @@ DankModal {
         }
 
         Qt.callLater(() => {
-            if (window.backdropMode === "image") {
-                window.refreshBackdropBlurCache(false);
+            if (window.backgroundMode === "image") {
+                window.refreshBackgroundBlurCache(false);
             }
             if (modalFocusScope) modalFocusScope.forceActiveFocus();
         });
     }
 
-    function applyBackdropPreset(preset) {
+    function applyBackgroundPreset(preset) {
         if (!preset) return;
-        if (preset.imagePath !== undefined) window.backdropImagePath = preset.imagePath;
-        if (preset.imageBlur !== undefined) window.backdropImageBlur = preset.imageBlur;
-        if (preset.imageDim !== undefined) window.backdropImageDim = preset.imageDim;
-        if (preset.imageDimStrength !== undefined) window.backdropImageDimStrength = preset.imageDimStrength;
-        if (preset.mode !== undefined) window.backdropMode = preset.mode;
-        if (preset.solidColor !== undefined) window.backdropSolidColor = preset.solidColor;
-        if (preset.gradientStart !== undefined) window.backdropGradientStart = preset.gradientStart;
-        if (preset.gradientEnd !== undefined) window.backdropGradientEnd = preset.gradientEnd;
-        if (preset.gradientAngle !== undefined) window.backdropGradientAngle = preset.gradientAngle;
-        if (preset.padding !== undefined) window.backdropPadding = preset.padding;
-        if (preset.cornerRadius !== undefined) window.backdropCornerRadius = preset.cornerRadius;
-        if (preset.shadowStrength !== undefined) window.backdropShadowStrength = preset.shadowStrength;
-        if (preset.aspectRatio !== undefined) window.backdropAspectRatio = preset.aspectRatio;
+        if (preset.imagePath !== undefined) window.backgroundImagePath = preset.imagePath;
+        if (preset.imageBlur !== undefined) window.backgroundImageBlur = preset.imageBlur;
+        if (preset.imageDim !== undefined) window.backgroundImageDim = preset.imageDim;
+        if (preset.imageDimStrength !== undefined) window.backgroundImageDimStrength = preset.imageDimStrength;
+        if (preset.mode !== undefined) window.backgroundMode = preset.mode;
+        if (preset.solidColor !== undefined) window.backgroundSolidColor = preset.solidColor;
+        if (preset.gradientStart !== undefined) window.backgroundGradientStart = preset.gradientStart;
+        if (preset.gradientEnd !== undefined) window.backgroundGradientEnd = preset.gradientEnd;
+        if (preset.gradientAngle !== undefined) window.backgroundGradientAngle = preset.gradientAngle;
+        if (preset.padding !== undefined) window.backgroundPadding = preset.padding;
+        if (preset.cornerRadius !== undefined) window.backgroundCornerRadius = preset.cornerRadius;
+        if (preset.shadowStrength !== undefined) window.backgroundShadowStrength = preset.shadowStrength;
+        if (preset.aspectRatio !== undefined) window.backgroundAspectRatio = preset.aspectRatio;
         if (preset.customAspectRatio !== undefined) window.customAspectRatio = preset.customAspectRatio;
-        window.hasUserCustomizedBackdrop = true;
-        window.refreshBackdropBlurCache(true);
+        window.hasUserCustomizedBackground = true;
+        window.refreshBackgroundBlurCache(true);
         window.requestPaintAll();
     }
 
-    function saveCurrentBackdropAsPreset() {
-        const idx = window.customBackdropPresets.length + 1;
+    function saveCurrentBackgroundAsPreset() {
+        const idx = window.customBackgroundPresets.length + 1;
         const newPreset = {
             id: `custom_${Date.now()}`,
             name: `Custom ${idx}`,
-            mode: window.backdropMode,
-            imagePath: window.backdropImagePath,
-            imageBlur: window.backdropImageBlur,
-            imageDim: window.backdropImageDim,
-            imageDimStrength: window.backdropImageDimStrength,
-            solidColor: window.backdropSolidColor.toString(),
-            gradientStart: window.backdropGradientStart.toString(),
-            gradientEnd: window.backdropGradientEnd.toString(),
-            gradientAngle: window.backdropGradientAngle,
-            padding: window.backdropPadding,
-            cornerRadius: window.backdropCornerRadius,
-            shadowStrength: window.backdropShadowStrength,
-            aspectRatio: window.backdropAspectRatio,
+            mode: window.backgroundMode,
+            imagePath: window.backgroundImagePath,
+            imageBlur: window.backgroundImageBlur,
+            imageDim: window.backgroundImageDim,
+            imageDimStrength: window.backgroundImageDimStrength,
+            solidColor: window.backgroundSolidColor.toString(),
+            gradientStart: window.backgroundGradientStart.toString(),
+            gradientEnd: window.backgroundGradientEnd.toString(),
+            gradientAngle: window.backgroundGradientAngle,
+            padding: window.backgroundPadding,
+            cornerRadius: window.backgroundCornerRadius,
+            shadowStrength: window.backgroundShadowStrength,
+            aspectRatio: window.backgroundAspectRatio,
             customAspectRatio: window.customAspectRatio,
             isCustomUserCreated: true
         };
-        const newList = [...window.customBackdropPresets, newPreset];
-        window.customBackdropPresets = newList;
+        const newList = [...window.customBackgroundPresets, newPreset];
+        window.customBackgroundPresets = newList;
         if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_backdrop_presets", JSON.stringify(newList));
+            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newList));
         }
     }
 
     function deletePreset(presetId) {
         if (!presetId) return;
-        const newCustom = window.customBackdropPresets.filter(p => p.id !== presetId);
+        const newCustom = window.customBackgroundPresets.filter(p => p.id !== presetId);
         const newHidden = window.hiddenPresetIds.indexOf(presetId) === -1 ? [...window.hiddenPresetIds, presetId] : window.hiddenPresetIds;
-        window.customBackdropPresets = newCustom;
+        window.customBackgroundPresets = newCustom;
         window.hiddenPresetIds = newHidden;
         if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_backdrop_presets", JSON.stringify(newCustom));
-            window.parentWidget.pluginService.savePluginData("quickCapture", "hidden_backdrop_presets", JSON.stringify(newHidden));
+            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newCustom));
+            window.parentWidget.pluginService.savePluginData("quickCapture", "hidden_background_presets", JSON.stringify(newHidden));
         }
     }
 
     function updatePresetWithCurrent(presetId) {
         if (!presetId) return;
         const currentData = {
-            mode: window.backdropMode,
-            imagePath: window.backdropImagePath,
-            imageBlur: window.backdropImageBlur,
-            imageDim: window.backdropImageDim,
-            imageDimStrength: window.backdropImageDimStrength,
-            solidColor: window.backdropSolidColor.toString(),
-            gradientStart: window.backdropGradientStart.toString(),
-            gradientEnd: window.backdropGradientEnd.toString(),
-            gradientAngle: window.backdropGradientAngle,
-            padding: window.backdropPadding,
-            cornerRadius: window.backdropCornerRadius,
-            shadowStrength: window.backdropShadowStrength,
-            aspectRatio: window.backdropAspectRatio,
+            mode: window.backgroundMode,
+            imagePath: window.backgroundImagePath,
+            imageBlur: window.backgroundImageBlur,
+            imageDim: window.backgroundImageDim,
+            imageDimStrength: window.backgroundImageDimStrength,
+            solidColor: window.backgroundSolidColor.toString(),
+            gradientStart: window.backgroundGradientStart.toString(),
+            gradientEnd: window.backgroundGradientEnd.toString(),
+            gradientAngle: window.backgroundGradientAngle,
+            padding: window.backgroundPadding,
+            cornerRadius: window.backgroundCornerRadius,
+            shadowStrength: window.backgroundShadowStrength,
+            aspectRatio: window.backgroundAspectRatio,
             customAspectRatio: window.customAspectRatio
         };
 
-        const existingIdx = window.customBackdropPresets.findIndex(p => p.id === presetId);
+        const existingIdx = window.customBackgroundPresets.findIndex(p => p.id === presetId);
         let newList;
         if (existingIdx !== -1) {
-            newList = window.customBackdropPresets.map(p => p.id === presetId ? Object.assign({}, p, currentData) : p);
+            newList = window.customBackgroundPresets.map(p => p.id === presetId ? Object.assign({}, p, currentData) : p);
         } else {
-            const original = Constants.defaultBackdropPresets ? Constants.defaultBackdropPresets.find(p => p.id === presetId) : undefined;
+            const original = Constants.defaultBackgroundPresets ? Constants.defaultBackgroundPresets.find(p => p.id === presetId) : undefined;
             if (original) {
                 const updated = Object.assign({}, original, currentData);
-                newList = [...window.customBackdropPresets, updated];
+                newList = [...window.customBackgroundPresets, updated];
             } else {
-                newList = window.customBackdropPresets;
+                newList = window.customBackgroundPresets;
             }
         }
-        window.customBackdropPresets = newList;
+        window.customBackgroundPresets = newList;
         if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_backdrop_presets", JSON.stringify(newList));
+            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newList));
         }
     }
 
     function renamePreset(presetId, newName) {
         if (!presetId || !newName) return;
-        const existingIdx = window.customBackdropPresets.findIndex(p => p.id === presetId);
+        const existingIdx = window.customBackgroundPresets.findIndex(p => p.id === presetId);
         let newList;
         if (existingIdx !== -1) {
-            newList = window.customBackdropPresets.map(p => p.id === presetId ? Object.assign({}, p, { name: newName }) : p);
+            newList = window.customBackgroundPresets.map(p => p.id === presetId ? Object.assign({}, p, { name: newName }) : p);
         } else {
-            const original = Constants.defaultBackdropPresets ? Constants.defaultBackdropPresets.find(p => p.id === presetId) : undefined;
+            const original = Constants.defaultBackgroundPresets ? Constants.defaultBackgroundPresets.find(p => p.id === presetId) : undefined;
             if (original) {
                 const updated = Object.assign({}, original, { name: newName });
-                newList = [...window.customBackdropPresets, updated];
+                newList = [...window.customBackgroundPresets, updated];
             } else {
-                newList = window.customBackdropPresets;
+                newList = window.customBackgroundPresets;
             }
         }
-        window.customBackdropPresets = newList;
+        window.customBackgroundPresets = newList;
         if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_backdrop_presets", JSON.stringify(newList));
+            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newList));
         }
     }
 
     function loadPresetsFromPluginData() {
         if (!config || !config.pluginData) return;
         
-        const userPresetsRaw = config.pluginData["user_backdrop_presets"];
+        const userPresetsRaw = config.pluginData["user_background_presets"];
         if (userPresetsRaw !== undefined) {
             if (userPresetsRaw) {
                 try {
                     const parsed = JSON.parse(userPresetsRaw);
                     if (Array.isArray(parsed)) {
-                        window.customBackdropPresets = parsed;
+                        window.customBackgroundPresets = parsed;
                     }
                 } catch (e) {
-                    console.error("Failed to parse user_backdrop_presets:", e);
+                    console.error("Failed to parse user_background_presets:", e);
                 }
             } else {
-                window.customBackdropPresets = [];
+                window.customBackgroundPresets = [];
             }
         }
 
-        const hiddenPresetsRaw = config.pluginData["hidden_backdrop_presets"];
+        const hiddenPresetsRaw = config.pluginData["hidden_background_presets"];
         if (hiddenPresetsRaw !== undefined) {
             if (hiddenPresetsRaw) {
                 try {
@@ -3212,7 +3212,7 @@ DankModal {
                         window.hiddenPresetIds = parsed;
                     }
                 } catch (e) {
-                    console.error("Failed to parse hidden_backdrop_presets:", e);
+                    console.error("Failed to parse hidden_background_presets:", e);
                 }
             } else {
                 window.hiddenPresetIds = [];
@@ -3306,7 +3306,7 @@ DankModal {
         menu.open();
     }
 
-    function positionBackdropPopover(popover, controlItem, toolbar, contentItem) {
+    function positionBackgroundPopover(popover, controlItem, toolbar, contentItem) {
         const pt = controlItem.mapToItem(contentItem, 0, 0);
         if (toolbar.isVertical) {
             if (window.toolbarPosition === "right") {
@@ -3336,50 +3336,50 @@ DankModal {
         }
     }
 
-    function handleBackdropControlHovered(popover, controlItem, toolbar, contentItem) {
+    function handleBackgroundControlHovered(popover, controlItem, toolbar, contentItem) {
         if (!popover) return;
 
-        window.positionBackdropPopover(popover, controlItem, toolbar, contentItem);
+        window.positionBackgroundPopover(popover, controlItem, toolbar, contentItem);
         popover.open();
     }
 
-    function handleBackdropControlExited(popover) {
+    function handleBackgroundControlExited(popover) {
         if (popover) {
             popover.startCloseTimer();
         }
     }
 
-    function showBackdropImagePopover(popover, controlItem, toolbar, contentItem) {
+    function showBackgroundImagePopover(popover, controlItem, toolbar, contentItem) {
         if (!popover || !controlItem) return;
         if (popover.opened) {
             popover.close();
             return;
         }
-        window.loadBackdropImages();
-        window.positionBackdropPopover(popover, controlItem, toolbar, contentItem);
+        window.loadBackgroundImages();
+        window.positionBackgroundPopover(popover, controlItem, toolbar, contentItem);
         popover.x = Math.max(Theme.spacingS, Math.min(popover.x, contentItem.width - popover.width - Theme.spacingS));
         popover.y = Math.max(Theme.spacingS, Math.min(popover.y, contentItem.height - popover.height - Theme.spacingS));
         popover.open();
     }
 
-    function handleBackdropControlWheel(type, delta) {
+    function handleBackgroundControlWheel(type, delta) {
         const step = delta > 0 ? 5 : -5;
         if (type === "padding") {
-            window.backdropPadding = Math.max(10, Math.min(150, window.backdropPadding + step));
+            window.backgroundPadding = Math.max(10, Math.min(150, window.backgroundPadding + step));
         } else if (type === "radius") {
             const rStep = delta > 0 ? 2 : -2;
-            window.backdropCornerRadius = Math.max(0, Math.min(60, window.backdropCornerRadius + rStep));
+            window.backgroundCornerRadius = Math.max(0, Math.min(60, window.backgroundCornerRadius + rStep));
         } else if (type === "shadow") {
-            window.backdropShadowStrength = Math.max(0, Math.min(100, window.backdropShadowStrength + step));
+            window.backgroundShadowStrength = Math.max(0, Math.min(100, window.backgroundShadowStrength + step));
         } else if (type === "angle") {
             const aStep = delta > 0 ? 15 : -15;
-            window.backdropGradientAngle = (window.backdropGradientAngle + aStep + 360) % 360;
-        } else if (type === "aspectRatio" && window.backdropAspectRatio === "custom") {
+            window.backgroundGradientAngle = (window.backgroundGradientAngle + aStep + 360) % 360;
+        } else if (type === "aspectRatio" && window.backgroundAspectRatio === "custom") {
             const ratioStep = delta > 0 ? 5 : -5;
             const scaled = Math.round(window.customAspectRatio * 100) + ratioStep;
             window.customAspectRatio = Math.max(50, Math.min(250, scaled)) / 100.0;
-        } else if (type === "imageDim" && window.backdropImageDim) {
-            window.setBackdropImageDimStrength(window.backdropImageDimStrength + step, true);
+        } else if (type === "imageDim" && window.backgroundImageDim) {
+            window.setBackgroundImageDimStrength(window.backgroundImageDimStrength + step, true);
         }
         window.requestActiveCanvasPaint();
     }
@@ -3456,109 +3456,109 @@ DankModal {
                     canUndo: window.canUndo
                     canRedo: window.canRedo
 
-                    backdropMode: window.backdropMode
-                    backdropSolidColor: window.backdropSolidColor
-                    backdropGradientStart: window.backdropGradientStart
-                    backdropGradientEnd: window.backdropGradientEnd
-                    backdropGradientAngle: window.backdropGradientAngle
-                    backdropPadding: window.backdropPadding
-                    backdropCornerRadius: window.backdropCornerRadius
-                    backdropShadowStrength: window.backdropShadowStrength
-                    backdropAspectRatio: window.backdropAspectRatio
+                    backgroundMode: window.backgroundMode
+                    backgroundSolidColor: window.backgroundSolidColor
+                    backgroundGradientStart: window.backgroundGradientStart
+                    backgroundGradientEnd: window.backgroundGradientEnd
+                    backgroundGradientAngle: window.backgroundGradientAngle
+                    backgroundPadding: window.backgroundPadding
+                    backgroundCornerRadius: window.backgroundCornerRadius
+                    backgroundShadowStrength: window.backgroundShadowStrength
+                    backgroundAspectRatio: window.backgroundAspectRatio
                     customAspectRatio: window.customAspectRatio
-                    backdropAlignment: window.backdropAlignment
-                    backdropColorPickingSlot: window.backdropColorPickingSlot
-                    backdropImageBlur: window.backdropImageBlur
-                    backdropImageDim: window.backdropImageDim
-                    backdropImageDimStrength: window.backdropImageDimStrength
+                    backgroundAlignment: window.backgroundAlignment
+                    backgroundColorPickingSlot: window.backgroundColorPickingSlot
+                    backgroundImageBlur: window.backgroundImageBlur
+                    backgroundImageDim: window.backgroundImageDim
+                    backgroundImageDimStrength: window.backgroundImageDimStrength
 
-                    onChangeBackdropMode: (mode, controlItem) => {
-                        window.backdropMode = mode;
+                    onChangeBackgroundMode: (mode, controlItem) => {
+                        window.backgroundMode = mode;
                         if (mode === "image") {
-                            window.refreshBackdropBlurCache(false);
-                            window.showBackdropImagePopover(backdropImagePopover, controlItem, toolbarCard, contentRoot);
+                            window.refreshBackgroundBlurCache(false);
+                            window.showBackgroundImagePopover(backgroundImagePopover, controlItem, toolbarCard, contentRoot);
                         } else {
-                            window.cancelBackdropBlurPreparation();
-                            backdropImagePopover.close();
+                            window.cancelBackgroundBlurPreparation();
+                            backgroundImagePopover.close();
                         }
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropImageBlur: (enabled) => window.setBackdropImageBlur(enabled, true)
-                    onChangeBackdropImageDim: (enabled) => window.setBackdropImageDim(enabled, true)
-                    onChangeBackdropSolidColor: (col) => {
-                        window.backdropSolidColor = col;
-                        window.hasUserCustomizedBackdrop = true;
+                    onChangeBackgroundImageBlur: (enabled) => window.setBackgroundImageBlur(enabled, true)
+                    onChangeBackgroundImageDim: (enabled) => window.setBackgroundImageDim(enabled, true)
+                    onChangeBackgroundSolidColor: (col) => {
+                        window.backgroundSolidColor = col;
+                        window.hasUserCustomizedBackground = true;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onBackdropColorPickerRequested: (currentColor) => {
+                    onBackgroundColorPickerRequested: (currentColor) => {
                         moreToolsMenu.close();
                         if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
                             PopoutService.colorPickerModal.selectedColor = currentColor;
                             PopoutService.colorPickerModal.pickerTitle = I18n.tr("Choose Color");
                             PopoutService.colorPickerModal.onColorSelectedCallback = function (selectedColor) {
-                                if (window.backdropMode === "solid") {
-                                    window.backdropSolidColor = selectedColor;
+                                if (window.backgroundMode === "solid") {
+                                    window.backgroundSolidColor = selectedColor;
                                 } else {
                                     const activeSlot = (window.toolbarItem ? window.toolbarItem.gradientActiveSlot : "start");
                                     if (activeSlot === "start") {
-                                        window.backdropGradientStart = selectedColor;
+                                        window.backgroundGradientStart = selectedColor;
                                     } else {
-                                        window.backdropGradientEnd = selectedColor;
+                                        window.backgroundGradientEnd = selectedColor;
                                     }
                                 }
-                                window.hasUserCustomizedBackdrop = true;
+                                window.hasUserCustomizedBackground = true;
                                 if (window.activeCanvas) window.activeCanvas.requestPaint();
                             };
                             PopoutService.colorPickerModal.show();
                         }
                     }
-                    onBackdropEyedropperRequested: (slot) => {
-                        window.backdropColorPickingSlot = slot;
+                    onBackgroundEyedropperRequested: (slot) => {
+                        window.backgroundColorPickingSlot = slot;
                         window.currentTool = "colorpicker";
                     }
-                    onChangeBackdropGradientStart: (col) => {
-                        window.backdropGradientStart = col;
-                        window.hasUserCustomizedBackdrop = true;
+                    onChangeBackgroundGradientStart: (col) => {
+                        window.backgroundGradientStart = col;
+                        window.hasUserCustomizedBackground = true;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropGradientEnd: (col) => {
-                        window.backdropGradientEnd = col;
-                        window.hasUserCustomizedBackdrop = true;
+                    onChangeBackgroundGradientEnd: (col) => {
+                        window.backgroundGradientEnd = col;
+                        window.hasUserCustomizedBackground = true;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropGradientAngle: (angle) => {
-                        window.backdropGradientAngle = angle;
+                    onChangeBackgroundGradientAngle: (angle) => {
+                        window.backgroundGradientAngle = angle;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropPadding: (pad) => {
-                        window.backdropPadding = pad;
+                    onChangeBackgroundPadding: (pad) => {
+                        window.backgroundPadding = pad;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropCornerRadius: (r) => {
-                        window.backdropCornerRadius = r;
+                    onChangeBackgroundCornerRadius: (r) => {
+                        window.backgroundCornerRadius = r;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropShadowStrength: (s) => {
-                        window.backdropShadowStrength = s;
+                    onChangeBackgroundShadowStrength: (s) => {
+                        window.backgroundShadowStrength = s;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropAspectRatio: (ratio) => {
-                        window.backdropAspectRatio = ratio;
+                    onChangeBackgroundAspectRatio: (ratio) => {
+                        window.backgroundAspectRatio = ratio;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeCustomAspectRatio: (ratio) => {
                         window.customAspectRatio = ratio;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
-                    onChangeBackdropAlignment: (alignment) => {
-                        window.backdropAlignment = alignment;
+                    onChangeBackgroundAlignment: (alignment) => {
+                        window.backgroundAlignment = alignment;
                         window.requestPaintAll();
                     }
                     onAutoColorBalanceRequested: {
-                        window.backdropGradientStart = window.autoBackdropGradientStart;
-                        window.backdropGradientEnd = window.autoBackdropGradientEnd;
-                        window.backdropSolidColor = window.autoBackdropSolidColor;
-                        window.hasUserCustomizedBackdrop = true;
+                        window.backgroundGradientStart = window.autoBackgroundGradientStart;
+                        window.backgroundGradientEnd = window.autoBackgroundGradientEnd;
+                        window.backgroundSolidColor = window.autoBackgroundSolidColor;
+                        window.hasUserCustomizedBackground = true;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
 
@@ -3604,32 +3604,32 @@ DankModal {
                     onMoreToolsClicked: (buttonItem) => {
                         window.toggleMoreToolsMenu(buttonItem, moreToolsMenu, toolbarCard, contentRoot);
                     }
-                    onBackdropControlHovered: (type, controlItem) => {
+                    onBackgroundControlHovered: (type, controlItem) => {
                         let popover = null;
-                        if (type === "padding") popover = backdropPaddingPopover;
-                        else if (type === "radius") popover = backdropRadiusPopover;
-                        else if (type === "shadow") popover = backdropShadowPopover;
-                        else if (type === "angle") popover = backdropAnglePopover;
-                        else if (type === "aspectRatio") popover = backdropAspectRatioPopover;
-                        else if (type === "alignment") popover = backdropAlignmentPopover;
-                        else if (type === "presets") popover = backdropPresetsPopover;
-                        else if (type === "imageDim") popover = backdropImageDimPopover;
-                        window.handleBackdropControlHovered(popover, controlItem, toolbarCard, contentRoot);
+                        if (type === "padding") popover = backgroundPaddingPopover;
+                        else if (type === "radius") popover = backgroundRadiusPopover;
+                        else if (type === "shadow") popover = backgroundShadowPopover;
+                        else if (type === "angle") popover = backgroundAnglePopover;
+                        else if (type === "aspectRatio") popover = backgroundAspectRatioPopover;
+                        else if (type === "alignment") popover = backgroundAlignmentPopover;
+                        else if (type === "presets") popover = backgroundPresetsPopover;
+                        else if (type === "imageDim") popover = backgroundImageDimPopover;
+                        window.handleBackgroundControlHovered(popover, controlItem, toolbarCard, contentRoot);
                     }
-                    onBackdropControlExited: (type) => {
+                    onBackgroundControlExited: (type) => {
                         let popover = null;
-                        if (type === "padding") popover = backdropPaddingPopover;
-                        else if (type === "radius") popover = backdropRadiusPopover;
-                        else if (type === "shadow") popover = backdropShadowPopover;
-                        else if (type === "angle") popover = backdropAnglePopover;
-                        else if (type === "aspectRatio") popover = backdropAspectRatioPopover;
-                        else if (type === "alignment") popover = backdropAlignmentPopover;
-                        else if (type === "presets") popover = backdropPresetsPopover;
-                        else if (type === "imageDim") popover = backdropImageDimPopover;
-                        window.handleBackdropControlExited(popover);
+                        if (type === "padding") popover = backgroundPaddingPopover;
+                        else if (type === "radius") popover = backgroundRadiusPopover;
+                        else if (type === "shadow") popover = backgroundShadowPopover;
+                        else if (type === "angle") popover = backgroundAnglePopover;
+                        else if (type === "aspectRatio") popover = backgroundAspectRatioPopover;
+                        else if (type === "alignment") popover = backgroundAlignmentPopover;
+                        else if (type === "presets") popover = backgroundPresetsPopover;
+                        else if (type === "imageDim") popover = backgroundImageDimPopover;
+                        window.handleBackgroundControlExited(popover);
                     }
-                    onBackdropControlWheel: (type, delta) => {
-                        window.handleBackdropControlWheel(type, delta);
+                    onBackgroundControlWheel: (type, delta) => {
+                        window.handleBackgroundControlWheel(type, delta);
                     }
                 }
 
@@ -3669,7 +3669,7 @@ DankModal {
                         scale: drawingCanvas.scale
                         transformOrigin: drawingCanvas.transformOrigin
                         clip: true
-                        visible: window.effectiveBackdropMode === "none"
+                        visible: window.effectiveBackgroundMode === "none"
 
                         Item {
                             id: transformedBgContainer
@@ -3771,8 +3771,8 @@ DankModal {
 
                             // 2. Draw active/selected annotations (translated in edit mode, or clipped in crop mode)
                             ctx.save();
-                            const isBackdropActive = window.effectiveBackdropMode !== "none";
-                            window.applyEditorAnnotationTransform(ctx, isBackdropActive);
+                            const isBackgroundActive = window.effectiveBackgroundMode !== "none";
+                            window.applyEditorAnnotationTransform(ctx, isBackgroundActive);
 
                             if (window.showAnnotations) {
                                 window.drawActiveAnnotationLayer(ctx);
@@ -3822,7 +3822,7 @@ DankModal {
                         border.width: 1.5 / drawingCanvas.scale
                         radius: Theme.cornerRadius / drawingCanvas.scale
                         z: 10
-                        visible: (config.pluginData["showCanvasBorder"] !== undefined ? config.pluginData["showCanvasBorder"] : true) && (window.effectiveBackdropMode === "none")
+                        visible: (config.pluginData["showCanvasBorder"] !== undefined ? config.pluginData["showCanvasBorder"] : true) && (window.effectiveBackgroundMode === "none")
                     }
 
                     Item {
@@ -3866,7 +3866,7 @@ DankModal {
 
                     BusyIndicator {
                         anchors.centerIn: parent
-                        running: window.backdropBlurLoading && window.backdropBlurShowIndicator
+                        running: window.backgroundBlurLoading && window.backgroundBlurShowIndicator
                         visible: running
                         z: 100
                     }
@@ -4013,67 +4013,67 @@ DankModal {
                 }
 
                 HoverSliderPopover {
-                    id: backdropPaddingPopover
+                    id: backgroundPaddingPopover
                     isVertical: toolbarCard.isVertical
                     minimum: 10
                     maximum: 150
-                    value: window.backdropPadding
+                    value: window.backgroundPadding
                     onUserValueChanged: (val) => {
-                        window.backdropPadding = val;
+                        window.backgroundPadding = val;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
                 HoverSliderPopover {
-                    id: backdropRadiusPopover
+                    id: backgroundRadiusPopover
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 60
                     stepSize: 2
-                    value: window.backdropCornerRadius
+                    value: window.backgroundCornerRadius
                     onUserValueChanged: (val) => {
-                        window.backdropCornerRadius = val;
+                        window.backgroundCornerRadius = val;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
                 HoverSliderPopover {
-                    id: backdropShadowPopover
+                    id: backgroundShadowPopover
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 100
-                    value: window.backdropShadowStrength
+                    value: window.backgroundShadowStrength
                     onUserValueChanged: (val) => {
-                        window.backdropShadowStrength = val;
+                        window.backgroundShadowStrength = val;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
                 HoverSliderPopover {
-                    id: backdropAnglePopover
+                    id: backgroundAnglePopover
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 360
                     stepSize: 15
-                    value: window.backdropGradientAngle
+                    value: window.backgroundGradientAngle
                     onUserValueChanged: (val) => {
-                        window.backdropGradientAngle = val;
+                        window.backgroundGradientAngle = val;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
                 HoverSliderPopover {
-                    id: backdropImageDimPopover
+                    id: backgroundImageDimPopover
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 80
-                    value: window.backdropImageDimStrength
-                    onUserValueChanged: (val) => window.setBackdropImageDimStrength(val, true)
+                    value: window.backgroundImageDimStrength
+                    onUserValueChanged: (val) => window.setBackgroundImageDimStrength(val, true)
                 }
 
-                BackdropAspectRatioPopover {
-                    id: backdropAspectRatioPopover
-                    backdropAspectRatio: window.backdropAspectRatio
+                BackgroundAspectRatioPopover {
+                    id: backgroundAspectRatioPopover
+                    backgroundAspectRatio: window.backgroundAspectRatio
                     customAspectRatio: window.customAspectRatio
                     presets: window.aspectPresets
 
@@ -4083,8 +4083,8 @@ DankModal {
                     property bool _anchorIsAbove: false
                     y: _anchorIsAbove ? (_anchorY - height - Theme.spacingXS) : _anchorY
 
-                    onChangeBackdropAspectRatio: (ratio) => {
-                        window.backdropAspectRatio = ratio;
+                    onChangeBackgroundAspectRatio: (ratio) => {
+                        window.backgroundAspectRatio = ratio;
                         if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeCustomAspectRatio: (ratio) => {
@@ -4093,33 +4093,33 @@ DankModal {
                     }
                 }
 
-                BackdropAlignmentPopover {
-                    id: backdropAlignmentPopover
-                    backdropAlignment: window.backdropAlignment
-                    onChangeBackdropAlignment: (alignment) => {
-                        window.backdropAlignment = alignment;
+                BackgroundAlignmentPopover {
+                    id: backgroundAlignmentPopover
+                    backgroundAlignment: window.backgroundAlignment
+                    onChangeBackgroundAlignment: (alignment) => {
+                        window.backgroundAlignment = alignment;
                         window.requestPaintAll();
                     }
                 }
 
-                BackdropImagePopover {
-                    id: backdropImagePopover
-                    images: window.backdropImages
-                    folderPath: window.backdropImageFolder
-                    selectedPath: window.backdropImagePath
-                    loading: window.backdropImagesLoading
-                    onRefreshRequested: window.loadBackdropImages()
+                BackgroundImagePopover {
+                    id: backgroundImagePopover
+                    images: window.backgroundImages
+                    folderPath: window.backgroundImageFolder
+                    selectedPath: window.backgroundImagePath
+                    loading: window.backgroundImagesLoading
+                    onRefreshRequested: window.loadBackgroundImages()
                     onImageSelected: (path) => {
-                        window.setBackdropImage(path, true);
-                        backdropImagePopover.close();
+                        window.setBackgroundImage(path, true);
+                        backgroundImagePopover.close();
                     }
                 }
 
-                BackdropPresetsPopover {
-                    id: backdropPresetsPopover
-                    presetsList: window.backdropPresets
-                    onPresetSelected: (preset) => window.applyBackdropPreset(preset)
-                    onSaveCurrentAsPreset: window.saveCurrentBackdropAsPreset()
+                BackgroundPresetsPopover {
+                    id: backgroundPresetsPopover
+                    presetsList: window.backgroundPresets
+                    onPresetSelected: (preset) => window.applyBackgroundPreset(preset)
+                    onSaveCurrentAsPreset: window.saveCurrentBackgroundAsPreset()
                     onDeletePreset: (presetId) => window.deletePreset(presetId)
                     onUpdatePresetWithCurrent: (presetId) => window.updatePresetWithCurrent(presetId)
                     onRenamePreset: (presetId, newName) => window.renamePreset(presetId, newName)
@@ -4145,9 +4145,9 @@ DankModal {
 
                             // Extract auto-balanced colors
                             var colors = Helpers.extractDominantColors(imgData, Qt);
-                            window.autoBackdropGradientStart = colors.start;
-                            window.autoBackdropGradientEnd = colors.end;
-                            window.autoBackdropSolidColor = colors.start;
+                            window.autoBackgroundGradientStart = colors.start;
+                            window.autoBackgroundGradientEnd = colors.end;
+                            window.autoBackgroundSolidColor = colors.start;
                         }
                     }
                 }
@@ -4377,7 +4377,7 @@ DankModal {
         window.bgImageSource = "";
         window.scanResultPopoverRef = null;
         window.exportCallback = null;
-        window.cancelBackdropBlurPreparation();
+        window.cancelBackgroundBlurPreparation();
     }
 
     Component.onCompleted: {
@@ -4385,6 +4385,6 @@ DankModal {
     }
 
     Component.onDestruction: {
-        window.cleanupBackdropBlurCache(window.backdropBlurredImagePath);
+        window.cleanupBackgroundBlurCache(window.backgroundBlurredImagePath);
     }
 }

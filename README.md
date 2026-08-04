@@ -47,6 +47,12 @@ To track the development branch again:
 git checkout main && git pull
 ```
 
+## Release Notes
+
+### 4.0.0
+
+Breaking change: the old Backdrop feature has been renamed to Background across the UI, tool id, QML properties, and plugin setting keys. Existing Backdrop settings are not migrated and will reset to the new Background defaults after updating.
+
 ## Quick Start
 
 | Action                          | Result                                              |
@@ -86,7 +92,7 @@ git checkout main && git pull
 | <kbd>F</kbd>        | Color Picker (Ink/Eyedropper)                                                       |
 | <kbd>T</kbd>        | Eraser                                                                              |
 | <kbd>Z</kbd>        | Area Zoom (Callout)                                                                 |
-| <kbd>B</kbd>        | Backdrop Options                                                                    |
+| <kbd>B</kbd>        | Background Options                                                                    |
 | <kbd>O</kbd>        | OCR Text Recognition                                                                |
 | <kbd>G</kbd> (Hold) | Magnifier Lens (Cursor Zoom)                                                        |
 | <kbd>V</kbd>        | Select                                                                              |
@@ -186,7 +192,7 @@ dms ipc call quickCapture screenshot region float  # float directly
 - [x] QR Code Scanner
 - [x] Canvas Color Picker (Eyedropper tool)
 - [ ] Image Filters (Grayscale, negative, brightness/contrast)
-- [ ] Image Backdrop Mode: Support setting a custom image file as the screenshot background
+- [ ] Image Background Mode: Support setting a custom image file as the screenshot background
 - [x] Expanded tool option popovers:
     - **Arrow tool**: Double-headed arrows, line styles (dashed, dotted)
     - **Line tool**: Line styles (dashed, dotted)
@@ -196,7 +202,7 @@ dms ipc call quickCapture screenshot region float  # float directly
 
 ## Credits
 
-- **[Gradia Capture](https://github.com/AlexanderVanhee/gradia-capture)** — Inspiration for the toolbar layout and backdrop algorithms
+- **[Gradia Capture](https://github.com/AlexanderVanhee/gradia-capture)** — Inspiration for the toolbar layout and background algorithms
 - **[Flameshot](https://github.com/flameshot-org/flameshot)** — Inspiration for the radial menu and tool interaction patterns
 - **[Snapzy](https://github.com/duongductrong/Snapzy)** — Inspiration for the float image / continue-editing workflow
 - **vky** and **bodify** (Discord) — Actively reporting bugs and contributing valuable feedback to help polish and improve the plugin

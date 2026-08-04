@@ -6,7 +6,7 @@ import "Constants.js" as Constants
 Item {
     id: control
 
-    property string backdropAlignment: "center"
+    property string backgroundAlignment: "center"
     property bool compact: false
 
     signal hovered()
@@ -34,7 +34,7 @@ Item {
             anchors.verticalCenter: parent.verticalCenter
         }
         StyledText {
-            text: control._labelMap[control.backdropAlignment] ?? "C"
+            text: control._labelMap[control.backgroundAlignment] ?? "C"
             width: 22; horizontalAlignment: Text.AlignHCenter
             font.pixelSize: Theme.fontSizeSmall
             color: Theme.surfaceText
@@ -56,7 +56,7 @@ Item {
             anchors.horizontalCenter: parent.horizontalCenter
         }
         StyledText {
-            text: control._labelMap[control.backdropAlignment] ?? "C"
+            text: control._labelMap[control.backgroundAlignment] ?? "C"
             width: parent.width
             horizontalAlignment: Text.AlignHCenter
             font.pixelSize: Theme.fontSizeSmall

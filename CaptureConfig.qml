@@ -19,7 +19,7 @@ QtObject {
         { id: "highlighter", icon: "border_color", shortcut: "S", tooltip: I18n.tr("Highlighter (S)") },
         { id: "spotlight", icon: "highlight", shortcut: "D", tooltip: I18n.tr("Spotlight (D)") },
         { id: "callout", icon: "zoom_in", shortcut: "Z", tooltip: I18n.tr("Callout (Z) | Hold G for Loupe") },
-        { id: "backdrop", icon: "wallpaper", shortcut: "B", tooltip: I18n.tr("Backdrop (B)") }
+        { id: "background", icon: "wallpaper", shortcut: "B", tooltip: I18n.tr("Background (B)") }
     ]
 
     function getToolIcon(toolId) {
@@ -203,7 +203,7 @@ QtObject {
         { key: "F", tool: "colorpicker" },
         { key: "T", tool: "eraser" },
         { key: "Z", tool: "callout" },
-        { key: "B", tool: "backdrop" }
+        { key: "B", tool: "background" }
     ]
 
     readonly property var colorShortcuts: [

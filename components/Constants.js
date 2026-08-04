@@ -2,13 +2,13 @@
 
 // Configuration defaults
 const defaultEditQuality = 720;
-const defaultBackdropPadding = 40;
-const defaultBackdropCornerRadius = 12;
-const defaultBackdropShadowStrength = 0;
-const defaultBackdropGradientAngle = 45;
-const defaultBackdropAspectRatio = "auto";
-const defaultBackdropMode = "solid";
-const defaultBackdropAlignment = "center";
+const defaultBackgroundPadding = 40;
+const defaultBackgroundCornerRadius = 12;
+const defaultBackgroundShadowStrength = 0;
+const defaultBackgroundGradientAngle = 45;
+const defaultBackgroundAspectRatio = "auto";
+const defaultBackgroundMode = "solid";
+const defaultBackgroundAlignment = "center";
 
 // Selection and threshold constants
 const selectionThresholdBase = 12;
@@ -85,7 +85,7 @@ const fontSizeCompact = 9;
 const separatorThickness = 1;
 const separatorLength = 24;
 const gridSpacing = 4;
-const backdropIconSize = 16;
+const backgroundIconSize = 16;
 const sliderWidth = 100;
 const swatchSize = 20;
 const swatchRadius = 10;
@@ -110,8 +110,8 @@ const calloutAutoPlacementMargin = 50;  // px gap from source rect when auto-pla
 const fallbackCanvasWidth = 1920;       // used when canvasWidth is not passed in render config
 const fallbackCanvasHeight = 1080;      // used when canvasHeight is not passed in render config
 
-// Default Backdrop Presets
-const defaultBackdropPresets = [
+// Default Background Presets
+const defaultBackgroundPresets = [
     {
         id: "studio_dark",
         name: "Studio Dark",

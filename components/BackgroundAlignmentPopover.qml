@@ -5,10 +5,10 @@ import qs.Widgets
 Rectangle {
     id: popoverRoot
 
-    property string backdropAlignment: "center"
+    property string backgroundAlignment: "center"
     property bool opened: false
 
-    signal changeBackdropAlignment(string alignment)
+    signal changeBackgroundAlignment(string alignment)
 
     // 9 positions in row-major order (top → bottom, left → right)
     readonly property var _positions: [
@@ -93,7 +93,7 @@ Rectangle {
                     height: popoverRoot._cellSize
                     radius: 3
 
-                    readonly property bool active: modelData === popoverRoot.backdropAlignment
+                    readonly property bool active: modelData === popoverRoot.backgroundAlignment
 
                     color: active ? Theme.primary : Theme.withAlpha(Theme.surfaceVariant, 0.4)
                     border.color: active ? "transparent" : Theme.withAlpha(Theme.outline, 0.2)
@@ -117,7 +117,7 @@ Rectangle {
                     MouseArea {
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: popoverRoot.changeBackdropAlignment(modelData)
+                        onClicked: popoverRoot.changeBackgroundAlignment(modelData)
                     }
                 }
             }

@@ -6,10 +6,10 @@ import "Constants.js" as Constants
 Grid {
     id: controlRoot
 
-    property string backdropMode: "none"
-    property color backdropSolidColor: Theme.primary
-    property color backdropGradientStart: Theme.primary
-    property color backdropGradientEnd: Theme.secondary
+    property string backgroundMode: "none"
+    property color backgroundSolidColor: Theme.primary
+    property color backgroundGradientStart: Theme.primary
+    property color backgroundGradientEnd: Theme.secondary
     property string gradientActiveSlot: "start"
     property int itemSize: 24
     property int iconSize: 18
@@ -34,13 +34,13 @@ Grid {
     anchors.horizontalCenter: isVertical ? parent.horizontalCenter : undefined
 
     Item {
-        visible: controlRoot.backdropMode === "solid"
+        visible: controlRoot.backgroundMode === "solid"
         width: Constants.verticalSelectorItemWidth
         height: controlRoot.itemSize
 
         Rectangle {
             width: controlRoot.itemSize; height: controlRoot.itemSize; radius: controlRoot.itemSize / 2
-            color: controlRoot.backdropSolidColor
+            color: controlRoot.backgroundSolidColor
             border.color: Theme.withAlpha(Theme.outline, 0.3)
             border.width: 1
             anchors.centerIn: parent
@@ -53,7 +53,7 @@ Grid {
                     if (mouse.button === Qt.RightButton) {
                         controlRoot.eyedropperRequested("solid")
                     } else {
-                        controlRoot.colorPickerRequested(controlRoot.backdropSolidColor)
+                        controlRoot.colorPickerRequested(controlRoot.backgroundSolidColor)
                     }
                 }
             }
@@ -61,7 +61,7 @@ Grid {
     }
 
     Item {
-        visible: controlRoot.backdropMode === "image"
+        visible: controlRoot.backgroundMode === "image"
         width: Constants.verticalSelectorItemWidth
         height: controlRoot.itemSize
 
@@ -72,14 +72,14 @@ Grid {
             iconSize: controlRoot.iconSize
             backgroundColor: controlRoot.imageBlurEnabled ? Theme.withAlpha(Theme.primary, 0.18) : "transparent"
             iconColor: controlRoot.imageBlurEnabled ? Theme.primary : Theme.surfaceText
-            tooltipText: I18n.tr("Blur Backdrop Image")
+            tooltipText: I18n.tr("Blur Background Image")
             onClicked: controlRoot.imageBlurToggled(!controlRoot.imageBlurEnabled)
         }
     }
 
     Item {
         id: imageDimControl
-        visible: controlRoot.backdropMode === "image"
+        visible: controlRoot.backgroundMode === "image"
         width: controlRoot.isVertical ? Constants.verticalSelectorItemWidth : dimHorizontalContent.implicitWidth + Theme.spacingXS * 2
         height: controlRoot.isVertical ? 40 : controlRoot.itemSize
 
@@ -151,7 +151,7 @@ Grid {
         }
     }
 
-    readonly property bool isGradient: backdropMode === "gradient" || backdropMode === "radial" || backdropMode === "conic"
+    readonly property bool isGradient: backgroundMode === "gradient" || backgroundMode === "radial" || backgroundMode === "conic"
 
     Item {
         visible: controlRoot.isGradient
@@ -165,7 +165,7 @@ Grid {
 
             Rectangle {
                 width: controlRoot.itemSize; height: controlRoot.itemSize; radius: controlRoot.itemSize / 2
-                color: controlRoot.backdropGradientStart
+                color: controlRoot.backgroundGradientStart
                 border.color: controlRoot.gradientActiveSlot === "start" ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3)
                 border.width: controlRoot.gradientActiveSlot === "start" ? (controlRoot.itemSize >= 24 ? 2 : 1.5) : 1
                 MouseArea {
@@ -182,7 +182,7 @@ Grid {
             }
             Rectangle {
                 width: controlRoot.itemSize; height: controlRoot.itemSize; radius: controlRoot.itemSize / 2
-                color: controlRoot.backdropGradientEnd
+                color: controlRoot.backgroundGradientEnd
                 border.color: controlRoot.gradientActiveSlot === "end" ? Theme.primary : Theme.withAlpha(Theme.outline, 0.3)
                 border.width: controlRoot.gradientActiveSlot === "end" ? (controlRoot.itemSize >= 24 ? 2 : 1.5) : 1
                 MouseArea {
@@ -201,7 +201,7 @@ Grid {
     }
 
     Item {
-        visible: controlRoot.backdropMode !== "image"
+        visible: controlRoot.backgroundMode !== "image"
         width: Constants.verticalSelectorItemWidth
         height: controlRoot.itemSize
 
@@ -219,9 +219,9 @@ Grid {
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             cursorShape: Qt.PointingHandCursor
             onClicked: (mouse) => {
-                let col = controlRoot.backdropMode === "solid" ? controlRoot.backdropSolidColor :
-                          (controlRoot.gradientActiveSlot === "start" ? controlRoot.backdropGradientStart : controlRoot.backdropGradientEnd);
-                let targetSlot = controlRoot.backdropMode === "solid" ? "solid" : controlRoot.gradientActiveSlot;
+                let col = controlRoot.backgroundMode === "solid" ? controlRoot.backgroundSolidColor :
+                          (controlRoot.gradientActiveSlot === "start" ? controlRoot.backgroundGradientStart : controlRoot.backgroundGradientEnd);
+                let targetSlot = controlRoot.backgroundMode === "solid" ? "solid" : controlRoot.gradientActiveSlot;
                 if (mouse.button === Qt.RightButton) {
                     controlRoot.eyedropperRequested(targetSlot)
                 } else {
@@ -232,7 +232,7 @@ Grid {
     }
 
     Item {
-        visible: controlRoot.backdropMode !== "image"
+        visible: controlRoot.backgroundMode !== "image"
         width: Constants.verticalSelectorItemWidth
         height: controlRoot.itemSize
 

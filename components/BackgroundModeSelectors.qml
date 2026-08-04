@@ -6,22 +6,22 @@ import "Constants.js" as Constants
 Grid {
     id: controlRoot
 
-    property string backdropMode: "none"
+    property string backgroundMode: "none"
     property bool isVertical: false
 
-    signal changeBackdropMode(string mode, var controlItem)
+    signal changeBackgroundMode(string mode, var controlItem)
 
     rows: isVertical ? 6 : 1
     columns: isVertical ? 1 : 6
     spacing: Theme.spacingXS
 
     readonly property var modes: [
-        { mode: "none", icon: "blur_off", tooltip: I18n.tr("No Backdrop") },
+        { mode: "none", icon: "blur_off", tooltip: I18n.tr("No Background") },
         { mode: "solid", icon: "format_color_fill", tooltip: I18n.tr("Solid Color") },
         { mode: "radial", icon: "filter_tilt_shift", tooltip: I18n.tr("Radial Gradient") },
         { mode: "gradient", icon: "gradient", tooltip: I18n.tr("Linear Gradient") },
         { mode: "conic", icon: "timelapse", tooltip: I18n.tr("Conic Gradient") },
-        { mode: "image", icon: "image", tooltip: I18n.tr("Image Backdrop") }
+        { mode: "image", icon: "image", tooltip: I18n.tr("Image Background") }
     ]
 
     Repeater {
@@ -32,9 +32,9 @@ Grid {
             buttonSize: Constants.btnSize
             iconSize: Constants.iconSize
             tooltipText: modelData.tooltip
-            backgroundColor: controlRoot.backdropMode === modelData.mode ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-            iconColor: controlRoot.backdropMode === modelData.mode ? Theme.primary : Theme.surfaceText
-            onClicked: controlRoot.changeBackdropMode(modelData.mode, modeButton)
+            backgroundColor: controlRoot.backgroundMode === modelData.mode ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
+            iconColor: controlRoot.backgroundMode === modelData.mode ? Theme.primary : Theme.surfaceText
+            onClicked: controlRoot.changeBackgroundMode(modelData.mode, modeButton)
         }
     }
 }

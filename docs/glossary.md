@@ -35,15 +35,15 @@ Terms used across the plugin, codebase, and settings to avoid ambiguity.
 | **Action button** | Non-drawing action button | Export, Copy, Float, Undo, Redo |
 | **Tool button** | Drawing tool selector | Pen, Line, Arrow, Rect, etc. |
 
-## Backdrop
+## Background
 
 | Term | Meaning | Notes |
 |---|---|---|
-| **Backdrop** | Background behind the screenshot | Has padding, shadow, corner radius |
-| **Backdrop mode** | Backdrop style: none, solid, gradient, radial, conic | BackdropModeSelectors.qml |
-| **Backdrop padding** | Gap from screenshot edge to backdrop edge | Default 40px |
-| **Backdrop shadow** | Simulated drop shadow (4 layered rects) | No GPU blur yet |
-| **Backdrop alignment** | Screenshot position within the backdrop frame | 9 positions (currently center only) |
+| **Background** | Background behind the screenshot | Has padding, shadow, corner radius |
+| **Background mode** | Background style: none, solid, gradient, radial, conic | BackgroundModeSelectors.qml |
+| **Background padding** | Gap from screenshot edge to background edge | Default 40px |
+| **Background shadow** | Simulated drop shadow (4 layered rects) | No GPU blur yet |
+| **Background alignment** | Screenshot position within the background frame | 9 positions (currently center only) |
 
 ## Radial menu
 
@@ -83,7 +83,7 @@ Terms used across the plugin, codebase, and settings to avoid ambiguity.
 | **Highlighter** | Semi-transparent highlight | |
 | **Spotlight** | Darken area outside spotlight | Aka "focus spotlight" |
 | **Callout** | Zoom into a screen region | Aka "area zoom" |
-| **Backdrop** | Toggle backdrop mode | Not a drawing tool, it's a mode |
+| **Background** | Toggle background mode | Not a drawing tool, it's a mode |
 
 ## Actions (non-drawing)
 
