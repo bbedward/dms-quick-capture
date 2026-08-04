@@ -2840,6 +2840,52 @@ DankModal {
         window.handleZoomKeyReleased(event);
     }
 
+    function resetEditorSessionState() {
+        window.strokes = [];
+        window.undoneStrokes = [];
+        window.currentStroke = null;
+        window.selectedStroke = null;
+        window.originalPoints = [];
+        window.activeHandle = "none";
+        window.calloutDestDragging = false;
+        window.copiedStroke = null;
+        window.pastePreviewActive = false;
+        window.presetHistory = [];
+
+        window.isTyping = false;
+        window.currentTypingText = "";
+        window.typingCursorIndex = 0;
+        window.typingCursorVisible = true;
+        window.editingStroke = null;
+        window.typingIsSpeechBubble = false;
+        window.typingCoords = Qt.point(0, 0);
+        window.typingTargetCoords = Qt.point(0, 0);
+
+        window.showAnnotations = true;
+        window.showSizePreview = false;
+        window.previewX = 0;
+        window.previewY = 0;
+        window.cropRect = Qt.rect(0, 0, 0, 0);
+        window.hasSelection = false;
+        window.ocrRect = Qt.rect(0, 0, 0, 0);
+        window.isZoomPressed = false;
+        window.cursorX = 0;
+        window.cursorY = 0;
+        window.hoveredColor = "transparent";
+        window.colorPickerMode = "draw";
+        window.backdropColorPickingSlot = "none";
+        window.pressCoords = Qt.point(0, 0);
+
+        const previousBlurPath = window.backdropBlurredImagePath;
+        window.cancelBackdropBlurPreparation();
+        window.backdropBlurredImagePath = "";
+        window.backdropBlurredSourcePath = "";
+        window.backdropBlurPendingSourcePath = "";
+        window.backdropBlurLoading = false;
+        window.backdropBlurShowIndicator = false;
+        window.cleanupBackdropBlurCache(previousBlurPath);
+    }
+
     onBackgroundClicked: () => discardAndClose()
 
     // Keyboard Shortcuts Support
@@ -2883,6 +2929,8 @@ DankModal {
             startThickness = window.sessionToolIntensity(startTool);
         }
 
+        window.resetEditorSessionState();
+
         window.currentTool = startTool;
         window.toolbarVisible = window.configShowToolbar;
         window.applyToolIntensity(startTool, startThickness);
@@ -2890,14 +2938,6 @@ DankModal {
         window.currentColor = startColor;
         window.recordPresetUsage({ tool: startTool, color: startColor, thickness: startThickness });
 
-        window.strokes = [];
-        window.showAnnotations = true;
-        window.showSizePreview = false;
-        window.previewX = 0;
-        window.previewY = 0;
-        window.selectedStroke = null;
-        window.copiedStroke = null;
-        window.pastePreviewActive = false;
         window.stampCounter = 1;
         window.stampIdCounter = 1;
         window.bgRotation = 0;
@@ -2937,10 +2977,6 @@ DankModal {
         window.backdropGradientAngle = backdropConfigValue("backdropDefaultAngle", Constants.defaultBackdropGradientAngle, true);
         window.backdropAspectRatio = backdropConfigValue("backdropDefaultAspectRatio", Constants.defaultBackdropAspectRatio, false);
         window.backdropAlignment = backdropConfigValue("backdropDefaultAlignment", Constants.defaultBackdropAlignment, false);
-        window.cropRect = Qt.rect(0, 0, 0, 0);
-        window.hasSelection = false;
-        window.activeHandle = "none";
-
         // Restore state from FloatService if returning from float window
         if (window.restoreState) {
             const data = window.restoreState;
