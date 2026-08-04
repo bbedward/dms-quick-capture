@@ -2892,6 +2892,9 @@ DankModal {
 
         window.strokes = [];
         window.showAnnotations = true;
+        window.showSizePreview = false;
+        window.previewX = 0;
+        window.previewY = 0;
         window.selectedStroke = null;
         window.copiedStroke = null;
         window.pastePreviewActive = false;
