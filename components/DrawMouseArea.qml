@@ -512,6 +512,7 @@ MouseArea {
         if (h === "tr" || h === "bl" || hs === "_tr" || hs === "_bl") return Qt.SizeBDiagCursor;
         if (h === "tc" || h === "bc" || hs === "_tc" || hs === "_bc") return Qt.SplitVCursor;
         if (h === "lc" || h === "rc" || hs === "_lc" || hs === "_rc") return Qt.SplitHCursor;
+        if (h === "stamp" && window.selectedStroke && window.selectedStroke.tool === "stamp" && window.selectedStroke.hasLeaderLine) return Qt.SizeAllCursor;
         if (h === "stamp") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
         if (h === "start" || h === "end" || h === "anchor") return Qt.SizeAllCursor;
         if (window.currentTool === "colorpicker") {
