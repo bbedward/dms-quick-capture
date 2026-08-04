@@ -1162,6 +1162,7 @@ DankModal {
     property bool typingCursorVisible: true
     property var editingStroke: null
     property bool typingIsSpeechBubble: false
+    property bool typingHasTargetCoords: false
     property point typingTargetCoords: Qt.point(0,0)
 
     Timer {
@@ -1688,6 +1689,20 @@ DankModal {
         const rawText = window.currentTypingText || "";
         const previewLines = rawText.split("\n");
         const lineH = window.textFontSize * 1.35;
+
+        if (window.typingIsSpeechBubble && rawText.length > 0) {
+            const targetCoords = window.typingHasTargetCoords
+                ? window.typingTargetCoords
+                : window.defaultTypingSpeechBubbleTarget();
+            const previewStroke = window.getTypingStrokeStyle(rawText);
+            previewStroke.isSpeechBubble = true;
+            previewStroke.points = [
+                Qt.point(targetCoords.x, targetCoords.y),
+                Qt.point(window.typingCoords.x, window.typingCoords.y)
+            ];
+            window.drawStroke(ctx, previewStroke);
+            return;
+        }
 
         if (window.textBackground) {
             let maxW = 0;
@@ -2858,6 +2873,7 @@ DankModal {
         window.typingCursorVisible = true;
         window.editingStroke = null;
         window.typingIsSpeechBubble = false;
+        window.typingHasTargetCoords = false;
         window.typingCoords = Qt.point(0, 0);
         window.typingTargetCoords = Qt.point(0, 0);
 
@@ -4191,6 +4207,10 @@ DankModal {
         if (stroke.isSpeechBubble && stroke.points.length >= 2) {
             stroke._editTargetCoords = Qt.point(stroke.points[0].x, stroke.points[0].y);
             window.typingTargetCoords = stroke._editTargetCoords;
+            window.typingHasTargetCoords = true;
+        } else {
+            window.typingTargetCoords = Qt.point(0, 0);
+            window.typingHasTargetCoords = false;
         }
 
         window.currentTypingText = stroke.text;
@@ -4211,10 +4231,13 @@ DankModal {
     function beginNewTextStroke(stroke, dialog) {
         const hasDrag = stroke.isSpeechBubble && stroke.points.length >= 2;
         window.typingIsSpeechBubble = hasDrag;
-        window.typingCoords = hasDrag ? stroke.points[1] : stroke.points[0];
+        window.typingCoords = hasDrag
+            ? Qt.point(stroke.points[1].x, stroke.points[1].y)
+            : Qt.point(stroke.points[0].x, stroke.points[0].y);
         if (hasDrag) {
-            window.typingTargetCoords = stroke.points[0];
+            window.typingTargetCoords = Qt.point(stroke.points[0].x, stroke.points[0].y);
         }
+        window.typingHasTargetCoords = hasDrag;
         window.currentTypingText = "";
         window.typingCursorIndex = 0;
         window.isTyping = true;
@@ -4238,6 +4261,29 @@ DankModal {
             cornerRadius: window.textCornerRadius,
             text: textStr
         };
+    }
+
+    function defaultTypingSpeechBubbleTarget() {
+        const offset = Math.max(32, window.textFontSize * 2.1);
+        const xOffset = offset * 0.8;
+        return Qt.point(
+            window.typingCoords.x - xOffset,
+            window.typingCoords.y + offset * 1.15
+        );
+    }
+
+    function ensureTypingSpeechBubbleTarget() {
+        if (window.typingHasTargetCoords) return;
+        window.typingTargetCoords = window.defaultTypingSpeechBubbleTarget();
+        window.typingHasTargetCoords = true;
+    }
+
+    function toggleTypingSpeechBubble() {
+        window.typingIsSpeechBubble = !window.typingIsSpeechBubble;
+        if (window.typingIsSpeechBubble) {
+            window.ensureTypingSpeechBubbleTarget();
+        }
+        window.repaintActiveCanvas();
     }
 
     function applyTypingStyleToStroke(stroke, textStr) {
@@ -4272,15 +4318,23 @@ DankModal {
     function updateTypingEditStroke(textStr) {
         const s = window.editingStroke;
         window.applyTypingStyleToStroke(s, textStr);
+        s.isSpeechBubble = window.typingIsSpeechBubble;
 
         // Use per-stroke saved coordinates to prevent cross-contamination
         // when multiple edit dialogs are open simultaneously
         const editCoords = s._editCoords || window.typingCoords;
         const editTargetCoords = s._editTargetCoords || window.typingTargetCoords;
+        if (s.isSpeechBubble && !window.typingHasTargetCoords) {
+            window.ensureTypingSpeechBubbleTarget();
+        }
         if (s.isSpeechBubble) {
-            s.points = [editTargetCoords, editCoords];
+            const targetCoords = window.typingHasTargetCoords ? window.typingTargetCoords : editTargetCoords;
+            s.points = [
+                Qt.point(targetCoords.x, targetCoords.y),
+                Qt.point(editCoords.x, editCoords.y)
+            ];
         } else {
-            s.points = [editCoords];
+            s.points = [Qt.point(editCoords.x, editCoords.y)];
         }
 
         window.replaceStrokeReference(s);
@@ -4295,6 +4349,9 @@ DankModal {
     function createTypingStroke(textStr) {
         const stroke = window.getTypingStrokeStyle(textStr);
         stroke.isSpeechBubble = window.typingIsSpeechBubble;
+        if (stroke.isSpeechBubble) {
+            window.ensureTypingSpeechBubbleTarget();
+        }
         stroke.points = window.typingIsSpeechBubble
             ? [Qt.point(window.typingTargetCoords.x, window.typingTargetCoords.y), Qt.point(window.typingCoords.x, window.typingCoords.y)]
             : [Qt.point(window.typingCoords.x, window.typingCoords.y)];
@@ -4304,6 +4361,8 @@ DankModal {
     function finishTypingSession() {
         window.currentTypingText = "";
         window.isTyping = false;
+        window.typingHasTargetCoords = false;
+        window.typingTargetCoords = Qt.point(0, 0);
         window.repaintActiveCanvas();
     }
 

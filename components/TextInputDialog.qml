@@ -37,6 +37,8 @@ Popup {
         if (window && window.isTyping) {
             window.isTyping = false;
             window.currentTypingText = "";
+            window.typingHasTargetCoords = false;
+            window.typingTargetCoords = Qt.point(0, 0);
             if (window.editingStroke) {
                 delete window.editingStroke._editCoords;
                 delete window.editingStroke._editTargetCoords;
@@ -124,7 +126,8 @@ Popup {
                             { icon: "format_bold", active: window && window.textBold, tag: "bold" },
                             { icon: "format_italic", active: window && window.textItalic, tag: "italic" },
                             { icon: "format_underlined", active: window && window.textUnderline, tag: "underline" },
-                            { icon: "layers", active: window && window.textBackground, tag: "bg" }
+                            { icon: "layers", active: window && window.textBackground, tag: "bg" },
+                            { icon: "chat_bubble", active: window && window.typingIsSpeechBubble, tag: "bubble" }
                         ]
 
                         delegate: Rectangle {
@@ -151,10 +154,13 @@ Popup {
                                 cursorShape: Qt.PointingHandCursor
                                 onClicked: {
                                     if (!window) return;
+                                    window.currentTypingText = textInputField.text;
+                                    window.typingCursorIndex = textInputField.cursorPosition;
                                     if (modelData.tag === "bold") window.textBold = !window.textBold;
                                     else if (modelData.tag === "italic") window.textItalic = !window.textItalic;
                                     else if (modelData.tag === "underline") window.textUnderline = !window.textUnderline;
                                     else if (modelData.tag === "bg") window.textBackground = !window.textBackground;
+                                    else if (modelData.tag === "bubble") window.toggleTypingSpeechBubble();
                                 }
                             }
                         }
