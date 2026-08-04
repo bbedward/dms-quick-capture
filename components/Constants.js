@@ -40,7 +40,7 @@ const ToolMetadata = {
     redact:      { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Thickness", previewType: "thickness" },
     stamp:       { min: 1,  max: 50,  step: 1,  unit: "px", defaultValue: 8,  label: "Stamp Size", previewType: "thickness", previewMultiplier: 10 },
     text:        { min: 12, max: 120, step: 1,  unit: "px", defaultValue: 36, label: "Font Size", previewType: "none" },
-    pixelate:    { min: 2,  max: 16,  step: 1,  unit: "px", defaultValue: 8,  label: "Pixel Intensity", previewType: "none", previewMultiplier: 3, previewClampMin: 8, previewClampMax: 36 },
+    pixelate:    { min: 2,  max: 16,  step: 1,  unit: "px", defaultValue: 8,  label: "Pixel Intensity", previewType: "none", previewMultiplier: 3, previewClampMin: 8, previewClampMax: 48 },
     spotlight:   { min: 10, max: 100, step: 1,  unit: "%",  defaultValue: 50, label: "Dimming Opacity", previewType: "none", previewFixedWidth: 100 },
     callout:     { min: 100,max: 500, step: 10, unit: "%",  defaultValue: 150, label: "Zoom Level", previewType: "none", previewFixedWidth: 40, borderWidthMin: 1, borderWidthMax: 10 },
 };
