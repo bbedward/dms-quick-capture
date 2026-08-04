@@ -934,8 +934,8 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
 
                 if (activeEdge === "top") {
                     let closestX = Math.max(rx, Math.min(tx, rx + rw));
-                    const minAllowedX = rx + radius + tailBaseSize;
-                    const maxAllowedX = rx + rw - radius - tailBaseSize;
+                    const minAllowedX = rx + Math.max(tailBaseSize, radius * 0.35);
+                    const maxAllowedX = rx + rw - Math.max(tailBaseSize, radius * 0.35);
                     if (maxAllowedX >= minAllowedX) {
                         closestX = Math.max(minAllowedX, Math.min(closestX, maxAllowedX));
                     } else {
@@ -947,8 +947,8 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                     base2Y = ry;
                 } else if (activeEdge === "bottom") {
                     let closestX = Math.max(rx, Math.min(tx, rx + rw));
-                    const minAllowedX = rx + radius + tailBaseSize;
-                    const maxAllowedX = rx + rw - radius - tailBaseSize;
+                    const minAllowedX = rx + Math.max(tailBaseSize, radius * 0.35);
+                    const maxAllowedX = rx + rw - Math.max(tailBaseSize, radius * 0.35);
                     if (maxAllowedX >= minAllowedX) {
                         closestX = Math.max(minAllowedX, Math.min(closestX, maxAllowedX));
                     } else {
@@ -960,8 +960,8 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                     base2Y = ry + rh;
                 } else if (activeEdge === "left") {
                     let closestY = Math.max(ry, Math.min(ty, ry + rh));
-                    const minAllowedY = ry + radius + tailBaseSize;
-                    const maxAllowedY = ry + rh - radius - tailBaseSize;
+                    const minAllowedY = ry + Math.max(tailBaseSize, radius * 0.35);
+                    const maxAllowedY = ry + rh - Math.max(tailBaseSize, radius * 0.35);
                     if (maxAllowedY >= minAllowedY) {
                         closestY = Math.max(minAllowedY, Math.min(closestY, maxAllowedY));
                     } else {
@@ -973,8 +973,8 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                     base2Y = closestY + tailBaseSize;
                 } else if (activeEdge === "right") {
                     let closestY = Math.max(ry, Math.min(ty, ry + rh));
-                    const minAllowedY = ry + radius + tailBaseSize;
-                    const maxAllowedY = ry + rh - radius - tailBaseSize;
+                    const minAllowedY = ry + Math.max(tailBaseSize, radius * 0.35);
+                    const maxAllowedY = ry + rh - Math.max(tailBaseSize, radius * 0.35);
                     if (maxAllowedY >= minAllowedY) {
                         closestY = Math.max(minAllowedY, Math.min(closestY, maxAllowedY));
                     } else {
@@ -986,44 +986,86 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                     base2Y = closestY + tailBaseSize;
                 }
 
+                let cornerTail = "";
+                if ((activeEdge === "top" && base1X < rx + radius) || (activeEdge === "left" && base1Y < ry + radius)) {
+                    cornerTail = "topLeft";
+                } else if ((activeEdge === "top" && base2X > rx + rw - radius) || (activeEdge === "right" && base1Y < ry + radius)) {
+                    cornerTail = "topRight";
+                } else if ((activeEdge === "bottom" && base1X < rx + radius) || (activeEdge === "left" && base2Y > ry + rh - radius)) {
+                    cornerTail = "bottomLeft";
+                } else if ((activeEdge === "bottom" && base2X > rx + rw - radius) || (activeEdge === "right" && base2Y > ry + rh - radius)) {
+                    cornerTail = "bottomRight";
+                }
+                const cornerTailInset = Math.max(tailBaseSize, radius * 0.65);
+
                 ctx.beginPath();
-                ctx.moveTo(rx + radius, ry);
+                if (cornerTail === "topLeft") {
+                    ctx.moveTo(rx, ry + cornerTailInset);
+                    ctx.lineTo(tx, ty);
+                    ctx.lineTo(rx + cornerTailInset, ry);
+                } else {
+                    ctx.moveTo(rx + radius, ry);
+                }
 
                 // Top edge
-                if (activeEdge === "top") {
+                if (cornerTail === "topRight") {
+                    ctx.lineTo(rx + rw - cornerTailInset, ry);
+                    ctx.lineTo(tx, ty);
+                    ctx.lineTo(rx + rw, ry + cornerTailInset);
+                } else if (activeEdge === "top" && cornerTail !== "topLeft") {
                     ctx.lineTo(base1X, ry);
                     ctx.lineTo(tx, ty);
                     ctx.lineTo(base2X, ry);
                 }
-                ctx.lineTo(rx + rw - radius, ry);
-                ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+                if (cornerTail !== "topRight") {
+                    ctx.lineTo(rx + rw - radius, ry);
+                    ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+                }
 
                 // Right edge
-                if (activeEdge === "right") {
+                if (activeEdge === "right" && cornerTail !== "topRight" && cornerTail !== "bottomRight") {
                     ctx.lineTo(rx + rw, base1Y);
                     ctx.lineTo(tx, ty);
                     ctx.lineTo(rx + rw, base2Y);
                 }
-                ctx.lineTo(rx + rw, ry + rh - radius);
-                ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+                if (cornerTail === "bottomRight") {
+                    ctx.lineTo(rx + rw, ry + rh - cornerTailInset);
+                    ctx.lineTo(tx, ty);
+                    ctx.lineTo(rx + rw - cornerTailInset, ry + rh);
+                } else {
+                    ctx.lineTo(rx + rw, ry + rh - radius);
+                    ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+                }
 
                 // Bottom edge
-                if (activeEdge === "bottom") {
-                    ctx.lineTo(base2X, ry + rh);
+                if (cornerTail === "bottomLeft") {
+                    ctx.lineTo(rx + cornerTailInset, ry + rh);
                     ctx.lineTo(tx, ty);
-                    ctx.lineTo(base1X, ry + rh);
+                    ctx.lineTo(rx, ry + rh - cornerTailInset);
+                } else if (activeEdge === "bottom") {
+                    if (cornerTail !== "bottomRight") {
+                        ctx.lineTo(base2X, ry + rh);
+                        ctx.lineTo(tx, ty);
+                        ctx.lineTo(base1X, ry + rh);
+                    }
                 }
-                ctx.lineTo(rx + radius, ry + rh);
-                ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+                if (cornerTail !== "bottomLeft") {
+                    ctx.lineTo(rx + radius, ry + rh);
+                    ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+                }
 
                 // Left edge
-                if (activeEdge === "left") {
+                if (activeEdge === "left" && cornerTail !== "bottomLeft" && cornerTail !== "topLeft") {
                     ctx.lineTo(rx, base2Y);
                     ctx.lineTo(tx, ty);
                     ctx.lineTo(rx, base1Y);
                 }
-                ctx.lineTo(rx, ry + radius);
-                ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+                if (cornerTail !== "topLeft") {
+                    ctx.lineTo(rx, ry + radius);
+                    ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+                } else {
+                    ctx.lineTo(rx, ry + cornerTailInset);
+                }
                 ctx.closePath();
 
                 ctx.fill();
