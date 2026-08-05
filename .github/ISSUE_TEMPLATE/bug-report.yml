@@ -10,7 +10,7 @@ body:
   - type: input
     id: dms_version
     attributes:
-      label: DankMaterialShell (DMS) Version
+      label: DankMaterialShell Version
       placeholder: e.g. 1.5.2
     validations:
       required: true
@@ -18,13 +18,13 @@ body:
     id: plugin_version
     attributes:
       label: Quick Capture Plugin Version
-      placeholder: e.g. 2.7.6
+      placeholder: e.g. 4.0.1
     validations:
       required: true
   - type: input
     id: os_info
     attributes:
-      label: Operating System / Linux Distribution
+      label: Linux Distribution
       placeholder: e.g. Fedora 40 (Workstation), Arch Linux
     validations:
       required: true
