@@ -12,6 +12,8 @@ Item {
     property var entries: []
     property int previewIndex: -1
 
+    signal closeRequested()
+
     readonly property var previewEntry: previewIndex >= 0 && previewIndex < entries.length ? entries[previewIndex] : null
     readonly property real heightFraction: previewIndex >= 0 ? 0.7 : 0.45
     property int currentPage: 0
@@ -494,7 +496,7 @@ Item {
     }
     Shortcut {
         sequence: "Escape"
-        enabled: root.previewIndex >= 0
-        onActivated: root.previewIndex = -1
+        enabled: root.visible
+        onActivated: root.closeRequested()
     }
 }

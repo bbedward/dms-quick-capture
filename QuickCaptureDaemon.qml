@@ -377,6 +377,7 @@ PluginComponent {
         content: Component {
             RecentEditsCarousel {
                 daemon: root
+                onCloseRequested: historyModal.close()
             }
         }
 
