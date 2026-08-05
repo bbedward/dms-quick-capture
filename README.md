@@ -17,6 +17,7 @@ Screenshot and vector annotation plugin for DankMaterialShell (DMS).
 - **img2pdf** (required for PDF export)
 - **tesseract** (required for OCR text scanner)
 - **zbar** (provides `zbarimg`, required for QR scanner)
+- **Qt5Compat GraphicalEffects** (required for Pin-to-Desktop / Float; on Fedora install `qt6-qt5compat`)
 
 ## Install
 
