@@ -915,7 +915,19 @@ DankModal {
             const cy = h / 2;
             const r = Math.hypot(cx, cy);
             const startAngle = (window.backgroundGradientAngle * Math.PI) / 180;
-            const numSlices = 240;
+            const startColor = window.backgroundGradientStart.toString();
+            const endColor = window.backgroundGradientEnd.toString();
+            if (typeof ctx.createConicGradient === "function") {
+                const grad = ctx.createConicGradient(startAngle, cx, cy);
+                grad.addColorStop(0, startColor);
+                grad.addColorStop(0.5, endColor);
+                grad.addColorStop(1, startColor);
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, w, h);
+                return;
+            }
+
+            const numSlices = 90;
 
             // Cache color components to avoid JS-to-C++ property boundary crossing cost
             const startCol = window.backgroundGradientStart;
@@ -933,8 +945,9 @@ DankModal {
             ctx.translate(cx, cy);
             for (let i = 0; i < numSlices; i++) {
                 const angle1 = startAngle + (i / numSlices) * Math.PI * 2;
-                const angle2 = startAngle + ((i + 1.01) / numSlices) * Math.PI * 2;
-                const t = i / numSlices;
+                const angle2 = startAngle + ((i + 1.2) / numSlices) * Math.PI * 2;
+                const phase = (i + 0.5) / numSlices;
+                const t = phase <= 0.5 ? phase * 2 : (1 - phase) * 2;
                 const rComp = Math.round(sr * (1 - t) + er * t);
                 const gComp = Math.round(sg * (1 - t) + eg * t);
                 const bComp = Math.round(sb * (1 - t) + eb * t);
