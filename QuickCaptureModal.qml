@@ -1516,12 +1516,13 @@ DankModal {
     property bool bgFlipV: false
     property var activeCanvas: null
     property var bakedCanvas: null
+    property var backgroundCanvas: null
     property var bgImageItem: null
     property var boardContainerItem: null
     property var exportCanvasItem: null
     property var offscreenSamplerItem: null
 
-    onSelectedStrokeChanged: window.requestPaintAll()
+    onSelectedStrokeChanged: window.requestAnnotationPaintAll()
     onEffectiveBackgroundModeChanged: window.requestPaintAll()
     onBackgroundSolidColorChanged: window.requestPaintAll()
     onBackgroundGradientStartChanged: window.requestPaintAll()
@@ -1534,6 +1535,12 @@ DankModal {
     onEditScaleChanged: window.requestPaintAll()
 
     function requestPaintAll() {
+        if (window.backgroundCanvas) window.backgroundCanvas.requestPaint();
+        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        if (window.bakedCanvas) window.bakedCanvas.requestPaint();
+    }
+
+    function requestAnnotationPaintAll() {
         if (window.activeCanvas) window.activeCanvas.requestPaint();
         if (window.bakedCanvas) window.bakedCanvas.requestPaint();
     }
@@ -1924,7 +1931,9 @@ DankModal {
         ctx.scale(window.editScale, window.editScale);
 
         const isBackgroundActive = window.effectiveBackgroundMode !== "none";
-        window.drawEditorBackgroundLayer(ctx, imgSource, isBackgroundActive);
+        if (!isBackgroundActive) {
+            window.drawEditorBackgroundLayer(ctx, imgSource, false);
+        }
 
         ctx.save();
         window.applyEditorAnnotationTransform(ctx, isBackgroundActive);
@@ -1933,6 +1942,17 @@ DankModal {
 
         window.drawWatermarkLayer(ctx, window.currentTool !== "crop");
 
+        ctx.restore();
+    }
+
+    function renderBackgroundCanvas(canvas, imgSource) {
+        const ctx = canvas.getContext("2d");
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if (window.effectiveBackgroundMode === "none") return;
+
+        ctx.save();
+        ctx.scale(window.editScale, window.editScale);
+        window.drawEditorBackgroundLayer(ctx, imgSource, true);
         ctx.restore();
     }
 
@@ -3446,6 +3466,10 @@ DankModal {
                             window.bakedCanvas.unloadImage(source);
                             window.bakedCanvas.loadImage(source);
                         }
+                        if (window.backgroundCanvas) {
+                            window.backgroundCanvas.unloadImage(source);
+                            window.backgroundCanvas.loadImage(source);
+                        }
                         contrastSampler.requestPaint();
                         offscreenSampler.requestPaint();
                     }
@@ -3732,6 +3756,33 @@ DankModal {
                                     yScale: window.bgFlipV ? -1 : 1
                                 }
                             }
+                        }
+                    }
+
+                    Canvas {
+                        id: backgroundCanvas
+                        anchors.centerIn: parent
+                        scale: window.fitScale / window.editScale
+                        transformOrigin: Item.Center
+                        renderTarget: Canvas.Image
+                        z: 0
+                        visible: window.effectiveBackgroundMode !== "none"
+
+                        width: window.canvasWidth * window.editScale
+                        height: window.canvasHeight * window.editScale
+
+                        layer.enabled: false
+
+                        Component.onCompleted: {
+                            window.backgroundCanvas = backgroundCanvas;
+                        }
+
+                        onImageLoaded: {
+                            backgroundCanvas.requestPaint();
+                        }
+
+                        onPaint: {
+                            window.renderBackgroundCanvas(backgroundCanvas, bgImage);
                         }
                     }
 
