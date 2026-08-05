@@ -987,12 +987,13 @@ DankModal {
             const t = i / STEPS;
             const blur = Math.pow(t, 1.5) * maxBlur;
             const offset = Math.pow(t, 1.5) * maxOffset;
+            const verticalOffset = offset * 0.35;
             const alpha = opacity * Math.pow(1.0 - t, 1.5) * 0.75;
             
             ctx.fillStyle = Qt.rgba(0, 0, 0, alpha);
             
             const sx = x - blur/2;
-            const sy = y - blur/2 + offset;
+            const sy = y - blur/2 + verticalOffset;
             const sw = w + blur;
             const sh = h + blur;
             const sr = r + blur/2;
