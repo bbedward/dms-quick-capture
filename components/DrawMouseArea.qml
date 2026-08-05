@@ -60,10 +60,12 @@ MouseArea {
         }
 
         const absPt = getAbsolutePoint(mx, my);
-        hoveredStrokeIdx = window.findStrokeAt(absPt.x, absPt.y);
         hoveredHandle = window.selectedStroke
             ? window.getSelectedStrokeHandleAt(absPt.x, absPt.y)
             : "none";
+        hoveredStrokeIdx = hoveredHandle !== "none"
+            ? window.strokes.indexOf(window.selectedStroke)
+            : window.findStrokeAt(absPt.x, absPt.y);
     }
 
     function updateCalloutDestinationDrag(stroke, pt) {
@@ -91,7 +93,6 @@ MouseArea {
          if (window.currentTool === "colorpicker") {
              window.hoveredColor = window.sampleCanvasColor(mouse.x, mouse.y);
          };
-        hoveredHandle = window.getHoveredHandle(origX, origY);
 
         const absPt = getAbsolutePoint(mouse.x, mouse.y);
 
@@ -323,7 +324,9 @@ MouseArea {
                     }
                 }
                 if (window.originalPoints.length === 0 || !(mouse.buttons & Qt.LeftButton)) {
-                    hoveredStrokeIdx = window.findStrokeAt(absPt.x, absPt.y);
+                    hoveredStrokeIdx = hoveredHandle !== "none"
+                        ? window.strokes.indexOf(window.selectedStroke)
+                        : window.findStrokeAt(absPt.x, absPt.y);
                 }
                 drawingCanvas.requestPaint();
             } else {

@@ -436,7 +436,6 @@ DankModal {
             window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundDefaultImagePath", window.backgroundImagePath);
         }
         window.refreshBackgroundBlurCache(true);
-        window.requestPaintAll();
     }
 
     function cleanupBackgroundBlurCache(path) {
@@ -527,7 +526,6 @@ DankModal {
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
             window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageDim", enabled);
         }
-        window.requestPaintAll();
     }
 
     function setBackgroundImageBlur(enabled, persist) {
@@ -547,7 +545,6 @@ DankModal {
         if (persist && window.parentWidget && window.parentWidget.pluginService) {
             window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageDimStrength", window.backgroundImageDimStrength);
         }
-        window.requestPaintAll();
     }
 
     readonly property var backgroundPresets: {
@@ -1532,6 +1529,11 @@ DankModal {
     onBackgroundShadowStrengthChanged: window.requestPaintAll()
     onBackgroundGradientAngleChanged: window.requestPaintAll()
     onBackgroundAspectRatioChanged: window.requestPaintAll()
+    onCustomAspectRatioChanged: window.requestPaintAll()
+    onBackgroundAlignmentChanged: window.requestPaintAll()
+    onBackgroundImageDimChanged: window.requestPaintAll()
+    onBackgroundImageDimStrengthChanged: window.requestPaintAll()
+    onEffectiveBackgroundImagePathChanged: window.requestPaintAll()
     onEditScaleChanged: window.requestPaintAll()
 
     function requestPaintAll() {
@@ -3460,8 +3462,7 @@ DankModal {
                             window.activeCanvas.unloadImage(source);
                             window.activeCanvas.loadImage(source);
                         }
-                        // bakedCanvas must also call loadImage so its onImageLoaded fires
-                        // and triggers requestPaint — without this the background is never drawn
+                        // Keep each canvas image cache warm; background rendering lives on backgroundCanvas.
                         if (window.bakedCanvas) {
                             window.bakedCanvas.unloadImage(source);
                             window.bakedCanvas.loadImage(source);
@@ -3535,14 +3536,12 @@ DankModal {
                             window.cancelBackgroundBlurPreparation();
                             backgroundImagePopover.close();
                         }
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundImageBlur: (enabled) => window.setBackgroundImageBlur(enabled, true)
                     onChangeBackgroundImageDim: (enabled) => window.setBackgroundImageDim(enabled, true)
                     onChangeBackgroundSolidColor: (col) => {
                         window.backgroundSolidColor = col;
                         window.hasUserCustomizedBackground = true;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onBackgroundColorPickerRequested: (currentColor) => {
                         moreToolsMenu.close();
@@ -3561,7 +3560,6 @@ DankModal {
                                     }
                                 }
                                 window.hasUserCustomizedBackground = true;
-                                if (window.activeCanvas) window.activeCanvas.requestPaint();
                             };
                             PopoutService.colorPickerModal.show();
                         }
@@ -3573,47 +3571,37 @@ DankModal {
                     onChangeBackgroundGradientStart: (col) => {
                         window.backgroundGradientStart = col;
                         window.hasUserCustomizedBackground = true;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundGradientEnd: (col) => {
                         window.backgroundGradientEnd = col;
                         window.hasUserCustomizedBackground = true;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundGradientAngle: (angle) => {
                         window.backgroundGradientAngle = angle;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundPadding: (pad) => {
                         window.backgroundPadding = pad;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundCornerRadius: (r) => {
                         window.backgroundCornerRadius = r;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundShadowStrength: (s) => {
                         window.backgroundShadowStrength = s;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundAspectRatio: (ratio) => {
                         window.backgroundAspectRatio = ratio;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeCustomAspectRatio: (ratio) => {
                         window.customAspectRatio = ratio;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeBackgroundAlignment: (alignment) => {
                         window.backgroundAlignment = alignment;
-                        window.requestPaintAll();
                     }
                     onAutoColorBalanceRequested: {
                         window.backgroundGradientStart = window.autoBackgroundGradientStart;
                         window.backgroundGradientEnd = window.autoBackgroundGradientEnd;
                         window.backgroundSolidColor = window.autoBackgroundSolidColor;
                         window.hasUserCustomizedBackground = true;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
 
                     onToolSelected: (tool) => {
@@ -4101,7 +4089,6 @@ DankModal {
                     value: window.backgroundPadding
                     onUserValueChanged: (val) => {
                         window.backgroundPadding = val;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
@@ -4114,7 +4101,6 @@ DankModal {
                     value: window.backgroundCornerRadius
                     onUserValueChanged: (val) => {
                         window.backgroundCornerRadius = val;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
@@ -4126,7 +4112,6 @@ DankModal {
                     value: window.backgroundShadowStrength
                     onUserValueChanged: (val) => {
                         window.backgroundShadowStrength = val;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
@@ -4139,7 +4124,6 @@ DankModal {
                     value: window.backgroundGradientAngle
                     onUserValueChanged: (val) => {
                         window.backgroundGradientAngle = val;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
@@ -4166,11 +4150,9 @@ DankModal {
 
                     onChangeBackgroundAspectRatio: (ratio) => {
                         window.backgroundAspectRatio = ratio;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                     onChangeCustomAspectRatio: (ratio) => {
                         window.customAspectRatio = ratio;
-                        if (window.activeCanvas) window.activeCanvas.requestPaint();
                     }
                 }
 
@@ -4179,7 +4161,6 @@ DankModal {
                     backgroundAlignment: window.backgroundAlignment
                     onChangeBackgroundAlignment: (alignment) => {
                         window.backgroundAlignment = alignment;
-                        window.requestPaintAll();
                     }
                 }
 
