@@ -6,6 +6,7 @@ import qs.Modals.Common
 import qs.Services
 import "../../dms-common"
 import "../core/Constants.js" as Constants
+import "../core/Helpers.js" as Helpers
 
 Rectangle {
     id: magnifier
@@ -175,12 +176,7 @@ Rectangle {
                 }
 
                 StyledText {
-                    text: {
-                        var r = Math.round((window.hoveredColor.r || 0) * 255);
-                        var g = Math.round((window.hoveredColor.g || 0) * 255);
-                        var b = Math.round((window.hoveredColor.b || 0) * 255);
-                        return "RGB: " + r + "," + g + "," + b;
-                    }
+                    text: Helpers.formatRgbString(window.hoveredColor)
                     font.pixelSize: 9
                     color: Theme.surfaceVariantText
                 }

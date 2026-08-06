@@ -71,6 +71,18 @@ function rgbToHex(rgb, uppercase) {
     return uppercase ? hex.toUpperCase() : hex.toLowerCase();
 }
 
+/**
+ * Formats a normalized RGB color for display.
+ * @param {object} rgb - RGB color object with channels between 0 and 1.
+ * @returns {string} Text in the form "RGB: r,g,b".
+ */
+function formatRgbString(rgb) {
+    const r = Math.round((rgb.r || 0) * 255);
+    const g = Math.round((rgb.g || 0) * 255);
+    const b = Math.round((rgb.b || 0) * 255);
+    return "RGB: " + r + "," + g + "," + b;
+}
+
 // ─── 2. UI / formatting ───────────────────────────────────────────────────────
 
 /**
