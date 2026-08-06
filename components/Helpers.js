@@ -677,6 +677,35 @@ function getStrokeHandleAt(mx, my, stroke) {
     if (!stroke || !stroke.points || stroke.points.length === 0) return "none";
     const threshold = Constants.selectionHandleSize + 4;
 
+    function isNearSquarePoint(pt) {
+        return Math.abs(mx - pt.x) <= threshold && Math.abs(my - pt.y) <= threshold;
+    }
+
+    function firstNearHandle(handles) {
+        for (let i = 0; i < handles.length; i++) {
+            if (isNearSquarePoint(handles[i].point)) return handles[i].name;
+        }
+        return "none";
+    }
+
+    function distanceToSegmentSq(p0, p1) {
+        const dx = p1.x - p0.x;
+        const dy = p1.y - p0.y;
+        const lenSq = dx * dx + dy * dy;
+        if (lenSq === 0) {
+            const sx = mx - p0.x;
+            const sy = my - p0.y;
+            return sx * sx + sy * sy;
+        }
+        let t = ((mx - p0.x) * dx + (my - p0.y) * dy) / lenSq;
+        t = Math.max(0, Math.min(1, t));
+        const px = p0.x + t * dx;
+        const py = p0.y + t * dy;
+        const sx = mx - px;
+        const sy = my - py;
+        return sx * sx + sy * sy;
+    }
+
     if (stroke.tool === "rect" || stroke.tool === "ellipse" || stroke.tool === "redact" ||
         stroke.tool === "pixelate" || stroke.tool === "spotlight") {
         if (stroke.points.length < 2) return "none";
@@ -689,23 +718,24 @@ function getStrokeHandleAt(mx, my, stroke) {
         const cx = (x1 + x2) / 2;
         const cy = (y1 + y2) / 2;
 
-        if (Math.abs(mx - x1) <= threshold && Math.abs(my - y1) <= threshold) return "tl";
-        if (Math.abs(mx - x2) <= threshold && Math.abs(my - y1) <= threshold) return "tr";
-        if (Math.abs(mx - x1) <= threshold && Math.abs(my - y2) <= threshold) return "bl";
-        if (Math.abs(mx - x2) <= threshold && Math.abs(my - y2) <= threshold) return "br";
-        if (Math.abs(mx - cx) <= threshold && Math.abs(my - y1) <= threshold) return "tc";
-        if (Math.abs(mx - cx) <= threshold && Math.abs(my - y2) <= threshold) return "bc";
-        if (Math.abs(mx - x1) <= threshold && Math.abs(my - cy) <= threshold) return "lc";
-        if (Math.abs(mx - x2) <= threshold && Math.abs(my - cy) <= threshold) return "rc";
-        return "none";
+        return firstNearHandle([
+            { name: "tl", point: { x: x1, y: y1 } },
+            { name: "tr", point: { x: x2, y: y1 } },
+            { name: "bl", point: { x: x1, y: y2 } },
+            { name: "br", point: { x: x2, y: y2 } },
+            { name: "tc", point: { x: cx, y: y1 } },
+            { name: "bc", point: { x: cx, y: y2 } },
+            { name: "lc", point: { x: x1, y: cy } },
+            { name: "rc", point: { x: x2, y: cy } }
+        ]);
     }
 
     if (stroke.tool === "line" || stroke.tool === "arrow" || stroke.tool === "highlighter") {
         if (stroke.points.length < 2) return "none";
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        if (Math.abs(mx - p0.x) <= threshold && Math.abs(my - p0.y) <= threshold) return "start";
-        if (Math.abs(mx - p1.x) <= threshold && Math.abs(my - p1.y) <= threshold) return "end";
+        if (isNearSquarePoint(p0)) return "start";
+        if (isNearSquarePoint(p1)) return "end";
         return "none";
     }
 
@@ -721,24 +751,11 @@ function getStrokeHandleAt(mx, my, stroke) {
                 x: stampPt.x - stroke.width * Constants.stampRadiusMultiplier,
                 y: stampPt.y - stroke.width * Constants.stampRadiusMultiplier
             };
-            if (Math.abs(mx - anchorPt.x) <= threshold && Math.abs(my - anchorPt.y) <= threshold) return "anchor";
-            if (Math.abs(mx - stampHandlePt.x) <= threshold && Math.abs(my - stampHandlePt.y) <= threshold) return "stamp";
+            if (isNearSquarePoint(anchorPt)) return "anchor";
+            if (isNearSquarePoint(stampHandlePt)) return "stamp";
             if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stampBody";
 
-            const lineDx = stampPt.x - anchorPt.x;
-            const lineDy = stampPt.y - anchorPt.y;
-            const lenSq = lineDx * lineDx + lineDy * lineDy;
-            let distLineSq = Infinity;
-            if (lenSq === 0) {
-                distLineSq = (mx - anchorPt.x) * (mx - anchorPt.x) + (my - anchorPt.y) * (my - anchorPt.y);
-            } else {
-                let t = ((mx - anchorPt.x) * lineDx + (my - anchorPt.y) * lineDy) / lenSq;
-                t = Math.max(0, Math.min(1, t));
-                const px = anchorPt.x + t * lineDx;
-                const py = anchorPt.y + t * lineDy;
-                distLineSq = (mx - px) * (mx - px) + (my - py) * (my - py);
-            }
-            if (distLineSq < threshold * threshold) return "stampBody";
+            if (distanceToSegmentSq(anchorPt, stampPt) < threshold * threshold) return "stampBody";
         } else {
             if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stamp";
         }
@@ -755,22 +772,23 @@ function getStrokeHandleAt(mx, my, stroke) {
         const cx = (x1 + x2) / 2;
         const cy = (y1 + y2) / 2;
 
-        if (Math.abs(mx - x1) <= threshold && Math.abs(my - y1) <= threshold) return "src_tl";
-        if (Math.abs(mx - x2) <= threshold && Math.abs(my - y1) <= threshold) return "src_tr";
-        if (Math.abs(mx - x1) <= threshold && Math.abs(my - y2) <= threshold) return "src_bl";
-        if (Math.abs(mx - x2) <= threshold && Math.abs(my - y2) <= threshold) return "src_br";
-        if (Math.abs(mx - cx) <= threshold && Math.abs(my - y1) <= threshold) return "src_tc";
-        if (Math.abs(mx - cx) <= threshold && Math.abs(my - y2) <= threshold) return "src_bc";
-        if (Math.abs(mx - x1) <= threshold && Math.abs(my - cy) <= threshold) return "src_lc";
-        if (Math.abs(mx - x2) <= threshold && Math.abs(my - cy) <= threshold) return "src_rc";
-        return "none";
+        return firstNearHandle([
+            { name: "src_tl", point: { x: x1, y: y1 } },
+            { name: "src_tr", point: { x: x2, y: y1 } },
+            { name: "src_bl", point: { x: x1, y: y2 } },
+            { name: "src_br", point: { x: x2, y: y2 } },
+            { name: "src_tc", point: { x: cx, y: y1 } },
+            { name: "src_bc", point: { x: cx, y: y2 } },
+            { name: "src_lc", point: { x: x1, y: cy } },
+            { name: "src_rc", point: { x: x2, y: cy } }
+        ]);
     }
 
     if (stroke.tool === "text" && stroke.isSpeechBubble && stroke.points.length >= 2) {
         const p0 = stroke.points[0];
         const p1 = stroke.points[1];
-        if (Math.abs(mx - p0.x) <= threshold && Math.abs(my - p0.y) <= threshold) return "start";
-        if (Math.abs(mx - p1.x) <= threshold && Math.abs(my - p1.y) <= threshold) return "end";
+        if (isNearSquarePoint(p0)) return "start";
+        if (isNearSquarePoint(p1)) return "end";
         return "none";
     }
 
