@@ -85,6 +85,11 @@ QtObject {
         }
     }
 
+    function cleanupConvertedFiles(finalPath, originalPng) {
+        cleanupTemp(finalPath);
+        if (originalPng) cleanupTemp(originalPng);
+    }
+
     function sendNotification(title, message, imagePath, openPath) {
         if (!message) return;
         const hasParent = root.parentWidget && root.parentWidget.pluginData;
@@ -234,8 +239,7 @@ QtObject {
                         console.error("[QuickCapture] Save failed:", errDetail);
                         notifyError(I18n.tr("Failed to save screenshot file."), errDetail);
                     }
-                    cleanupTemp(finalPath);
-                    if (originalPng) cleanupTemp(originalPng);
+                    cleanupConvertedFiles(finalPath, originalPng);
                 });
             });
         });
@@ -255,8 +259,7 @@ QtObject {
                         notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
                         root.closeRequested();
                     }
-                    cleanupTemp(finalPath);
-                    if (originalPng) cleanupTemp(originalPng);
+                    cleanupConvertedFiles(finalPath, originalPng);
                 });
             });
         });
@@ -326,16 +329,14 @@ QtObject {
                                 notifyWarning(I18n.tr("Screenshot copied to clipboard but failed to save file: %1").arg(errDetail));
                             }
                             root.closeRequested();
-                            cleanupTemp(finalPath);
-                            if (originalPng) cleanupTemp(originalPng);
+                            cleanupConvertedFiles(finalPath, originalPng);
                         });
                     } else {
                         const errDetail = stdout ? stdout.trim() : ("Clipboard exit code " + exitCode);
                         console.error("[QuickCapture] Copy&Save failed on copy step:", errDetail);
                         notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
                         root.closeRequested();
-                        cleanupTemp(finalPath);
-                        if (originalPng) cleanupTemp(originalPng);
+                        cleanupConvertedFiles(finalPath, originalPng);
                     }
                 });
             });
