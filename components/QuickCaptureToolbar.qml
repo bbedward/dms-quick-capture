@@ -504,149 +504,46 @@ Rectangle {
                 spacing: Theme.spacingM
                 anchors.verticalCenter: parent.verticalCenter
                 
-                // Padding Control
-                Item {
+                BackgroundMetricControl {
                     id: padControl
-                    width: padRow.implicitWidth
-                    height: Constants.btnSize
                     anchors.verticalCenter: parent.verticalCenter
-                    
-                    Row {
-                        id: padRow
-                        spacing: Theme.spacingXS
-                        anchors.verticalCenter: parent.verticalCenter
-                        DankIcon {
-                            name: "padding"
-                            size: Constants.backgroundIconSize
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundPadding + "px"
-                            width: 40; horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: padMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("padding", padControl)
-                        onExited: root.backgroundControlExited("padding")
-                        onWheel: (wheel) => root.backgroundControlWheel("padding", wheel.angleDelta.y)
-                    }
+                    iconName: "padding"
+                    valueText: root.backgroundPadding + "px"
+                    onHovered: root.backgroundControlHovered("padding", controlItem)
+                    onExited: root.backgroundControlExited("padding")
+                    onWheeled: (delta) => root.backgroundControlWheel("padding", delta)
                 }
 
-                // Corner Radius Control
-                Item {
+                BackgroundMetricControl {
                     id: radControl
-                    width: radRow.implicitWidth
-                    height: Constants.btnSize
                     anchors.verticalCenter: parent.verticalCenter
-                    
-                    Row {
-                        id: radRow
-                        spacing: Theme.spacingXS
-                        anchors.verticalCenter: parent.verticalCenter
-                        DankIcon {
-                            name: "rounded_corner"
-                            size: Constants.backgroundIconSize
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundCornerRadius + "px"
-                            width: 40; horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: radMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("radius", radControl)
-                        onExited: root.backgroundControlExited("radius")
-                        onWheel: (wheel) => root.backgroundControlWheel("radius", wheel.angleDelta.y)
-                    }
+                    iconName: "rounded_corner"
+                    valueText: root.backgroundCornerRadius + "px"
+                    onHovered: root.backgroundControlHovered("radius", controlItem)
+                    onExited: root.backgroundControlExited("radius")
+                    onWheeled: (delta) => root.backgroundControlWheel("radius", delta)
                 }
 
-                // Shadow Control
-                Item {
+                BackgroundMetricControl {
                     id: shadowControl
-                    width: shadowRow.implicitWidth
-                    height: Constants.btnSize
                     anchors.verticalCenter: parent.verticalCenter
-                    
-                    Row {
-                        id: shadowRow
-                        spacing: Theme.spacingXS
-                        anchors.verticalCenter: parent.verticalCenter
-                        DankIcon {
-                            name: "blur_on"
-                            size: Constants.backgroundIconSize
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundShadowStrength + "%"
-                            width: 40; horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: shadowMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("shadow", shadowControl)
-                        onExited: root.backgroundControlExited("shadow")
-                        onWheel: (wheel) => root.backgroundControlWheel("shadow", wheel.angleDelta.y)
-                    }
+                    iconName: "blur_on"
+                    valueText: root.backgroundShadowStrength + "%"
+                    onHovered: root.backgroundControlHovered("shadow", controlItem)
+                    onExited: root.backgroundControlExited("shadow")
+                    onWheeled: (delta) => root.backgroundControlWheel("shadow", delta)
                 }
 
-                // Angle Control (Linear and Conic gradients)
-                Item {
+                BackgroundMetricControl {
                     id: angleControl
                     visible: root.backgroundMode === "gradient" || root.backgroundMode === "conic"
-                    width: visible ? angleRow.implicitWidth : 0
-                    height: Constants.btnSize
+                    width: visible ? implicitWidth : 0
                     anchors.verticalCenter: parent.verticalCenter
-                    
-                    Row {
-                        id: angleRow
-                        spacing: Theme.spacingXS
-                        anchors.verticalCenter: parent.verticalCenter
-                        DankIcon {
-                            name: "rotate_right"
-                            size: Constants.backgroundIconSize
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundGradientAngle + "°"
-                            width: 40; horizontalAlignment: Text.AlignRight
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: angleMouseArea
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("angle", angleControl)
-                        onExited: root.backgroundControlExited("angle")
-                        onWheel: (wheel) => root.backgroundControlWheel("angle", wheel.angleDelta.y)
-                    }
+                    iconName: "rotate_right"
+                    valueText: root.backgroundGradientAngle + "°"
+                    onHovered: root.backgroundControlHovered("angle", controlItem)
+                    onExited: root.backgroundControlExited("angle")
+                    onWheeled: (delta) => root.backgroundControlWheel("angle", delta)
                 }
 
                 // Aspect Ratio Control (Hover to reveal preset grid + custom slider popover)
@@ -788,149 +685,50 @@ Rectangle {
                 spacing: Theme.spacingS
                 anchors.horizontalCenter: parent.horizontalCenter
                 
-                // Padding Control
-                Item {
+                BackgroundMetricControl {
                     id: padControlVert
-                    width: Constants.btnSize
-                    height: 40
                     anchors.horizontalCenter: parent.horizontalCenter
-                    
-                    Column {
-                        spacing: Constants.spacingCompact
-                        anchors.centerIn: parent
-                        DankIcon {
-                            name: "padding"
-                            size: Constants.iconSize
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundPadding
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: padMouseAreaVert
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("padding", padControlVert)
-                        onExited: root.backgroundControlExited("padding")
-                        onWheel: (wheel) => root.backgroundControlWheel("padding", wheel.angleDelta.y)
-                    }
+                    compact: true
+                    iconName: "padding"
+                    valueText: root.backgroundPadding
+                    onHovered: root.backgroundControlHovered("padding", controlItem)
+                    onExited: root.backgroundControlExited("padding")
+                    onWheeled: (delta) => root.backgroundControlWheel("padding", delta)
                 }
 
-                // Corner Radius Control
-                Item {
+                BackgroundMetricControl {
                     id: radControlVert
-                    width: Constants.btnSize
-                    height: 40
                     anchors.horizontalCenter: parent.horizontalCenter
-                    
-                    Column {
-                        spacing: Constants.spacingCompact
-                        anchors.centerIn: parent
-                        DankIcon {
-                            name: "rounded_corner"
-                            size: Constants.iconSize
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundCornerRadius
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: radMouseAreaVert
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("radius", radControlVert)
-                        onExited: root.backgroundControlExited("radius")
-                        onWheel: (wheel) => root.backgroundControlWheel("radius", wheel.angleDelta.y)
-                    }
+                    compact: true
+                    iconName: "rounded_corner"
+                    valueText: root.backgroundCornerRadius
+                    onHovered: root.backgroundControlHovered("radius", controlItem)
+                    onExited: root.backgroundControlExited("radius")
+                    onWheeled: (delta) => root.backgroundControlWheel("radius", delta)
                 }
 
-                // Shadow Control
-                Item {
+                BackgroundMetricControl {
                     id: shadowControlVert
-                    width: Constants.btnSize
-                    height: 40
                     anchors.horizontalCenter: parent.horizontalCenter
-                    
-                    Column {
-                        spacing: Constants.spacingCompact
-                        anchors.centerIn: parent
-                        DankIcon {
-                            name: "blur_on"
-                            size: Constants.iconSize
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundShadowStrength
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: shadowMouseAreaVert
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("shadow", shadowControlVert)
-                        onExited: root.backgroundControlExited("shadow")
-                        onWheel: (wheel) => root.backgroundControlWheel("shadow", wheel.angleDelta.y)
-                    }
+                    compact: true
+                    iconName: "blur_on"
+                    valueText: root.backgroundShadowStrength
+                    onHovered: root.backgroundControlHovered("shadow", controlItem)
+                    onExited: root.backgroundControlExited("shadow")
+                    onWheeled: (delta) => root.backgroundControlWheel("shadow", delta)
                 }
 
-                // Angle Control (Linear and Conic gradients)
-                Item {
+                BackgroundMetricControl {
                     id: angleControlVert
                     visible: root.backgroundMode === "gradient" || root.backgroundMode === "conic"
-                    width: Constants.btnSize
-                    height: visible ? 40 : 0
+                    height: visible ? implicitHeight : 0
                     anchors.horizontalCenter: parent.horizontalCenter
-                    
-                    Column {
-                        spacing: Constants.spacingCompact
-                        anchors.centerIn: parent
-                        DankIcon {
-                            name: "rotate_right"
-                            size: Constants.iconSize
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                        StyledText {
-                            text: root.backgroundGradientAngle
-                            width: parent.width
-                            horizontalAlignment: Text.AlignHCenter
-                            font.pixelSize: Theme.fontSizeSmall
-                            color: Theme.surfaceText
-                            anchors.horizontalCenter: parent.horizontalCenter
-                        }
-                    }
-                    MouseArea {
-                        id: angleMouseAreaVert
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onEntered: root.backgroundControlHovered("angle", angleControlVert)
-                        onExited: root.backgroundControlExited("angle")
-                        onWheel: (wheel) => root.backgroundControlWheel("angle", wheel.angleDelta.y)
-                    }
+                    compact: true
+                    iconName: "rotate_right"
+                    valueText: root.backgroundGradientAngle
+                    onHovered: root.backgroundControlHovered("angle", controlItem)
+                    onExited: root.backgroundControlExited("angle")
+                    onWheeled: (delta) => root.backgroundControlWheel("angle", delta)
                 }
 
                 // Custom Aspect Ratio Control
