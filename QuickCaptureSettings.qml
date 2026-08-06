@@ -1,6 +1,7 @@
 import "./dms-common"
 import "components/core/Constants.js" as Constants
 import "components/core/Helpers.js" as Helpers
+import "components/misc"
 import QtQuick
 import Quickshell
 import qs.Common
@@ -303,143 +304,19 @@ PluginSettings {
             color: Theme.surfaceText
         }
 
-        Row {
-            width: parent.width
-            spacing: Theme.spacingS
-
-            // 1. 8 Palette Slots
-            Row {
-                spacing: Theme.spacingXS
-                anchors.verticalCenter: parent.verticalCenter
-
-                Repeater {
-                    model: 8
-                    delegate: Rectangle {
-                        width: 28
-                        height: 28
-                        radius: 14
-                        color: {
-                            if (index === 0) return toolbar_primary.resolvedColor;
-                            if (index === 1) return c0.resolvedColor;
-                            if (index === 2) return c1.resolvedColor;
-                            if (index === 3) return c2.resolvedColor;
-                            if (index === 4) return c3.resolvedColor;
-                            if (index === 5) return c4.resolvedColor;
-                            if (index === 6) return c5.resolvedColor;
-                            if (index === 7) return c6.resolvedColor;
-                            return "transparent";
-                        }
-
-                        property bool isSelected: bcsRoot.value === "slot_" + (index + 1)
-                        border.width: isSelected ? 2 : 1
-                        border.color: isSelected ? Theme.primary : Theme.withAlpha(Theme.outline, 0.4)
-                        scale: hoverArea.containsMouse ? 1.1 : 1.0
-                        Behavior on scale { NumberAnimation { duration: 100 } }
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: "check"
-                            size: 14
-                            color: Helpers.getContrastingColorFromRgb(parent.color)
-                            visible: parent.isSelected
-                        }
-
-                        MouseArea {
-                            id: hoverArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                bcsRoot.value = "slot_" + (index + 1);
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Small separator bar
-            Rectangle {
-                width: 1
-                height: 20
-                color: Theme.withAlpha(Theme.outline, 0.2)
-                anchors.verticalCenter: parent.verticalCenter
-            }
-
-            // 2. Custom Option and Bar Row
-            Row {
-                spacing: Theme.spacingS
-                anchors.verticalCenter: parent.verticalCenter
-
-                // Custom button swatch
-                Rectangle {
-                    id: customSwatch
-                    width: 28
-                    height: 28
-                    radius: 14
-                    property bool isSelected: !bcsRoot.value.startsWith("slot_")
-                    color: isSelected ? captureConfig.resolveColor(bcsRoot.value) : Theme.surfaceContainerHighest
-                    border.width: isSelected ? 2 : 1
-                    border.color: isSelected ? Theme.primary : Theme.withAlpha(Theme.outline, 0.4)
-                    scale: customHover.containsMouse ? 1.1 : 1.0
-                    Behavior on scale { NumberAnimation { duration: 100 } }
-
-                    DankIcon {
-                        anchors.centerIn: parent
-                        name: "palette"
-                        size: 14
-                        color: {
-                            if (!parent.isSelected) return Theme.surfaceText;
-                            return Helpers.getContrastingColorFromRgb(parent.color);
-                        }
-                    }
-
-                    MouseArea {
-                        id: customHover
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (!parent.isSelected) {
-                                bcsRoot.value = "primary";
-                            }
-                        }
-                    }
-                }
-
-                // Dynamic Custom Color Bar directly to the right
-                Rectangle {
-                    id: customColorBar
-                    width: 110
-                    height: 28
-                    radius: 14
-                    visible: !bcsRoot.value.startsWith("slot_")
-                    color: captureConfig.resolveColor(bcsRoot.value)
-                    border.color: Theme.withAlpha(Theme.surfaceText, 0.15)
-                    border.width: 1
-
-                    StyledText {
-                        anchors.centerIn: parent
-                        text: bcsRoot.value === "primary" ? I18n.tr("PRIMARY") : bcsRoot.value.toString().toUpperCase()
-                        font.pixelSize: Theme.fontSizeSmall - 1
-                        font.weight: Font.Bold
-                        isMonospace: true
-                        color: Helpers.getContrastingColorFromRgb(parent.color)
-                    }
-
-                    MouseArea {
-                        anchors.fill: parent
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
-                                PopoutService.colorPickerModal.selectedColor = captureConfig.resolveColor(bcsRoot.value);
-                                PopoutService.colorPickerModal.pickerTitle = bcsRoot.label;
-                                PopoutService.colorPickerModal.onColorSelectedCallback = function (selectedColor) {
-                                    bcsRoot.value = selectedColor.toString();
-                                };
-                                PopoutService.colorPickerModal.show();
-                            }
-                        }
-                    }
+        ColorPalettePicker {
+            slotColors: [toolbar_primary.resolvedColor, c0.resolvedColor, c1.resolvedColor,
+                c2.resolvedColor, c3.resolvedColor, c4.resolvedColor, c5.resolvedColor, c6.resolvedColor]
+            value: bcsRoot.value
+            customColor: captureConfig.resolveColor(bcsRoot.value)
+            customLabel: bcsRoot.value === "primary" ? I18n.tr("PRIMARY") : bcsRoot.value.toString().toUpperCase()
+            onValueSelected: selectedValue => bcsRoot.value = selectedValue
+            onCustomRequested: {
+                if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
+                    PopoutService.colorPickerModal.selectedColor = captureConfig.resolveColor(bcsRoot.value);
+                    PopoutService.colorPickerModal.pickerTitle = bcsRoot.label;
+                    PopoutService.colorPickerModal.onColorSelectedCallback = selectedColor => bcsRoot.value = selectedColor.toString();
+                    PopoutService.colorPickerModal.show();
                 }
             }
         }
@@ -3030,150 +2907,27 @@ PluginSettings {
                         color: Theme.surfaceText
                     }
 
-                    // Row containing 8 Slots + Separator + Custom Swatch & Optional Color Bar
-                    Row {
-                        width: parent.width
-                        spacing: Theme.spacingS
-
-                        // 1. 8 Slots
-                        Row {
-                            spacing: Theme.spacingXS
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Repeater {
-                                model: 8
-                                delegate: Rectangle {
-                                    width: 28
-                                    height: 28
-                                    radius: 14
-                                    color: {
-                                        if (index === 0) return toolbar_primary.resolvedColor;
-                                        if (index === 1) return c0.resolvedColor;
-                                        if (index === 2) return c1.resolvedColor;
-                                        if (index === 3) return c2.resolvedColor;
-                                        if (index === 4) return c3.resolvedColor;
-                                        if (index === 5) return c4.resolvedColor;
-                                        if (index === 6) return c5.resolvedColor;
-                                        if (index === 7) return c6.resolvedColor;
-                                        return "transparent";
-                                    }
-
-                                    property bool isSelected: presetColorSetting.value === "slot_" + (index + 1)
-                                    border.width: isSelected ? 2 : 1
-                                    border.color: isSelected ? Theme.primary : Theme.withAlpha(Theme.outline, 0.4)
-                                    scale: hoverArea.containsMouse ? 1.1 : 1.0
-                                    Behavior on scale { NumberAnimation { duration: 100 } }
-
-                                    DankIcon {
-                                        anchors.centerIn: parent
-                                        name: "check"
-                                        size: 14
-                                        color: Helpers.getContrastingColorFromRgb(parent.color)
-                                        visible: parent.isSelected
-                                    }
-
-                                    MouseArea {
-                                        id: hoverArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        cursorShape: Qt.PointingHandCursor
-                                        onClicked: {
-                                            presetColorSetting.value = "slot_" + (index + 1);
-                                            radialMenuCard.activePresetColors[presetIndex] = presetColorSetting.value;
-                                            radialMenuCard.activePresetColors = [...radialMenuCard.activePresetColors];
-                                        }
-                                    }
-                                }
-                            }
+                    ColorPalettePicker {
+                        slotColors: [toolbar_primary.resolvedColor, c0.resolvedColor, c1.resolvedColor,
+                            c2.resolvedColor, c3.resolvedColor, c4.resolvedColor, c5.resolvedColor, c6.resolvedColor]
+                        value: presetColorSetting.value
+                        customColor: captureConfig.resolveColor(presetColorSetting.value)
+                        customLabel: presetColorSetting.value === "primary" ? I18n.tr("PRIMARY") : presetColorSetting.value.toString().toUpperCase()
+                        onValueSelected: selectedValue => {
+                            presetColorSetting.value = selectedValue;
+                            radialMenuCard.activePresetColors[presetIndex] = selectedValue;
+                            radialMenuCard.activePresetColors = [...radialMenuCard.activePresetColors];
                         }
-
-                        // Small separator bar
-                        Rectangle {
-                            width: 1
-                            height: 20
-                            color: Theme.withAlpha(Theme.outline, 0.2)
-                            anchors.verticalCenter: parent.verticalCenter
-                        }
-
-                        // 2. Custom Option and Bar Row
-                        Row {
-                            spacing: Theme.spacingS
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            // Custom button swatch
-                            Rectangle {
-                                id: customSwatch
-                                width: 28
-                                height: 28
-                                radius: 14
-                                property bool isSelected: !presetColorSetting.value.startsWith("slot_")
-                                color: isSelected ? captureConfig.resolveColor(presetColorSetting.value) : Theme.surfaceContainerHighest
-                                border.width: isSelected ? 2 : 1
-                                border.color: isSelected ? Theme.primary : Theme.withAlpha(Theme.outline, 0.4)
-                                scale: customHover.containsMouse ? 1.1 : 1.0
-                                Behavior on scale { NumberAnimation { duration: 100 } }
-
-                                DankIcon {
-                                    anchors.centerIn: parent
-                                    name: "palette"
-                                    size: 14
-                                    color: {
-                                        if (!parent.isSelected) return Theme.surfaceText;
-                                        return Helpers.getContrastingColorFromRgb(parent.color);
-                                    }
-                                }
-
-                                MouseArea {
-                                    id: customHover
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (!parent.isSelected) {
-                                            presetColorSetting.value = "primary";
-                                            radialMenuCard.activePresetColors[presetIndex] = presetColorSetting.value;
-                                            radialMenuCard.activePresetColors = [...radialMenuCard.activePresetColors];
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Dynamic Custom Color Bar directly to the right
-                            Rectangle {
-                                id: customColorBar
-                                width: 110
-                                height: 28
-                                radius: 14
-                                visible: !presetColorSetting.value.startsWith("slot_")
-                                color: captureConfig.resolveColor(presetColorSetting.value)
-                                border.color: Theme.withAlpha(Theme.surfaceText, 0.15)
-                                border.width: 1
-
-                                StyledText {
-                                    anchors.centerIn: parent
-                                    text: presetColorSetting.value === "primary" ? I18n.tr("PRIMARY") : presetColorSetting.value.toString().toUpperCase()
-                                    font.pixelSize: Theme.fontSizeSmall - 1
-                                    font.weight: Font.Bold
-                                    isMonospace: true
-                                    color: Helpers.getContrastingColorFromRgb(parent.color)
-                                }
-
-                                MouseArea {
-                                    anchors.fill: parent
-                                    cursorShape: Qt.PointingHandCursor
-                                    onClicked: {
-                                        if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
-                                            PopoutService.colorPickerModal.selectedColor = captureConfig.resolveColor(presetColorSetting.value);
-                                            PopoutService.colorPickerModal.pickerTitle = I18n.tr("Preset Color");
-                                            PopoutService.colorPickerModal.onColorSelectedCallback = function (selectedColor) {
-                                                presetColorSetting.value = selectedColor.toString();
-                                                radialMenuCard.activePresetColors[presetIndex] = presetColorSetting.value;
-                                                radialMenuCard.activePresetColors = [...radialMenuCard.activePresetColors];
-                                            };
-                                            PopoutService.colorPickerModal.show();
-                                        }
-                                    }
-                                }
+                        onCustomRequested: {
+                            if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
+                                PopoutService.colorPickerModal.selectedColor = captureConfig.resolveColor(presetColorSetting.value);
+                                PopoutService.colorPickerModal.pickerTitle = I18n.tr("Preset Color");
+                                PopoutService.colorPickerModal.onColorSelectedCallback = selectedColor => {
+                                    presetColorSetting.value = selectedColor.toString();
+                                    radialMenuCard.activePresetColors[presetIndex] = presetColorSetting.value;
+                                    radialMenuCard.activePresetColors = [...radialMenuCard.activePresetColors];
+                                };
+                                PopoutService.colorPickerModal.show();
                             }
                         }
                     }
