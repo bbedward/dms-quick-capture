@@ -286,6 +286,20 @@ DankModal {
         window.applyToolIntensity(window.currentTool, window.sessionToolIntensity(window.currentTool));
     }
 
+    function commitStrokeBeforeToolChange() {
+        const stroke = window.currentStroke;
+        if (!stroke || stroke.tool === "text" || stroke.tool === "callout") return null;
+
+        const isStamp = stroke.tool === "stamp";
+        if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) return null;
+
+        const dragStart = stroke.points[stroke.points.length - 1];
+        if (isStamp) window.stampCounter++;
+        window.pushStroke(stroke);
+        window.currentStroke = null;
+        return dragStart;
+    }
+
     function handleCurrentToolChanged() {
         if (window.currentTool !== "background") {
             Qt.callLater(window.closeBackgroundPopovers);
@@ -295,6 +309,10 @@ DankModal {
         }
         if (window.currentTool !== "text" && window.isTyping) {
             window.commitTypingText();
+        }
+        let toolChangeDragStart = null;
+        if (window.currentStroke && window.currentStroke.tool !== window.currentTool) {
+            toolChangeDragStart = window.commitStrokeBeforeToolChange();
         }
         if (window.currentTool !== "crop" && window.currentTool !== "background" && window.currentTool !== "select" && window.currentTool !== "colorpicker") {
             window.lastActiveTool = window.currentTool;
@@ -312,6 +330,13 @@ DankModal {
         }
         if (window.currentTool === "select") {
             window.enterSelectTool();
+            window.activeHandle = "none";
+            if (toolChangeDragStart && window.selectedStroke) {
+                window.originalPoints = window.copyStrokePoints(window.selectedStroke.points);
+                window.pressCoords = Qt.point(toolChangeDragStart.x, toolChangeDragStart.y);
+            } else {
+                window.originalPoints = [];
+            }
         }
         window.requestPaintAll();
     }
@@ -2705,6 +2730,12 @@ DankModal {
 
     function handleStrokeClipboardShortcut(event, token, hasCtrl) {
         if (token === "C" && !hasCtrl) {
+            if (window.pastePreviewActive) {
+                // Place the current preview and immediately prepare the next duplicate.
+                window.performPasteAction();
+                window.beginPastePreview();
+                return window.acceptKeyEvent(event);
+            }
             if (window.currentTool !== "select" && window.strokes.length > 0) {
                 window.currentTool = "select";
             }

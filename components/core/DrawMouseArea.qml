@@ -89,6 +89,7 @@ MouseArea {
              hoveredStrokeIdx = -1;
              hoveredHandle = "none";
              window.activeCanvas.requestPaint();
+             return;
          }
          if (window.currentTool === "colorpicker") {
              window.hoveredColor = window.sampleCanvasColor(mouse.x, mouse.y);
