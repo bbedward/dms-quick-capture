@@ -246,10 +246,11 @@ function drawSpotlightOverlay(ctx, spotlights, config) {
         if (s.points.length >= 2) {
             const p0 = s.points[0];
             const p1 = s.points[s.points.length - 1];
-            const rx = Math.min(p0.x, p1.x);
-            const ry = Math.min(p0.y, p1.y);
-            const rw = Math.abs(p1.x - p0.x);
-            const rh = Math.abs(p1.y - p0.y);
+            const bounds = Helpers.getRectBounds(p0, p1);
+            const rx = bounds.x1;
+            const ry = bounds.y1;
+            const rw = bounds.x2 - bounds.x1;
+            const rh = bounds.y2 - bounds.y1;
 
             if (rw > 0 && rh > 0) {
                 const radius = config.roundRect ? Math.min(config.cornerRadius, Math.min(rw, rh) / 2) : 0;
@@ -453,10 +454,11 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         ctx.lineJoin = "round";
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        const rx = Math.min(p0.x, p1.x);
-        const ry = Math.min(p0.y, p1.y);
-        const rw = Math.abs(p1.x - p0.x);
-        const rh = Math.abs(p1.y - p0.y);
+        const bounds = Helpers.getRectBounds(p0, p1);
+        const rx = bounds.x1;
+        const ry = bounds.y1;
+        const rw = bounds.x2 - bounds.x1;
+        const rh = bounds.y2 - bounds.y1;
         const baseRadius = config.roundRect ? (Theme.cornerRadius + (stroke.width / 2)) : 0;
         const radius = Math.min(baseRadius, Math.min(rw, rh) / 2);
 
@@ -480,10 +482,11 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         ctx.lineJoin = "round";
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        const rx = Math.min(p0.x, p1.x);
-        const ry = Math.min(p0.y, p1.y);
-        const rw = Math.abs(p1.x - p0.x);
-        const rh = Math.abs(p1.y - p0.y);
+        const bounds = Helpers.getRectBounds(p0, p1);
+        const rx = bounds.x1;
+        const ry = bounds.y1;
+        const rw = bounds.x2 - bounds.x1;
+        const rh = bounds.y2 - bounds.y1;
 
         if (rw > 0 && rh > 0) {
             ctx.save();
@@ -580,10 +583,11 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
     } else if (stroke.tool === "redact") {
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        const rx = Math.floor(Math.min(p0.x, p1.x));
-        const ry = Math.floor(Math.min(p0.y, p1.y));
-        const rw = Math.floor(Math.abs(p1.x - p0.x));
-        const rh = Math.floor(Math.abs(p1.y - p0.y));
+        const bounds = Helpers.getRectBounds(p0, p1);
+        const rx = Math.floor(bounds.x1);
+        const ry = Math.floor(bounds.y1);
+        const rw = Math.floor(bounds.x2 - bounds.x1);
+        const rh = Math.floor(bounds.y2 - bounds.y1);
         const shape = stroke.redactShape || "rect";
         const mode = stroke.redactMode || "solid";
 
@@ -649,10 +653,11 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         if (stroke.points.length >= 2) {
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            const rx = Math.floor(Math.min(p0.x, p1.x));
-            const ry = Math.floor(Math.min(p0.y, p1.y));
-            const rw = Math.floor(Math.abs(p1.x - p0.x));
-            const rh = Math.floor(Math.abs(p1.y - p0.y));
+            const bounds = Helpers.getRectBounds(p0, p1);
+            const rx = Math.floor(bounds.x1);
+            const ry = Math.floor(bounds.y1);
+            const rw = Math.floor(bounds.x2 - bounds.x1);
+            const rh = Math.floor(bounds.y2 - bounds.y1);
 
             if (rw > 2 && rh > 2) {
                 ctx.save();
