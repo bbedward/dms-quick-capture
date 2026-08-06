@@ -190,7 +190,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             // Tools
             Row {
@@ -222,7 +222,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             // Colors
             ColorPaletteGrid {
@@ -263,7 +263,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             // Thickness Section
             Row {
@@ -293,7 +293,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             // History Actions (Undo & Redo)
             Row {
@@ -302,7 +302,7 @@ Rectangle {
                 DankActionButton { iconName: "redo"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; enabled: root.canRedo; opacity: enabled ? 1.0 : 0.4; tooltipText: I18n.tr("Redo (Ctrl+Y / Ctrl+Shift+Z)"); onClicked: root.redoRequested() }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             // Export Actions
             Row {
@@ -337,7 +337,7 @@ Rectangle {
                 DankActionButton { iconName: "done_all"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Copy & Save (Enter)"; iconColor: Theme.primary; onClicked: root.copyAndSaveRequested() }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             DankActionButton { iconName: "close"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; iconColor: Theme.error; tooltipText: I18n.tr("Discard & Close (Esc)"); anchors.verticalCenter: parent.verticalCenter; onClicked: root.closeRequested() }
         }
@@ -373,7 +373,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter }
+            ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
 
             Grid {
                 columns: 1; spacing: Theme.spacingXS; anchors.horizontalCenter: parent.horizontalCenter
@@ -404,7 +404,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter }
+            ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
 
             ColorPaletteGrid {
                 activeColor: root.currentColor
@@ -463,7 +463,7 @@ Rectangle {
                 onClicked: root.toolSelected("back")
             }
             
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
             
             // Presets Control (Bookmarks)
             Item {
@@ -490,7 +490,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter }
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
             BackgroundModeSelectors {
                 backgroundMode: root.backgroundMode
@@ -569,10 +569,11 @@ Rectangle {
                 }
             }
             
-            Rectangle { 
+            ToolbarSeparator {
                 opacity: root.backgroundMode !== "none" ? 1 : 0
                 enabled: root.backgroundMode !== "none"
-                width: Constants.separatorThickness; height: Constants.separatorLength; color: Theme.withAlpha(Theme.outline, 0.2); anchors.verticalCenter: parent.verticalCenter 
+                vertical: true
+                anchors.verticalCenter: parent.verticalCenter
             }
             
             // Colors (Solid or Gradient)
@@ -642,7 +643,7 @@ Rectangle {
                 onClicked: root.toolSelected("back")
             }
             
-            Rectangle { width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter }
+            ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
             
             // Presets Control (Bookmarks)
             Item {
@@ -669,7 +670,7 @@ Rectangle {
                 }
             }
 
-            Rectangle { width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter }
+            ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
 
             BackgroundModeSelectors {
                 backgroundMode: root.backgroundMode
@@ -678,7 +679,7 @@ Rectangle {
                 anchors.horizontalCenter: parent.horizontalCenter
             }
             
-            Rectangle { width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter }
+            ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
             
             // Sliders (Hover to reveal popover)
             Column {
@@ -754,10 +755,10 @@ Rectangle {
                 }
             }
             
-            Rectangle { 
+            ToolbarSeparator {
                 opacity: root.backgroundMode !== "none" ? 1 : 0
                 enabled: root.backgroundMode !== "none"
-                width: Constants.separatorLength; height: Constants.separatorThickness; color: Theme.withAlpha(Theme.outline, 0.2); anchors.horizontalCenter: parent.horizontalCenter 
+                anchors.horizontalCenter: parent.horizontalCenter
             }
             
             // Colors (Solid or Gradient)
