@@ -87,6 +87,16 @@ DankModal {
         }
     }
 
+    function parseJsonArrayValue(rawValue, key) {
+        try {
+            const parsed = JSON.parse(rawValue);
+            return Array.isArray(parsed) ? parsed : undefined;
+        } catch (e) {
+            console.error(`Failed to parse ${key}:`, e);
+            return undefined;
+        }
+    }
+
     function refreshStrokeReference(stroke) {
         const idx = window.strokes.indexOf(stroke);
         if (idx !== -1) {
@@ -3066,20 +3076,12 @@ DankModal {
                 window.autoBackgroundSolidColor = data.autoBackgroundSolidColor;
             }
             if (data.user_background_presets) {
-                try {
-                    const parsed = JSON.parse(data.user_background_presets);
-                    if (Array.isArray(parsed)) window.customBackgroundPresets = parsed;
-                } catch (e) {
-                    console.error("Failed to parse user_background_presets:", e);
-                }
+                const parsed = window.parseJsonArrayValue(data.user_background_presets, "user_background_presets");
+                if (parsed !== undefined) window.customBackgroundPresets = parsed;
             }
             if (data.hidden_background_presets) {
-                try {
-                    const parsed = JSON.parse(data.hidden_background_presets);
-                    if (Array.isArray(parsed)) window.hiddenPresetIds = parsed;
-                } catch (e) {
-                    console.error("Failed to parse hidden_background_presets:", e);
-                }
+                const parsed = window.parseJsonArrayValue(data.hidden_background_presets, "hidden_background_presets");
+                if (parsed !== undefined) window.hiddenPresetIds = parsed;
             }
             window.repaintActiveCanvas();
             window.restoreState = null;
@@ -3212,13 +3214,9 @@ DankModal {
         const userPresetsRaw = config.pluginData["user_background_presets"];
         if (userPresetsRaw !== undefined) {
             if (userPresetsRaw) {
-                try {
-                    const parsed = JSON.parse(userPresetsRaw);
-                    if (Array.isArray(parsed)) {
-                        window.customBackgroundPresets = parsed;
-                    }
-                } catch (e) {
-                    console.error("Failed to parse user_background_presets:", e);
+                const parsed = window.parseJsonArrayValue(userPresetsRaw, "user_background_presets");
+                if (parsed !== undefined) {
+                    window.customBackgroundPresets = parsed;
                 }
             } else {
                 window.customBackgroundPresets = [];
@@ -3228,13 +3226,9 @@ DankModal {
         const hiddenPresetsRaw = config.pluginData["hidden_background_presets"];
         if (hiddenPresetsRaw !== undefined) {
             if (hiddenPresetsRaw) {
-                try {
-                    const parsed = JSON.parse(hiddenPresetsRaw);
-                    if (Array.isArray(parsed)) {
-                        window.hiddenPresetIds = parsed;
-                    }
-                } catch (e) {
-                    console.error("Failed to parse hidden_background_presets:", e);
+                const parsed = window.parseJsonArrayValue(hiddenPresetsRaw, "hidden_background_presets");
+                if (parsed !== undefined) {
+                    window.hiddenPresetIds = parsed;
                 }
             } else {
                 window.hiddenPresetIds = [];
