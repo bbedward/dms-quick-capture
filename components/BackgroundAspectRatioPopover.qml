@@ -12,6 +12,10 @@ Rectangle {
     property real customRatioMax: 2.50
     property var presets: []
     property bool opened: false
+    property bool allowOpen: true
+    onAllowOpenChanged: {
+        if (!allowOpen) popoverRoot.close();
+    }
 
     signal changeBackgroundAspectRatio(string ratio)
     signal changeCustomAspectRatio(real ratio)
@@ -47,6 +51,7 @@ Rectangle {
     ]
 
     function open() {
+        if (!popoverRoot.allowOpen) return;
         closeTimer.stop();
         popoverRoot.opened = true;
     }

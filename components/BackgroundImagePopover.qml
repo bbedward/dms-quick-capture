@@ -11,6 +11,10 @@ Rectangle {
     property string selectedPath: ""
     property bool loading: false
     property bool opened: false
+    property bool allowOpen: true
+    onAllowOpenChanged: {
+        if (!allowOpen) popoverRoot.close();
+    }
 
     signal imageSelected(string path)
     signal refreshRequested()
@@ -38,6 +42,7 @@ Rectangle {
     }
 
     function open() {
+        if (!popoverRoot.allowOpen) return;
         popoverRoot.opened = true;
     }
 

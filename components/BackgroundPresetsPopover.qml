@@ -9,7 +9,11 @@ Rectangle {
 
     property var presetsList: []
     property bool opened: false
+    property bool allowOpen: true
     property bool editMode: false
+    onAllowOpenChanged: {
+        if (!allowOpen) popoverRoot.close();
+    }
 
     signal presetSelected(var preset)
     signal saveCurrentAsPreset()
@@ -44,6 +48,7 @@ Rectangle {
     ]
 
     function open() {
+        if (!popoverRoot.allowOpen) return;
         closeTimer.stop();
         popoverRoot.opened = true;
     }

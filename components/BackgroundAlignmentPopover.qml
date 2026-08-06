@@ -7,6 +7,10 @@ Rectangle {
 
     property string backgroundAlignment: "center"
     property bool opened: false
+    property bool allowOpen: true
+    onAllowOpenChanged: {
+        if (!allowOpen) popoverRoot.close();
+    }
 
     signal changeBackgroundAlignment(string alignment)
 
@@ -49,6 +53,7 @@ Rectangle {
     ]
 
     function open() {
+        if (!popoverRoot.allowOpen) return;
         closeTimer.stop();
         popoverRoot.opened = true;
     }

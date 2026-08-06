@@ -283,6 +283,9 @@ DankModal {
     }
 
     function handleCurrentToolChanged() {
+        if (window.currentTool !== "background") {
+            Qt.callLater(window.closeBackgroundPopovers);
+        }
         if (window.currentTool !== "colorpicker") {
             window.backgroundColorPickingSlot = "none";
         }
@@ -3365,6 +3368,33 @@ DankModal {
         }
     }
 
+    function closeBackgroundPopover(popover) {
+        if (!popover) return;
+        if (typeof popover.stopCloseTimer === "function") {
+            popover.stopCloseTimer();
+        }
+        if (typeof popover.close === "function") {
+            popover.close();
+        }
+    }
+
+    function closeBackgroundPopovers() {
+        const popovers = [
+            backgroundPaddingPopover,
+            backgroundRadiusPopover,
+            backgroundShadowPopover,
+            backgroundAnglePopover,
+            backgroundImageDimPopover,
+            backgroundAspectRatioPopover,
+            backgroundAlignmentPopover,
+            backgroundImagePopover,
+            backgroundPresetsPopover
+        ];
+        for (let i = 0; i < popovers.length; i++) {
+            window.closeBackgroundPopover(popovers[i]);
+        }
+    }
+
     function showBackgroundImagePopover(popover, controlItem, toolbar, contentItem) {
         if (!popover || !controlItem) return;
         if (popover.opened) {
@@ -4047,6 +4077,7 @@ DankModal {
 
                 HoverSliderPopover {
                     id: backgroundPaddingPopover
+                    allowOpen: window.currentTool === "background"
                     isVertical: toolbarCard.isVertical
                     minimum: 10
                     maximum: 150
@@ -4058,6 +4089,7 @@ DankModal {
 
                 HoverSliderPopover {
                     id: backgroundRadiusPopover
+                    allowOpen: window.currentTool === "background"
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 60
@@ -4070,6 +4102,7 @@ DankModal {
 
                 HoverSliderPopover {
                     id: backgroundShadowPopover
+                    allowOpen: window.currentTool === "background"
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 100
@@ -4081,6 +4114,7 @@ DankModal {
 
                 HoverSliderPopover {
                     id: backgroundAnglePopover
+                    allowOpen: window.currentTool === "background"
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 360
@@ -4093,6 +4127,7 @@ DankModal {
 
                 HoverSliderPopover {
                     id: backgroundImageDimPopover
+                    allowOpen: window.currentTool === "background"
                     isVertical: toolbarCard.isVertical
                     minimum: 0
                     maximum: 80
@@ -4102,6 +4137,7 @@ DankModal {
 
                 BackgroundAspectRatioPopover {
                     id: backgroundAspectRatioPopover
+                    allowOpen: window.currentTool === "background"
                     backgroundAspectRatio: window.backgroundAspectRatio
                     customAspectRatio: window.customAspectRatio
                     presets: window.aspectPresets
@@ -4122,6 +4158,7 @@ DankModal {
 
                 BackgroundAlignmentPopover {
                     id: backgroundAlignmentPopover
+                    allowOpen: window.currentTool === "background"
                     backgroundAlignment: window.backgroundAlignment
                     onChangeBackgroundAlignment: (alignment) => {
                         window.backgroundAlignment = alignment;
@@ -4130,6 +4167,7 @@ DankModal {
 
                 BackgroundImagePopover {
                     id: backgroundImagePopover
+                    allowOpen: window.currentTool === "background"
                     images: window.backgroundImages
                     folderPath: window.backgroundImageFolder
                     selectedPath: window.backgroundImagePath
@@ -4143,6 +4181,7 @@ DankModal {
 
                 BackgroundPresetsPopover {
                     id: backgroundPresetsPopover
+                    allowOpen: window.currentTool === "background"
                     presetsList: window.backgroundPresets
                     onPresetSelected: (preset) => window.applyBackgroundPreset(preset)
                     onSaveCurrentAsPreset: window.saveCurrentBackgroundAsPreset()

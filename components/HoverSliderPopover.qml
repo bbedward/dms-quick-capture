@@ -19,7 +19,11 @@ Rectangle {
     property int value: 0
     property int stepSize: 5
     property bool opened: false
+    property bool allowOpen: true
     property bool isVertical: false
+    onAllowOpenChanged: {
+        if (!allowOpen) popoverRoot.close();
+    }
     onValueChanged: slider.value = value
 
     signal userValueChanged(int val)
@@ -49,6 +53,7 @@ Rectangle {
     ]
 
     function open() {
+        if (!popoverRoot.allowOpen) return;
         closeTimer.stop();
         popoverRoot.opened = true;
     }
