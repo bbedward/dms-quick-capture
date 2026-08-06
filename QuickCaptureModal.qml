@@ -203,11 +203,13 @@ DankModal {
         window.selectStrokeForEditing(window.strokes[window.strokes.length - 1], true);
     }
 
+    readonly property var intensityTools: [
+        "pen", "line", "arrow", "rect", "ellipse", "highlighter",
+        "redact", "stamp", "text", "pixelate", "spotlight", "callout"
+    ]
+
     function isIntensityTool(tool) {
-        return tool === "pen" || tool === "line" || tool === "arrow" || tool === "rect"
-            || tool === "ellipse" || tool === "highlighter" || tool === "redact"
-            || tool === "stamp" || tool === "text" || tool === "pixelate"
-            || tool === "spotlight" || tool === "callout";
+        return window.intensityTools.indexOf(tool) !== -1;
     }
 
     function intensitySettingKey(tool) {
@@ -246,10 +248,9 @@ DankModal {
     }
 
     function resetSessionToolIntensities() {
-        const tools = ["pen", "line", "arrow", "rect", "ellipse", "highlighter", "redact", "stamp", "text", "pixelate", "spotlight", "callout"];
         const values = {};
-        for (let i = 0; i < tools.length; i++) {
-            const tool = tools[i];
+        for (let i = 0; i < window.intensityTools.length; i++) {
+            const tool = window.intensityTools[i];
             values[tool] = window.configuredToolIntensity(tool);
         }
         window.sessionToolIntensities = values;
