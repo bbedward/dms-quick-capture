@@ -590,7 +590,7 @@ DankModal {
                 window.strokes[i].width = window.spotlightIntensity;
             }
         }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property var undoneStrokes: []
     readonly property bool canUndo: strokes.length > 0
@@ -674,7 +674,7 @@ DankModal {
         if (currentStroke) {
             currentStroke.width = clamped;
         }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
 
     property color currentColor: Theme.primary
@@ -692,7 +692,7 @@ DankModal {
         if (window.currentStroke) {
             window.currentStroke.color = window.currentColor.toString();
         }
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property int stampCounter: 1
     property int stampIdCounter: 1
@@ -1161,7 +1161,7 @@ DankModal {
         running: window.isTyping
         onTriggered: {
             window.typingCursorVisible = !window.typingCursorVisible;
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+            window.repaintActiveCanvas();
         }
     }
 
@@ -1179,31 +1179,31 @@ DankModal {
     // Rich Text Options
     property bool textBold: pluginData.textBold !== undefined ? pluginData.textBold : false
     onTextBoldChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property bool textItalic: pluginData.textItalic !== undefined ? pluginData.textItalic : false
     onTextItalicChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property bool textUnderline: pluginData.textUnderline !== undefined ? pluginData.textUnderline : false
     onTextUnderlineChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property bool textBackground: pluginData.textBackground !== undefined ? pluginData.textBackground : false
     onTextBackgroundChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property int textCornerRadius: pluginData.textCornerRadius !== undefined ? pluginData.textCornerRadius : 8
     onTextCornerRadiusChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property string textFontFamily: (pluginData.textFontFamily && pluginData.textFontFamily !== "system") ? pluginData.textFontFamily : (Theme.fontFamily || "sans-serif")
     onTextFontFamilyChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property string stampFontFamily: (pluginData.stampFontFamily && pluginData.stampFontFamily !== "system") ? pluginData.stampFontFamily : (Theme.fontFamily || "sans-serif")
     onStampFontFamilyChanged: {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
     property bool stampOuterRing: pluginData.stampOuterRing !== undefined ? pluginData.stampOuterRing : false
     onStampOuterRingChanged: window.requestPaintAll()
@@ -1516,12 +1516,12 @@ DankModal {
 
     function requestPaintAll() {
         if (window.backgroundCanvas) window.backgroundCanvas.requestPaint();
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
         if (window.bakedCanvas) window.bakedCanvas.requestPaint();
     }
 
     function requestAnnotationPaintAll() {
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
         if (window.bakedCanvas) window.bakedCanvas.requestPaint();
     }
 
@@ -2088,7 +2088,7 @@ DankModal {
             window.originalPoints = window.copyStrokePoints(pasted.points);
         }
 
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
 
     function getPresetTool(index) {
@@ -3081,7 +3081,7 @@ DankModal {
                     console.error("Failed to parse hidden_background_presets:", e);
                 }
             }
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+            window.repaintActiveCanvas();
             window.restoreState = null;
             window.restoreSource = "";
         }
@@ -4403,7 +4403,7 @@ DankModal {
         list.push(stroke);
         window.strokes = list;
         window.undoneStrokes = [];
-        if (window.activeCanvas) window.activeCanvas.requestPaint();
+        window.repaintActiveCanvas();
     }
 
     function performUndo() {
@@ -4415,7 +4415,7 @@ DankModal {
             if (window.selectedStroke === popped) {
                 window.deselectStrokeForEditing(true);
             }
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+            window.repaintActiveCanvas();
         }
     }
 
@@ -4430,7 +4430,7 @@ DankModal {
                 window.selectStrokeForEditing(strokeToRedo, !window.selectedStroke);
             }
 
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+            window.repaintActiveCanvas();
         }
     }
 
