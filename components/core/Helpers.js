@@ -463,14 +463,14 @@ function getStrokeBBox(stroke, measureTextBoundsFn) {
  * @returns {number} Stroke index or -1.
  */
 function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
-    // Spotlight covers a large area but behaves as a background effect. Search
-    // regular annotations first, then use Spotlight only as a fallback.
+    // Background effects cover large areas. Search regular annotations first,
+    // then use these effects only as a fallback.
     const searchOrder = [];
     for (let i = strokes.length - 1; i >= 0; i--) {
-        if (strokes[i].tool !== "spotlight") searchOrder.push(i);
+        if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate") searchOrder.push(i);
     }
     for (let i = strokes.length - 1; i >= 0; i--) {
-        if (strokes[i].tool === "spotlight") searchOrder.push(i);
+        if (strokes[i].tool === "spotlight" || strokes[i].tool === "pixelate") searchOrder.push(i);
     }
 
     for (let orderIdx = 0; orderIdx < searchOrder.length; orderIdx++) {
