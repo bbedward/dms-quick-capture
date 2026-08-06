@@ -489,21 +489,22 @@ function getRectBounds(p0, p1) {
 }
 
 /**
- * Calculates the squared distance from a point to a line segment.
+ * Checks whether a point is within a squared distance of a line segment.
  * @param {number} mx - Point X coordinate.
  * @param {number} my - Point Y coordinate.
  * @param {object} p0 - Segment start point {x, y}.
  * @param {object} p1 - Segment end point {x, y}.
- * @returns {number} Squared distance.
+ * @param {number} maxDistanceSq - Maximum allowed squared distance.
+ * @returns {boolean} Whether the point is near the segment.
  */
-function distanceToSegmentSq(mx, my, p0, p1) {
+function isPointNearSegment(mx, my, p0, p1, maxDistanceSq) {
     const dx = p1.x - p0.x;
     const dy = p1.y - p0.y;
     const lenSq = dx * dx + dy * dy;
     if (lenSq === 0) {
         const sx = mx - p0.x;
         const sy = my - p0.y;
-        return sx * sx + sy * sy;
+        return sx * sx + sy * sy < maxDistanceSq;
     }
     let t = ((mx - p0.x) * dx + (my - p0.y) * dy) / lenSq;
     t = Math.max(0, Math.min(1, t));
@@ -511,7 +512,7 @@ function distanceToSegmentSq(mx, my, p0, p1) {
     const py = p0.y + t * dy;
     const sx = mx - px;
     const sy = my - py;
-    return sx * sx + sy * sy;
+    return sx * sx + sy * sy < maxDistanceSq;
 }
 
 function getTextBBox(stroke, measureTextBoundsFn) {
@@ -601,6 +602,7 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
         if (stroke.points.length === 0) continue;
 
         const threshold = Constants.selectionThresholdBase + stroke.width;
+        const thresholdSq = threshold * threshold;
 
         // Fast bounding box reject check
         const bbox = getStrokeBBox(stroke, measureTextBoundsFn);
@@ -614,7 +616,7 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
             for (let j = 0; j < stroke.points.length - 1; j++) {
                 const A = stroke.points[j];
                 const B = stroke.points[j+1];
-                if (distanceToSegmentSq(mx, my, A, B) < threshold * threshold) return i;
+                if (isPointNearSegment(mx, my, A, B, thresholdSq)) return i;
             }
         } else if (stroke.tool === "rect") {
             const p0 = stroke.points[0];
@@ -679,7 +681,7 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
         } else if (stroke.tool === "arrow" || stroke.tool === "line") {
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            if (distanceToSegmentSq(mx, my, p0, p1) < threshold * threshold) return i;
+            if (isPointNearSegment(mx, my, p0, p1, thresholdSq)) return i;
         } else if (stroke.tool === "stamp") {
             const radius = stroke.width * Constants.stampRadiusMultiplier + Constants.stampSelectThresholdOffset;
             if (stroke.hasLeaderLine && stroke.points.length >= 2) {
@@ -691,7 +693,7 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
                 if (distStampSq <= radius * radius) return i;
 
                 // Check leader line segment points[0] -> points[1]
-                if (distanceToSegmentSq(mx, my, p0, p1) < threshold * threshold) return i;
+                if (isPointNearSegment(mx, my, p0, p1, thresholdSq)) return i;
             } else {
                 const p0 = stroke.points[0];
                 const distSq = (mx - p0.x) * (mx - p0.x) + (my - p0.y) * (my - p0.y);
@@ -708,7 +710,7 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
                 const txtPt = stroke.points[1];
                 if (stroke.points.length >= 2) {
                     const pTarget = stroke.points[0];
-                    if (distanceToSegmentSq(mx, my, txtPt, pTarget) < threshold * threshold) return i;
+                    if (isPointNearSegment(mx, my, txtPt, pTarget, thresholdSq)) return i;
                 }
             }
         } else if (stroke.tool === "callout" && stroke.points.length === 4) {
@@ -750,6 +752,7 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
 function getStrokeHandleAt(mx, my, stroke) {
     if (!stroke || !stroke.points || stroke.points.length === 0) return "none";
     const threshold = Constants.selectionHandleSize + 4;
+    const thresholdSq = threshold * threshold;
 
     function isNearSquarePoint(pt) {
         return Math.abs(mx - pt.x) <= threshold && Math.abs(my - pt.y) <= threshold;
@@ -812,7 +815,7 @@ function getStrokeHandleAt(mx, my, stroke) {
             if (isNearSquarePoint(stampHandlePt)) return "stamp";
             if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stampBody";
 
-            if (distanceToSegmentSq(mx, my, anchorPt, stampPt) < threshold * threshold) return "stampBody";
+            if (isPointNearSegment(mx, my, anchorPt, stampPt, thresholdSq)) return "stampBody";
         } else {
             if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stamp";
         }
