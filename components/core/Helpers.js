@@ -464,13 +464,16 @@ function getStrokeBBox(stroke, measureTextBoundsFn) {
  */
 function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
     // Background effects cover large areas. Search regular annotations first,
-    // then use these effects only as a fallback.
+    // then pixelate, and use Spotlight as the lowest-priority fallback.
     const searchOrder = [];
     for (let i = strokes.length - 1; i >= 0; i--) {
         if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate") searchOrder.push(i);
     }
     for (let i = strokes.length - 1; i >= 0; i--) {
-        if (strokes[i].tool === "spotlight" || strokes[i].tool === "pixelate") searchOrder.push(i);
+        if (strokes[i].tool === "pixelate") searchOrder.push(i);
+    }
+    for (let i = strokes.length - 1; i >= 0; i--) {
+        if (strokes[i].tool === "spotlight") searchOrder.push(i);
     }
 
     for (let orderIdx = 0; orderIdx < searchOrder.length; orderIdx++) {
