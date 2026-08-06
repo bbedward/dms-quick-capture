@@ -673,11 +673,7 @@ DankModal {
         if (selectedStroke) {
             selectedStroke.width = clamped;
             window.updateCalloutDestFromWidth(selectedStroke, clamped);
-            const idx = window.strokes.indexOf(selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = selectedStroke;
-                window.strokes = [...window.strokes];
-            }
+            window.refreshStrokeReference(selectedStroke);
         }
         if (currentStroke) {
             currentStroke.width = clamped;
@@ -695,11 +691,7 @@ DankModal {
             if (window.selectedStroke.tool === "redact") {
                 window.selectedStroke.cachedCleanColor = undefined;
             }
-            const idx = window.strokes.indexOf(window.selectedStroke);
-            if (idx !== -1) {
-                window.strokes[idx] = window.selectedStroke;
-                window.strokes = [...window.strokes];
-            }
+            window.refreshStrokeReference(window.selectedStroke);
         }
         if (window.currentStroke) {
             window.currentStroke.color = window.currentColor.toString();
@@ -718,12 +710,8 @@ DankModal {
         if (selectedStroke && selectedStroke.tool === "callout") {
             if (selectedStroke.calloutShape !== calloutShape) {
                 selectedStroke.calloutShape = calloutShape;
-                const idx = window.strokes.indexOf(selectedStroke);
-                if (idx !== -1) {
-                    window.strokes[idx] = selectedStroke;
-                    window.strokes = [...window.strokes];
-                }
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
+                window.refreshStrokeReference(selectedStroke);
+                window.requestActiveCanvasPaint();
             }
         }
     }
@@ -732,12 +720,8 @@ DankModal {
         if (selectedStroke && selectedStroke.tool === "callout") {
             if (selectedStroke.calloutLinkLines !== calloutLinkLines) {
                 selectedStroke.calloutLinkLines = calloutLinkLines;
-                const idx = window.strokes.indexOf(selectedStroke);
-                if (idx !== -1) {
-                    window.strokes[idx] = selectedStroke;
-                    window.strokes = [...window.strokes];
-                }
-                if (window.activeCanvas) window.activeCanvas.requestPaint();
+                window.refreshStrokeReference(selectedStroke);
+                window.requestActiveCanvasPaint();
             }
         }
     }
