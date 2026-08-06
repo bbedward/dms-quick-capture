@@ -45,6 +45,13 @@ function configureTextContext(ctx, stroke, Theme) {
     ctx.textBaseline = "middle";
 }
 
+/**
+ * Returns fill, halo, and accent colors for selection handles.
+ * Fill/halo are inverted based on Theme.primary luminance so handles keep
+ * contrast without sampling the underlying screenshot.
+ * @param {object} Theme - The Theme object.
+ * @returns {object} { fill, halo, accent } colors.
+ */
 function handleColors(Theme) {
     const primary = Theme && Theme.primary ? Theme.primary : null;
     const accent = primary || "#3b82f6";
@@ -263,7 +270,7 @@ function drawHighContrastDashedRect(ctx, x, y, w, h) {
 }
 
 /**
- * Draws white-filled selection handle squares with Theme.primary stroke at each point.
+ * Draws selection handle squares with contrast halo and Theme.primary accent stroke.
  * @param {object} ctx - The Canvas 2D context.
  * @param {Array} points - Array of {x, y} handle positions.
  * @param {number} hh - Half the handle size (for centering).
@@ -285,6 +292,13 @@ function drawHandlePoints(ctx, points, hh, hs, Theme) {
     }
 }
 
+/**
+ * Draws circular endpoint/control-point handles with contrast halo and accent stroke.
+ * @param {object} ctx - The Canvas 2D context.
+ * @param {Array} points - Array of {x, y} control point positions.
+ * @param {number} hh - Handle radius.
+ * @param {object} Theme - The Theme object.
+ */
 function drawControlPoints(ctx, points, hh, Theme) {
     const colors = handleColors(Theme);
     for (let p of points) {
