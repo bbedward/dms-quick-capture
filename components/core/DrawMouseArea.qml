@@ -125,6 +125,15 @@ MouseArea {
         return Qt.point(fixed.x + length * Math.cos(snapped), fixed.y + length * Math.sin(snapped));
     }
 
+    function updateCurrentStrokeEndpoint(point) {
+        const points = window.currentStroke.points;
+        if (points.length > 1) {
+            points[points.length - 1] = point;
+        } else {
+            points.push(point);
+        }
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -369,11 +378,7 @@ MouseArea {
                          finalPt = Helpers.constrainSquarePoint(window.currentStroke.points[0], absPt, Qt);
                      }
                  }
-                 if (window.currentStroke.points.length > 1) {
-                      window.currentStroke.points[window.currentStroke.points.length - 1] = finalPt;
-                  } else {
-                      window.currentStroke.points.push(finalPt);
-                  }
+                 updateCurrentStrokeEndpoint(finalPt);
               } else if (window.currentTool === "rect" || window.currentTool === "ellipse" || window.currentTool === "arrow" || window.currentTool === "line"
                        || window.currentTool === "pixelate" || window.currentTool === "highlighter" || window.currentTool === "spotlight" || window.currentTool === "callout" || window.currentTool === "text") {
                   
@@ -390,11 +395,7 @@ MouseArea {
                      }
                  }
 
-                 if (window.currentStroke.points.length > 1) {
-                      window.currentStroke.points[window.currentStroke.points.length - 1] = finalPt;
-                  } else {
-                      window.currentStroke.points.push(finalPt);
-                  }
+                 updateCurrentStrokeEndpoint(finalPt);
 
                  if (window.currentTool === "text") {
                      const p0 = window.currentStroke.points[0];
