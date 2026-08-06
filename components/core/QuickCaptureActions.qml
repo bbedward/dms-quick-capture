@@ -14,15 +14,18 @@ QtObject {
 
     signal closeRequested()
 
+    function getPluginData() {
+        return (root.parentWidget && root.parentWidget.pluginData) || {};
+    }
+
     function saveDirectory() {
-        const hasParent = root.parentWidget && root.parentWidget.pluginData;
-        return hasParent ? (root.parentWidget.pluginData.saveDirectory || "~/Pictures/Screenshots") : "~/Pictures/Screenshots";
+        return root.getPluginData().saveDirectory || "~/Pictures/Screenshots";
     }
 
     function screenshotFilename() {
-        const hasParent = root.parentWidget && root.parentWidget.pluginData;
-        const pattern = hasParent ? (root.parentWidget.pluginData.saveFilenamePattern || "Screenshot-%Y-%m-%d_%H-%M-%S") : "Screenshot-%Y-%m-%d_%H-%M-%S";
-        const format = hasParent ? (root.parentWidget.pluginData.outputFormat || "png") : "png";
+        const data = root.getPluginData();
+        const pattern = data.saveFilenamePattern || "Screenshot-%Y-%m-%d_%H-%M-%S";
+        const format = data.outputFormat || "png";
 
         const now = new Date();
         const pad = function(num, size) {
@@ -96,8 +99,7 @@ QtObject {
 
     function sendNotification(title, message, imagePath, openPath) {
         if (!message) return;
-        const hasParent = root.parentWidget && root.parentWidget.pluginData;
-        const mode = hasParent ? (root.parentWidget.pluginData.postNotification || "notification") : "notification";
+        const mode = root.getPluginData().postNotification || "notification";
         
         if (mode === "none") return;
 
@@ -140,8 +142,7 @@ QtObject {
             ToastService.showError(fullMsg);
         }
         
-        const hasParent = root.parentWidget && root.parentWidget.pluginData;
-        const mode = hasParent ? (root.parentWidget.pluginData.postNotification || "notification") : "notification";
+        const mode = root.getPluginData().postNotification || "notification";
         if (mode === "notification" || mode === "both") {
             Proc.runCommand("system-notify-error", ["notify-send", "-u", "critical", "-a", "Quick Capture", "-i", "error", I18n.tr("Quick Capture Error"), fullMsg]);
         }
@@ -156,8 +157,8 @@ QtObject {
     }
 
     function convertIfNeeded(pngPath, callback) {
-        const pData = (root.parentWidget && root.parentWidget.pluginData) || {};
-        const format = pData.outputFormat || "png";
+        const data = root.getPluginData();
+        const format = data.outputFormat || "png";
 
         if (format === "png" || format === "ppm") {
             callback(pngPath, "");
@@ -169,11 +170,11 @@ QtObject {
         let args = [];
 
         if (format === "webp") {
-            const quality = String(pData.webpQuality ?? 80);
+            const quality = String(data.webpQuality ?? 80);
             cmd = "magick";
             args = ["convert", pngPath, "-quality", quality, finalOut];
         } else if (format === "jpg") {
-            const quality = String(pData.jpegQuality ?? 90);
+            const quality = String(data.jpegQuality ?? 90);
             cmd = "magick";
             args = ["convert", pngPath, "-quality", quality, finalOut];
         } else if (format === "pdf") {
@@ -348,8 +349,7 @@ QtObject {
     }
 
     function performDoneAction() {
-        const hasParent = root.parentWidget && root.parentWidget.pluginData;
-        const action = hasParent ? (root.parentWidget.pluginData.doneAction || "both") : "both";
+        const action = root.getPluginData().doneAction || "both";
 
         if (action === "clipboard") {
             root.performCopyOnly();
@@ -428,10 +428,7 @@ QtObject {
 
         withExport((pngPath) => {
             convertIfNeeded(pngPath, (finalPath, originalPng) => {
-                var pluginData = {};
-                if (root.parentWidget && root.parentWidget.pluginData) {
-                    pluginData = root.parentWidget.pluginData;
-                }
+                var pluginData = root.getPluginData();
 
                 var tempPaths = [finalPath];
                 if (originalPng) tempPaths.push(originalPng);
