@@ -2491,48 +2491,45 @@ DankModal {
         window.pendingSlotToSave = -1;
     }
 
+    function readCanvasPixel(canvas, x, y) {
+        if (!canvas) return null;
+        try {
+            const ctx = canvas.getContext("2d");
+            if (!ctx) return null;
+            const imgData = ctx.getImageData(x, y, 1, 1);
+            if (!imgData || !imgData.data || imgData.data.length < 4 || imgData.data[3] === 0) return null;
+
+            // Force alpha to 1.0 so the picker always returns an opaque color.
+            return Qt.rgba(imgData.data[0] / 255, imgData.data[1] / 255, imgData.data[2] / 255, 1.0);
+        } catch (e) {
+            return null;
+        }
+    }
+
     function sampleCanvasColor(mouseX, mouseY) {
-        const canvas = window.bakedCanvas || window.activeCanvas;
-        if (!canvas) return window.currentColor;
-        
-        // Clamp and round coordinates to prevent out-of-bounds errors and ensure integer coordinates in device pixels
-        const x = Helpers.clamp(Math.floor(mouseX * window.dpr), 0, Math.floor(canvas.width * window.dpr) - 1);
-        const y = Helpers.clamp(Math.floor(mouseY * window.dpr), 0, Math.floor(canvas.height * window.dpr) - 1);
-        
-        // Performance optimization: skip sampling if the pixel coordinates haven't changed
+        const canvases = [window.activeCanvas, window.bakedCanvas, window.backgroundCanvas];
+        const firstCanvas = canvases.find(canvas => canvas !== null && canvas !== undefined);
+        if (!firstCanvas) return window.currentColor;
+
+        // Clamp and round coordinates to prevent out-of-bounds errors and ensure integer coordinates in device pixels.
+        const x = Helpers.clamp(Math.floor(mouseX * window.dpr), 0, Math.floor(firstCanvas.width * window.dpr) - 1);
+        const y = Helpers.clamp(Math.floor(mouseY * window.dpr), 0, Math.floor(firstCanvas.height * window.dpr) - 1);
+
+        // Performance optimization: skip sampling if the pixel coordinates haven't changed.
         if (window._lastSampledX === x && window._lastSampledY === y) {
             return window._lastSampledColor || window.currentColor;
         }
-        
-        try {
-            const ctx = canvas.getContext("2d");
-            if (!ctx) return window.currentColor;
-            
-            const imgData = ctx.getImageData(x, y, 1, 1);
-            if (imgData && imgData.data && imgData.data.length >= 4) {
-                const r = imgData.data[0];
-                const g = imgData.data[1];
-                const b = imgData.data[2];
-                const a = imgData.data[3];
-                
-                let pickedColor;
-                if (a === 0) {
-                    pickedColor = window.currentColor;
-                } else {
-                    // Force alpha to 1.0 to ensure we always sample an opaque color.
-                    pickedColor = Qt.rgba(r / 255, g / 255, b / 255, 1.0);
-                }
-                
-                window._lastSampledX = x;
-                window._lastSampledY = y;
-                window._lastSampledColor = pickedColor;
-                
-                return pickedColor;
-            }
-        } catch (e) {
-            console.warn("Color picker failed to sample pixel color:", e);
+
+        let pickedColor = null;
+        for (let i = 0; i < canvases.length; i++) {
+            pickedColor = window.readCanvasPixel(canvases[i], x, y);
+            if (pickedColor) break;
         }
-        return window.currentColor;
+
+        window._lastSampledX = x;
+        window._lastSampledY = y;
+        window._lastSampledColor = pickedColor || window.currentColor;
+        return window._lastSampledColor;
     }
 
     function restartTypingCursor() {
