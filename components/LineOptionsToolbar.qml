@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import "Constants.js" as Constants
 import "Helpers.js" as Helpers
 
@@ -83,29 +82,12 @@ Item {
                     { icon: "more_horiz", style: "dotted", tooltip: I18n.tr("Dotted Line") }
                 ]
 
-                delegate: Rectangle {
-                    width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                    radius: Theme.cornerRadius - 2
-                    color: root.currentStyle === modelData.style 
-                        ? Theme.withAlpha(Theme.primary, 0.15) 
-                        : (styleMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                    border.color: root.currentStyle === modelData.style ? Theme.primary : "transparent"
-                    border.width: 1
-
-                    DankIcon {
-                        anchors.centerIn: parent
-                        name: modelData.icon
-                        size: Constants.subToolbarIconSize
-                        color: root.currentStyle === modelData.style ? Theme.primary : Theme.surfaceText
-                    }
-
-                    MouseArea {
-                        id: styleMouse
-                        anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.styleSelected(modelData.style);
-                            root.close();
-                        }
+                delegate: OptionToolbarButton {
+                    iconName: modelData.icon
+                    active: root.currentStyle === modelData.style
+                    onClicked: {
+                        root.styleSelected(modelData.style);
+                        root.close();
                     }
                 }
             }

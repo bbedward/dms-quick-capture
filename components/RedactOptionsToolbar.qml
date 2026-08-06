@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import "Constants.js" as Constants
 import "Helpers.js" as Helpers
 
@@ -86,29 +85,12 @@ Item {
                         { icon: "auto_fix_high", mode: "clean", tooltip: I18n.tr("Clean Text Eraser") }
                     ]
 
-                    delegate: Rectangle {
-                        width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                        radius: Theme.cornerRadius - 2
-                        color: root.currentMode === modelData.mode
-                            ? Theme.withAlpha(Theme.primary, 0.15)
-                            : (modeMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                        border.color: root.currentMode === modelData.mode ? Theme.primary : "transparent"
-                        border.width: 1
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: modelData.icon
-                            size: Constants.subToolbarIconSize
-                            color: root.currentMode === modelData.mode ? Theme.primary : Theme.surfaceText
-                        }
-
-                        MouseArea {
-                            id: modeMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.modeSelected(modelData.mode);
-                                root.close();
-                            }
+                    delegate: OptionToolbarButton {
+                        iconName: modelData.icon
+                        active: root.currentMode === modelData.mode
+                        onClicked: {
+                            root.modeSelected(modelData.mode);
+                            root.close();
                         }
                     }
                 }
@@ -125,29 +107,12 @@ Item {
                         { icon: "circle", shape: "ellipse", tooltip: I18n.tr("Ellipse") }
                     ]
 
-                    delegate: Rectangle {
-                        width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                        radius: Theme.cornerRadius - 2
-                        color: root.currentShape === modelData.shape
-                            ? Theme.withAlpha(Theme.primary, 0.15)
-                            : (shapeMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                        border.color: root.currentShape === modelData.shape ? Theme.primary : "transparent"
-                        border.width: 1
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: modelData.icon
-                            size: Constants.subToolbarIconSize
-                            color: root.currentShape === modelData.shape ? Theme.primary : Theme.surfaceText
-                        }
-
-                        MouseArea {
-                            id: shapeMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.shapeSelected(modelData.shape);
-                                root.close();
-                            }
+                    delegate: OptionToolbarButton {
+                        iconName: modelData.icon
+                        active: root.currentShape === modelData.shape
+                        onClicked: {
+                            root.shapeSelected(modelData.shape);
+                            root.close();
                         }
                     }
                 }

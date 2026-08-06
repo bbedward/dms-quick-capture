@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import "Constants.js" as Constants
 import "Helpers.js" as Helpers
 
@@ -84,32 +83,12 @@ Item {
                     { icon: "tag", format: "roman" }
                 ]
 
-                delegate: Rectangle {
-                    width: Constants.subToolbarBtnSize
-                    height: Constants.subToolbarBtnSize
-                    radius: Theme.cornerRadius - 2
-                    color: root.currentFormat === modelData.format 
-                        ? Theme.withAlpha(Theme.primary, 0.15) 
-                        : (itemMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                    border.color: root.currentFormat === modelData.format ? Theme.primary : "transparent"
-                    border.width: 1
-
-                    DankIcon {
-                        anchors.centerIn: parent
-                        name: modelData.icon
-                        size: Constants.subToolbarIconSize
-                        color: root.currentFormat === modelData.format ? Theme.primary : Theme.surfaceText
-                    }
-
-                    MouseArea {
-                        id: itemMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            root.formatSelected(modelData.format);
-                            root.close();
-                        }
+                delegate: OptionToolbarButton {
+                    iconName: modelData.icon
+                    active: root.currentFormat === modelData.format
+                    onClicked: {
+                        root.formatSelected(modelData.format);
+                        root.close();
                     }
                 }
             }

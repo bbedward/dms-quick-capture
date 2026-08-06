@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import "Constants.js" as Constants
 import "Helpers.js" as Helpers
 
@@ -91,34 +90,14 @@ Item {
                     { icon: "layers", active: root.backgroundActive, tag: "bg" }
                 ]
 
-                delegate: Rectangle {
-                    width: Constants.subToolbarBtnSize
-                    height: Constants.subToolbarBtnSize
-                    radius: Theme.cornerRadius - 2
-                    color: modelData.active 
-                        ? Theme.withAlpha(Theme.primary, 0.15) 
-                        : (itemMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                    border.color: modelData.active ? Theme.primary : "transparent"
-                    border.width: 1
-
-                    DankIcon {
-                        anchors.centerIn: parent
-                        name: modelData.icon
-                        size: Constants.subToolbarIconSize
-                        color: modelData.active ? Theme.primary : Theme.surfaceText
-                    }
-
-                    MouseArea {
-                        id: itemMouse
-                        anchors.fill: parent
-                        hoverEnabled: true
-                        cursorShape: Qt.PointingHandCursor
-                        onClicked: {
-                            if (modelData.tag === "bold") root.boldToggled();
-                            else if (modelData.tag === "italic") root.italicToggled();
-                            else if (modelData.tag === "underline") root.underlineToggled();
-                            else if (modelData.tag === "bg") root.backgroundToggled();
-                        }
+                delegate: OptionToolbarButton {
+                    iconName: modelData.icon
+                    active: modelData.active
+                    onClicked: {
+                        if (modelData.tag === "bold") root.boldToggled();
+                        else if (modelData.tag === "italic") root.italicToggled();
+                        else if (modelData.tag === "underline") root.underlineToggled();
+                        else if (modelData.tag === "bg") root.backgroundToggled();
                     }
                 }
             }

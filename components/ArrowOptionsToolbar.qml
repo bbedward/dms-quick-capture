@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import "Constants.js" as Constants
 import "Helpers.js" as Helpers
 
@@ -88,29 +87,12 @@ Item {
                         { icon: "swap_horiz", style: "double-filled" }
                     ]
 
-                    delegate: Rectangle {
-                        width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                        radius: Theme.cornerRadius - 2
-                        color: root.currentHeadStyle === modelData.style 
-                            ? Theme.withAlpha(Theme.primary, 0.15) 
-                            : (headMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                        border.color: root.currentHeadStyle === modelData.style ? Theme.primary : "transparent"
-                        border.width: 1
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: modelData.icon
-                            size: Constants.subToolbarIconSize
-                            color: root.currentHeadStyle === modelData.style ? Theme.primary : Theme.surfaceText
-                        }
-
-                        MouseArea {
-                            id: headMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.headStyleSelected(modelData.style);
-                                root.close();
-                            }
+                    delegate: OptionToolbarButton {
+                        iconName: modelData.icon
+                        active: root.currentHeadStyle === modelData.style
+                        onClicked: {
+                            root.headStyleSelected(modelData.style);
+                            root.close();
                         }
                     }
                 }
@@ -133,29 +115,12 @@ Item {
                         { icon: "more_horiz", style: "dotted" }
                     ]
 
-                    delegate: Rectangle {
-                        width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                        radius: Theme.cornerRadius - 2
-                        color: root.currentLineStyle === modelData.style 
-                            ? Theme.withAlpha(Theme.primary, 0.15) 
-                            : (lineMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                        border.color: root.currentLineStyle === modelData.style ? Theme.primary : "transparent"
-                        border.width: 1
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: modelData.icon
-                            size: Constants.subToolbarIconSize
-                            color: root.currentLineStyle === modelData.style ? Theme.primary : Theme.surfaceText
-                        }
-
-                        MouseArea {
-                            id: lineMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.lineStyleSelected(modelData.style);
-                                root.close();
-                            }
+                    delegate: OptionToolbarButton {
+                        iconName: modelData.icon
+                        active: root.currentLineStyle === modelData.style
+                        onClicked: {
+                            root.lineStyleSelected(modelData.style);
+                            root.close();
                         }
                     }
                 }

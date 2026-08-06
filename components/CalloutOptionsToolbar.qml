@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Common
-import qs.Widgets
 import "Constants.js" as Constants
 import "Helpers.js" as Helpers
 
@@ -86,29 +85,12 @@ Item {
                         { icon: "crop_square", shape: "rect", tooltip: I18n.tr("Rectangle") },
                         { icon: "circle", shape: "ellipse", tooltip: I18n.tr("Ellipse") }
                     ]
-                    delegate: Rectangle {
-                        width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                        radius: Theme.cornerRadius - 2
-                        color: root.currentShape === modelData.shape
-                            ? Theme.withAlpha(Theme.primary, 0.15)
-                            : (shapeMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                        border.color: root.currentShape === modelData.shape ? Theme.primary : "transparent"
-                        border.width: 1
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: modelData.icon
-                            size: Constants.subToolbarIconSize
-                            color: root.currentShape === modelData.shape ? Theme.primary : Theme.surfaceText
-                        }
-
-                        MouseArea {
-                            id: shapeMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.shapeSelected(modelData.shape);
-                                root.close();
-                            }
+                    delegate: OptionToolbarButton {
+                        iconName: modelData.icon
+                        active: root.currentShape === modelData.shape
+                        onClicked: {
+                            root.shapeSelected(modelData.shape);
+                            root.close();
                         }
                     }
                 }
@@ -123,29 +105,12 @@ Item {
                         { icon: "remove", count: 1, tooltip: I18n.tr("1 Connecting Line") },
                         { icon: "density_medium", count: 2, tooltip: I18n.tr("2 Connecting Lines") }
                     ]
-                    delegate: Rectangle {
-                        width: Constants.subToolbarBtnSize; height: Constants.subToolbarBtnSize
-                        radius: Theme.cornerRadius - 2
-                        color: root.currentLinkLines === modelData.count
-                            ? Theme.withAlpha(Theme.primary, 0.15)
-                            : (linesMouse.containsMouse ? Theme.withAlpha(Theme.surfaceText, 0.08) : "transparent")
-                        border.color: root.currentLinkLines === modelData.count ? Theme.primary : "transparent"
-                        border.width: 1
-
-                        DankIcon {
-                            anchors.centerIn: parent
-                            name: modelData.icon
-                            size: Constants.subToolbarIconSize
-                            color: root.currentLinkLines === modelData.count ? Theme.primary : Theme.surfaceText
-                        }
-
-                        MouseArea {
-                            id: linesMouse
-                            anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
-                            onClicked: {
-                                root.linkLinesSelected(modelData.count);
-                                root.close();
-                            }
+                    delegate: OptionToolbarButton {
+                        iconName: modelData.icon
+                        active: root.currentLinkLines === modelData.count
+                        onClicked: {
+                            root.linkLinesSelected(modelData.count);
+                            root.close();
                         }
                     }
                 }
