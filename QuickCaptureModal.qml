@@ -81,6 +81,12 @@ DankModal {
         }
     }
 
+    function savePluginData(key, value) {
+        if (window.parentWidget && window.parentWidget.pluginService) {
+            window.parentWidget.pluginService.savePluginData("quickCapture", key, value);
+        }
+    }
+
     function refreshStrokeReference(stroke) {
         const idx = window.strokes.indexOf(stroke);
         if (idx !== -1) {
@@ -432,9 +438,7 @@ DankModal {
         window.backgroundImagePath = String(path);
         window.backgroundMode = "image";
         window.hasUserCustomizedBackground = true;
-        if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundDefaultImagePath", window.backgroundImagePath);
-        }
+        if (persist) window.savePluginData("backgroundDefaultImagePath", window.backgroundImagePath);
         window.refreshBackgroundBlurCache(true);
     }
 
@@ -510,9 +514,7 @@ DankModal {
             window.cleanupBackgroundBlurCache(outputPath);
             if (window.backgroundImageBlur) {
                 window.backgroundImageBlur = false;
-                if (window.parentWidget && window.parentWidget.pluginService) {
-                    window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageBlur", false);
-                }
+                window.savePluginData("backgroundImageBlur", false);
                 if (typeof ToastService !== "undefined" && ToastService) {
                     ToastService.showError(I18n.tr("Failed to generate blurred background image"));
                 }
@@ -523,16 +525,12 @@ DankModal {
 
     function setBackgroundImageDim(enabled, persist) {
         window.backgroundImageDim = enabled;
-        if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageDim", enabled);
-        }
+        if (persist) window.savePluginData("backgroundImageDim", enabled);
     }
 
     function setBackgroundImageBlur(enabled, persist) {
         window.backgroundImageBlur = enabled;
-        if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageBlur", enabled);
-        }
+        if (persist) window.savePluginData("backgroundImageBlur", enabled);
         if (enabled && window.backgroundMode === "image" && !window.backgroundBlurredImagePath && !window.backgroundBlurLoading) {
             window.refreshBackgroundBlurCache(true);
         } else {
@@ -542,9 +540,7 @@ DankModal {
 
     function setBackgroundImageDimStrength(value, persist) {
         window.backgroundImageDimStrength = Math.max(0, Math.min(80, Math.round(value)));
-        if (persist && window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "backgroundImageDimStrength", window.backgroundImageDimStrength);
-        }
+        if (persist) window.savePluginData("backgroundImageDimStrength", window.backgroundImageDimStrength);
     }
 
     readonly property var backgroundPresets: {
@@ -1080,9 +1076,7 @@ DankModal {
 
     function setWatermarkEnabled(enabled) {
         window.watermarkEnabled = enabled;
-        if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "enableWatermark", enabled);
-        }
+        window.savePluginData("enableWatermark", enabled);
         window.requestPaintAll();
     }
     property var copiedStroke: null
@@ -2358,8 +2352,8 @@ DankModal {
         
         window.parentWidget.pluginData = pData;
         
-        window.parentWidget.pluginService.savePluginData("quickCapture", "color_palette_preset", "custom");
-        window.parentWidget.pluginService.savePluginData("quickCapture", key, hex);
+        window.savePluginData("color_palette_preset", "custom");
+        window.savePluginData(key, hex);
     }
 
     function switchPresetToCustom(copyCurrent) {
@@ -2371,16 +2365,16 @@ DankModal {
         
         let pData = Object.assign({}, window.parentWidget.pluginData);
         pData["color_palette_preset"] = "custom";
-        window.parentWidget.pluginService.savePluginData("quickCapture", "color_palette_preset", "custom");
+        window.savePluginData("color_palette_preset", "custom");
         
         if (copyCurrent && currentPalette && currentPalette.length >= 8) {
             pData["toolbar_color_primary"] = window.formatHexColor(currentPalette[0]).toUpperCase();
-            window.parentWidget.pluginService.savePluginData("quickCapture", "toolbar_color_primary", pData["toolbar_color_primary"]);
+            window.savePluginData("toolbar_color_primary", pData["toolbar_color_primary"]);
             
             for (let i = 0; i < 7; i++) {
                 const key = `toolbar_color_${i}`;
                 pData[key] = window.formatHexColor(currentPalette[i + 1]).toUpperCase();
-                window.parentWidget.pluginService.savePluginData("quickCapture", key, pData[key]);
+                window.savePluginData(key, pData[key]);
             }
         }
         
@@ -2388,7 +2382,7 @@ DankModal {
             const hex = window.formatHexColor(window.pendingColorToSave).toUpperCase();
             const key = window.pendingSlotToSave === 0 ? "toolbar_color_primary" : "toolbar_color_" + (window.pendingSlotToSave - 1);
             pData[key] = hex;
-            window.parentWidget.pluginService.savePluginData("quickCapture", key, hex);
+            window.savePluginData(key, hex);
             
             window.parentWidget.pluginData = pData;
             window.currentColor = window.pendingColorToSave;
@@ -3144,9 +3138,7 @@ DankModal {
         };
         const newList = [...window.customBackgroundPresets, newPreset];
         window.customBackgroundPresets = newList;
-        if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newList));
-        }
+        window.savePluginData("user_background_presets", JSON.stringify(newList));
     }
 
     function deletePreset(presetId) {
@@ -3155,10 +3147,8 @@ DankModal {
         const newHidden = window.hiddenPresetIds.indexOf(presetId) === -1 ? [...window.hiddenPresetIds, presetId] : window.hiddenPresetIds;
         window.customBackgroundPresets = newCustom;
         window.hiddenPresetIds = newHidden;
-        if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newCustom));
-            window.parentWidget.pluginService.savePluginData("quickCapture", "hidden_background_presets", JSON.stringify(newHidden));
-        }
+        window.savePluginData("user_background_presets", JSON.stringify(newCustom));
+        window.savePluginData("hidden_background_presets", JSON.stringify(newHidden));
     }
 
     function updatePresetWithCurrent(presetId) {
@@ -3194,9 +3184,7 @@ DankModal {
             }
         }
         window.customBackgroundPresets = newList;
-        if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newList));
-        }
+        window.savePluginData("user_background_presets", JSON.stringify(newList));
     }
 
     function renamePreset(presetId, newName) {
@@ -3215,9 +3203,7 @@ DankModal {
             }
         }
         window.customBackgroundPresets = newList;
-        if (window.parentWidget && window.parentWidget.pluginService) {
-            window.parentWidget.pluginService.savePluginData("quickCapture", "user_background_presets", JSON.stringify(newList));
-        }
+        window.savePluginData("user_background_presets", JSON.stringify(newList));
     }
 
     function loadPresetsFromPluginData() {
