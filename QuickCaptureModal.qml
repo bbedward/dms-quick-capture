@@ -2736,6 +2736,9 @@ DankModal {
                 window.beginPastePreview();
                 return window.acceptKeyEvent(event);
             }
+            if (window.currentStroke && window.currentStroke.tool !== "text" && window.currentStroke.tool !== "callout") {
+                window.commitStrokeBeforeToolChange();
+            }
             if (window.currentTool !== "select" && window.strokes.length > 0) {
                 window.currentTool = "select";
             }

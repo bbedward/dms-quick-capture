@@ -813,6 +813,10 @@ MouseArea {
 
     onReleased: (mouse) => {
         shiftLockAxis = "none";
+        if (mouse.button === Qt.LeftButton && window.pastePreviewActive) {
+            window.performPasteAction();
+            return;
+        }
         if (window.currentTool === "select") {
              window.activeHandle = "none";
              window.calloutDestDragging = false;
