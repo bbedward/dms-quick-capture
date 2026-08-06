@@ -870,79 +870,9 @@ MouseArea {
             window.beginNewTextStroke(stroke, textInputDialog);
             return;
         }
-        if (stroke.tool === "callout" && stroke.points.length >= 2) {
-            const p0 = stroke.points[0];
-            const p1 = stroke.points[stroke.points.length - 1];
-            const rw = Math.abs(p1.x - p0.x);
-            const rh = Math.abs(p1.y - p0.y);
-            
-            if (rw > 5 && rh > 5) {
-                const margin = 50;
-                const zoom = stroke.width / 100.0;
-                const dw = rw * zoom;
-                const dh = rh * zoom;
-
-                // Visible canvas bounds in absolute coordinates
-                const visX = window.hasActiveCropSelection ? window.cropRect.x : 0;
-                const visY = window.hasActiveCropSelection ? window.cropRect.y : 0;
-                const visW = window.canvasWidth;
-                const visH = window.canvasHeight;
-
-                // Smart placement: opposite side of source relative to visible area center
-                const srcMinX = Math.min(p0.x, p1.x);
-                const srcMaxX = Math.max(p0.x, p1.x);
-                const srcMinY = Math.min(p0.y, p1.y);
-                const srcMaxY = Math.max(p0.y, p1.y);
-                const srcCx = (srcMinX + srcMaxX) / 2;
-                const srcCy = (srcMinY + srcMaxY) / 2;
-                const visCx = visX + visW / 2;
-                const visCy = visY + visH / 2;
-
-                const dirX = visCx - srcCx >= 0 ? 1 : -1;
-                const dirY = visCy - srcCy >= 0 ? 1 : -1;
-
-                let dx = dirX > 0 ? srcMaxX + margin : srcMinX - dw - margin;
-                let dy = dirY > 0 ? srcMaxY + margin : srcMinY - dh - margin;
-
-                const rightBound = visX + visW - dw - margin;
-                const bottomBound = visY + visH - dh - margin;
-                dx = Math.max(visX + margin, Math.min(dx, rightBound));
-                dy = Math.max(visY + margin, Math.min(dy, bottomBound));
-                
-                stroke.points = [
-                    Qt.point(srcMinX, srcMinY),
-                    Qt.point(srcMaxX, srcMaxY),
-                    Qt.point(dx, dy),
-                    Qt.point(dx + dw, dy + dh)
-                ];
-            } else {
-                window.currentStroke = null;
-                return;
-            }
-        }
-        if (stroke.tool === "pen" && stroke.points.length >= 3) {
-            stroke.points = Helpers.smoothStrokePoints(stroke.points, 6, Qt);
-
-            // Auto-close: if start and end are within 20 screen-px, snap closed
-            if (window.penAutoClose) {
-                const snapThreshold = 20 / window.editScale;
-                const fp = stroke.points[0];
-                const lp = stroke.points[stroke.points.length - 1];
-                const dx = lp.x - fp.x;
-                const dy = lp.y - fp.y;
-                if (Math.sqrt(dx * dx + dy * dy) < snapThreshold) {
-                    stroke.points = [...stroke.points, Qt.point(fp.x, fp.y)];
-                    stroke.isClosed = true;
-                }
-            }
-        }
-         if (stroke.tool === "stamp") {
-             window.stampCounter++;
-         }
-         window.pushStroke(window.currentStroke);
-         window.currentStroke = null;
-         penSmoothX = 0;
-         penSmoothY = 0;
+        window.finalizeCurrentStroke();
+        penSmoothX = 0;
+        penSmoothY = 0;
      }
 
      onWheel: (wheel) => {

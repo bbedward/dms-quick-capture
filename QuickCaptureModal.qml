@@ -286,18 +286,87 @@ DankModal {
         window.applyToolIntensity(window.currentTool, window.sessionToolIntensity(window.currentTool));
     }
 
+    function finalizeCurrentStroke() {
+        const stroke = window.currentStroke;
+        if (!stroke || stroke.tool === "text") return false;
+
+        if (stroke.tool === "callout") {
+            if (stroke.points.length < 2) {
+                window.currentStroke = null;
+                return false;
+            }
+
+            const p0 = stroke.points[0];
+            const p1 = stroke.points[stroke.points.length - 1];
+            const rw = Math.abs(p1.x - p0.x);
+            const rh = Math.abs(p1.y - p0.y);
+            if (rw <= 5 || rh <= 5) {
+                window.currentStroke = null;
+                return false;
+            }
+
+            const margin = 50;
+            const zoom = stroke.width / 100.0;
+            const dw = rw * zoom;
+            const dh = rh * zoom;
+            const visX = window.hasActiveCropSelection ? window.cropRect.x : 0;
+            const visY = window.hasActiveCropSelection ? window.cropRect.y : 0;
+            const visW = window.canvasWidth;
+            const visH = window.canvasHeight;
+            const srcMinX = Math.min(p0.x, p1.x);
+            const srcMaxX = Math.max(p0.x, p1.x);
+            const srcMinY = Math.min(p0.y, p1.y);
+            const srcMaxY = Math.max(p0.y, p1.y);
+            const srcCx = (srcMinX + srcMaxX) / 2;
+            const srcCy = (srcMinY + srcMaxY) / 2;
+            const visCx = visX + visW / 2;
+            const visCy = visY + visH / 2;
+            const dirX = visCx - srcCx >= 0 ? 1 : -1;
+            const dirY = visCy - srcCy >= 0 ? 1 : -1;
+
+            let dx = dirX > 0 ? srcMaxX + margin : srcMinX - dw - margin;
+            let dy = dirY > 0 ? srcMaxY + margin : srcMinY - dh - margin;
+            const rightBound = visX + visW - dw - margin;
+            const bottomBound = visY + visH - dh - margin;
+            dx = Math.max(visX + margin, Math.min(dx, rightBound));
+            dy = Math.max(visY + margin, Math.min(dy, bottomBound));
+            stroke.points = [
+                Qt.point(srcMinX, srcMinY),
+                Qt.point(srcMaxX, srcMaxY),
+                Qt.point(dx, dy),
+                Qt.point(dx + dw, dy + dh)
+            ];
+        }
+
+        if (stroke.tool === "pen" && stroke.points.length >= 3) {
+            stroke.points = Helpers.smoothStrokePoints(stroke.points, 6, Qt);
+            if (window.penAutoClose) {
+                const snapThreshold = 20 / window.editScale;
+                const fp = stroke.points[0];
+                const lp = stroke.points[stroke.points.length - 1];
+                const dx = lp.x - fp.x;
+                const dy = lp.y - fp.y;
+                if (Math.sqrt(dx * dx + dy * dy) < snapThreshold) {
+                    stroke.points = [...stroke.points, Qt.point(fp.x, fp.y)];
+                    stroke.isClosed = true;
+                }
+            }
+        }
+        if (stroke.tool === "stamp") window.stampCounter++;
+        window.pushStroke(stroke);
+        window.currentStroke = null;
+        return true;
+    }
+
     function commitStrokeBeforeToolChange() {
         const stroke = window.currentStroke;
-        if (!stroke || stroke.tool === "text" || stroke.tool === "callout") return null;
+        if (!stroke || stroke.tool === "text") return null;
 
         const isStamp = stroke.tool === "stamp";
         if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) return null;
 
         const dragStart = stroke.points[stroke.points.length - 1];
-        if (isStamp) window.stampCounter++;
-        window.pushStroke(stroke);
-        window.currentStroke = null;
-        return dragStart;
+        return window.finalizeCurrentStroke() ? dragStart : null;
     }
 
     function handleCurrentToolChanged() {
