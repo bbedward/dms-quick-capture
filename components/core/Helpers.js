@@ -190,6 +190,51 @@ function constrainSquarePoint(start, point, Qt) {
 }
 
 /**
+ * Calculates normalized source and automatically placed destination rectangles for a callout.
+ * @param {object} p0 - First source point {x, y}.
+ * @param {object} p1 - Last source point {x, y}.
+ * @param {number} zoom - Destination scale relative to the source rectangle.
+ * @param {number} visibleX - Visible area left edge.
+ * @param {number} visibleY - Visible area top edge.
+ * @param {number} visibleWidth - Visible area width.
+ * @param {number} visibleHeight - Visible area height.
+ * @param {number} margin - Gap from the source and visible area edges.
+ * @returns {object} Source and destination rectangle endpoints.
+ */
+function getCalloutPlacement(p0, p1, zoom, visibleX, visibleY, visibleWidth, visibleHeight, margin) {
+    const sourceStart = { x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y) };
+    const sourceEnd = { x: Math.max(p0.x, p1.x), y: Math.max(p0.y, p1.y) };
+    const sourceWidth = sourceEnd.x - sourceStart.x;
+    const sourceHeight = sourceEnd.y - sourceStart.y;
+    const destinationWidth = sourceWidth * zoom;
+    const destinationHeight = sourceHeight * zoom;
+    const sourceCenterX = (sourceStart.x + sourceEnd.x) / 2;
+    const sourceCenterY = (sourceStart.y + sourceEnd.y) / 2;
+    const visibleCenterX = visibleX + visibleWidth / 2;
+    const visibleCenterY = visibleY + visibleHeight / 2;
+    const directionX = visibleCenterX - sourceCenterX >= 0 ? 1 : -1;
+    const directionY = visibleCenterY - sourceCenterY >= 0 ? 1 : -1;
+
+    let destinationX = directionX > 0
+        ? sourceEnd.x + margin
+        : sourceStart.x - destinationWidth - margin;
+    let destinationY = directionY > 0
+        ? sourceEnd.y + margin
+        : sourceStart.y - destinationHeight - margin;
+    const rightBound = visibleX + visibleWidth - destinationWidth - margin;
+    const bottomBound = visibleY + visibleHeight - destinationHeight - margin;
+    destinationX = Math.max(visibleX + margin, Math.min(destinationX, rightBound));
+    destinationY = Math.max(visibleY + margin, Math.min(destinationY, bottomBound));
+
+    return {
+        sourceStart: sourceStart,
+        sourceEnd: sourceEnd,
+        destinationStart: { x: destinationX, y: destinationY },
+        destinationEnd: { x: destinationX + destinationWidth, y: destinationY + destinationHeight }
+    };
+}
+
+/**
  * Checks if a point (mx, my) is inside the crop rectangle.
  * @param {number} mx
  * @param {number} my

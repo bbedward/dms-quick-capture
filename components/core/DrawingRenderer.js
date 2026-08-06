@@ -776,38 +776,19 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
             } else {
                 const p0 = stroke.points[0];
                 const p1 = stroke.points[stroke.points.length - 1];
-                
-                srcP0 = { x: Math.min(p0.x, p1.x), y: Math.min(p0.y, p1.y) };
-                srcP1 = { x: Math.max(p0.x, p1.x), y: Math.max(p0.y, p1.y) };
-                
-                const rw = srcP1.x - srcP0.x;
-                const rh = srcP1.y - srcP0.y;
-                const zoom = stroke.width / 100.0;
-                const dw = rw * zoom;
-                const dh = rh * zoom;
-
-                // Smart placement: opposite side of source relative to visible area center
-                const srcCx = (srcP0.x + srcP1.x) / 2;
-                const srcCy = (srcP0.y + srcP1.y) / 2;
                 const visX = config.canvasMinX || 0;
                 const visY = config.canvasMinY || 0;
                 const visW = config.canvasWidth || Constants.fallbackCanvasWidth;
                 const visH = config.canvasHeight || Constants.fallbackCanvasHeight;
-                const visCx = visX + visW / 2;
-                const visCy = visY + visH / 2;
-                const dirX = visCx - srcCx >= 0 ? 1 : -1;
-                const dirY = visCy - srcCy >= 0 ? 1 : -1;
-                const margin = Constants.calloutAutoPlacementMargin;
-
-                let dx = dirX > 0 ? srcP1.x + margin : srcP0.x - dw - margin;
-                let dy = dirY > 0 ? srcP1.y + margin : srcP0.y - dh - margin;
-                const rightBound = visX + visW - dw - margin;
-                const bottomBound = visY + visH - dh - margin;
-                dx = Math.max(visX + margin, Math.min(dx, rightBound));
-                dy = Math.max(visY + margin, Math.min(dy, bottomBound));
-                
-                dstP0 = { x: dx, y: dy };
-                dstP1 = { x: dx + dw, y: dy + dh };
+                const placement = Helpers.getCalloutPlacement(
+                    p0, p1, stroke.width / 100.0,
+                    visX, visY, visW, visH,
+                    Constants.calloutAutoPlacementMargin
+                );
+                srcP0 = placement.sourceStart;
+                srcP1 = placement.sourceEnd;
+                dstP0 = placement.destinationStart;
+                dstP1 = placement.destinationEnd;
             }
             
             const sx = srcP0.x;
