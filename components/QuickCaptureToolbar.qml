@@ -175,34 +175,13 @@ Rectangle {
 
             ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
 
-            // Tools
-            Row {
-                spacing: Theme.spacingXS; anchors.verticalCenter: parent.verticalCenter
-                Repeater {
-                    model: config.toolButtons
-                    delegate: Item {
-                        width: Constants.btnSize
-                        height: Constants.btnSize
-                        DankShortcutActionButton {
-                            anchors.fill: parent
-                            iconName: modelData.icon; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: modelData.tooltip
-                            backgroundColor: root.currentTool === modelData.id ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                            iconColor: root.currentTool === modelData.id ? Theme.primary : Theme.surfaceText
-                            shortcutText: modelData.shortcut || ""
-                            showShortcut: root.showShortcutHints
-                            onClicked: root.toolSelected(modelData.id)
-                        }
-
-                    }
-                }
-                DankActionButton {
-                    id: moreActionsBtn
-                    iconName: "more_horiz"
-                    buttonSize: Constants.btnSize
-                    iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("More Tools")
-                    onClicked: root.moreToolsClicked(moreActionsBtn)
-                }
+            ToolButtonsControl {
+                anchors.verticalCenter: parent.verticalCenter
+                toolButtons: config.toolButtons
+                currentTool: root.currentTool
+                showShortcutHints: root.showShortcutHints
+                onToolSelected: (tool) => root.toolSelected(tool)
+                onMoreToolsClicked: (controlItem) => root.moreToolsClicked(controlItem)
             }
 
             ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
@@ -322,33 +301,14 @@ Rectangle {
 
             ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
 
-            Grid {
-                columns: 1; spacing: Theme.spacingXS; anchors.horizontalCenter: parent.horizontalCenter
-                Repeater {
-                    model: config.toolButtons
-                    delegate: Item {
-                        width: Constants.btnSize
-                        height: Constants.btnSize
-                        DankShortcutActionButton {
-                            anchors.fill: parent
-                            iconName: modelData.icon; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: modelData.tooltip
-                            backgroundColor: root.currentTool === modelData.id ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                            iconColor: root.currentTool === modelData.id ? Theme.primary : Theme.surfaceText
-                            shortcutText: modelData.shortcut || ""
-                            showShortcut: root.showShortcutHints
-                            onClicked: root.toolSelected(modelData.id)
-                        }
-
-                    }
-                }
-                DankActionButton {
-                    id: moreActionsVerticalBtn
-                    iconName: "more_vert"
-                    buttonSize: Constants.btnSize
-                    iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("More Tools")
-                    onClicked: root.moreToolsClicked(moreActionsVerticalBtn)
-                }
+            ToolButtonsControl {
+                anchors.horizontalCenter: parent.horizontalCenter
+                compact: true
+                toolButtons: config.toolButtons
+                currentTool: root.currentTool
+                showShortcutHints: root.showShortcutHints
+                onToolSelected: (tool) => root.toolSelected(tool)
+                onMoreToolsClicked: (controlItem) => root.moreToolsClicked(controlItem)
             }
 
             ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
