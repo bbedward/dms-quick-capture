@@ -343,6 +343,11 @@ MouseArea {
         if (window.currentTool === "crop") {
             const ox = Math.max(0, Math.min(origX, window.screenshotWidth));
             const oy = Math.max(0, Math.min(origY, window.screenshotHeight));
+            const nextHoveredHandle = window.getHoveredHandle(ox, oy);
+            if (hoveredHandle !== nextHoveredHandle) {
+                hoveredHandle = nextHoveredHandle;
+                drawingCanvas.requestPaint();
+            }
             if (window.activeHandle === "new") {
                 const x1 = Math.min(window.selectStart.x, ox);
                 const y1 = Math.min(window.selectStart.y, oy);
