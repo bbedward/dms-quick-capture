@@ -38,6 +38,15 @@ function getLuminance(rgb) {
 }
 
 /**
+ * Returns black or white text for an RGB color based on luminance.
+ * @param {object} rgb - RGB color object with channels between 0 and 1.
+ * @returns {string} "#000000" or "#ffffff".
+ */
+function getContrastingColorFromRgb(rgb) {
+    return getLuminance(rgb) > 0.5 ? "#000000" : "#ffffff";
+}
+
+/**
  * Returns a contrasting text color (black or white) based on hex color luminance.
  * @param {string} hex - The hex color string.
  * @param {object} Qt - The Qt object.
@@ -45,8 +54,7 @@ function getLuminance(rgb) {
  */
 function getContrastingColor(hex, Qt) {
     const rgb = hexToRgb(hex, Qt);
-    const lum = getLuminance(rgb);
-    return lum > 0.5 ? "#000000" : "#ffffff";
+    return getContrastingColorFromRgb(rgb);
 }
 
 // ─── 2. UI / formatting ───────────────────────────────────────────────────────

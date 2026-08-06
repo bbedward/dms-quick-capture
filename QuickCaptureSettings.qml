@@ -340,7 +340,7 @@ PluginSettings {
                             anchors.centerIn: parent
                             name: "check"
                             size: 14
-                            color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
+                            color: Helpers.getContrastingColorFromRgb(parent.color)
                             visible: parent.isSelected
                         }
 
@@ -389,7 +389,7 @@ PluginSettings {
                         size: 14
                         color: {
                             if (!parent.isSelected) return Theme.surfaceText;
-                            return Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff";
+                            return Helpers.getContrastingColorFromRgb(parent.color);
                         }
                     }
 
@@ -423,7 +423,7 @@ PluginSettings {
                         font.pixelSize: Theme.fontSizeSmall - 1
                         font.weight: Font.Bold
                         isMonospace: true
-                        color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
+                        color: Helpers.getContrastingColorFromRgb(parent.color)
                     }
 
                     MouseArea {
@@ -3068,7 +3068,7 @@ PluginSettings {
                                         anchors.centerIn: parent
                                         name: "check"
                                         size: 14
-                                        color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
+                                        color: Helpers.getContrastingColorFromRgb(parent.color)
                                         visible: parent.isSelected
                                     }
 
@@ -3119,7 +3119,7 @@ PluginSettings {
                                     size: 14
                                     color: {
                                         if (!parent.isSelected) return Theme.surfaceText;
-                                        return Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff";
+                                        return Helpers.getContrastingColorFromRgb(parent.color);
                                     }
                                 }
 
@@ -3155,7 +3155,7 @@ PluginSettings {
                                     font.pixelSize: Theme.fontSizeSmall - 1
                                     font.weight: Font.Bold
                                     isMonospace: true
-                                    color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
+                                    color: Helpers.getContrastingColorFromRgb(parent.color)
                                 }
 
                                 MouseArea {

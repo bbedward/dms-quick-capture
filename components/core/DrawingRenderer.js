@@ -91,9 +91,8 @@ function handleColors(Theme) {
             accent: accent
         };
     }
-    const luminance = Helpers.getLuminance(primary);
-    const fill = luminance < 0.5 ? "#ffffff" : "#000000";
-    const halo = luminance < 0.5 ? "#000000" : "#ffffff";
+    const fill = Helpers.getContrastingColorFromRgb(primary);
+    const halo = fill === "#ffffff" ? "#000000" : "#ffffff";
     return {
         fill: fill,
         halo: halo,

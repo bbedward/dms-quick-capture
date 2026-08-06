@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Services
 import qs.Widgets
+import "../components/core/Helpers.js" as Helpers
 
 Item {
     id: root
@@ -173,7 +174,7 @@ Item {
                 DankIcon {
                     name: "palette"
                     size: 14
-                    color: root.resolvedColor.hslLightness > 0.6 ? "#000000" : "#ffffff"
+                    color: Helpers.getContrastingColorFromRgb(root.resolvedColor)
                     opacity: 0.7
                 }
 
@@ -182,7 +183,7 @@ Item {
                     font.pixelSize: Theme.fontSizeSmall
                     font.weight: Font.Bold
                     isMonospace: true
-                    color: root.resolvedColor.hslLightness > 0.6 ? "#000000" : "#ffffff"
+                    color: Helpers.getContrastingColorFromRgb(root.resolvedColor)
                 }
             }
 
