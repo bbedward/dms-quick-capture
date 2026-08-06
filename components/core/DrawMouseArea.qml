@@ -80,6 +80,39 @@ MouseArea {
             && pt.y >= dstP0.y && pt.y <= dstP1.y;
     }
 
+    // Applies the shared rectangle resize rules used by shapes and callouts.
+    function resizeRectEndpoints(p0, p1, handle, dx, dy, keepSquare) {
+        let x1 = Math.min(p0.x, p1.x);
+        let y1 = Math.min(p0.y, p1.y);
+        let x2 = Math.max(p0.x, p1.x);
+        let y2 = Math.max(p0.y, p1.y);
+        const minSize = 10;
+
+        switch (handle) {
+        case "tl": x1 = Math.min(x1 + dx, x2 - minSize); y1 = Math.min(y1 + dy, y2 - minSize); break;
+        case "tr": x2 = Math.max(x2 + dx, x1 + minSize); y1 = Math.min(y1 + dy, y2 - minSize); break;
+        case "bl": x1 = Math.min(x1 + dx, x2 - minSize); y2 = Math.max(y2 + dy, y1 + minSize); break;
+        case "br": x2 = Math.max(x2 + dx, x1 + minSize); y2 = Math.max(y2 + dy, y1 + minSize); break;
+        case "tc": y1 = Math.min(y1 + dy, y2 - minSize); break;
+        case "bc": y2 = Math.max(y2 + dy, y1 + minSize); break;
+        case "lc": x1 = Math.min(x1 + dx, x2 - minSize); break;
+        case "rc": x2 = Math.max(x2 + dx, x1 + minSize); break;
+        }
+
+        if (keepSquare && ["tl", "tr", "bl", "br"].indexOf(handle) !== -1) {
+            const side = Math.max(x2 - x1, y2 - y1);
+            if (handle === "br") { x2 = x1 + side; y2 = y1 + side; }
+            else if (handle === "tl") { x1 = x2 - side; y1 = y2 - side; }
+            else if (handle === "tr") { x2 = x1 + side; y1 = y2 - side; }
+            else if (handle === "bl") { x1 = x2 - side; y2 = y1 + side; }
+        }
+
+        return {
+            start: Qt.point(p0.x > p1.x ? x2 : x1, p0.y > p1.y ? y2 : y1),
+            end: Qt.point(p0.x > p1.x ? x1 : x2, p0.y > p1.y ? y1 : y2)
+        };
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -150,53 +183,11 @@ MouseArea {
                         tool === "pixelate" || tool === "spotlight") {
                         const p0 = orig[0];
                         const p1 = orig[orig.length - 1];
-                        let x1 = Math.min(p0.x, p1.x);
-                        let y1 = Math.min(p0.y, p1.y);
-                        let x2 = Math.max(p0.x, p1.x);
-                        let y2 = Math.max(p0.y, p1.y);
-                        const minSize = 10;
-
-                        switch (window.activeHandle) {
-                            case "tl": x1 = Math.min(x1 + dx, x2 - minSize); y1 = Math.min(y1 + dy, y2 - minSize); break;
-                            case "tr": x2 = Math.max(x2 + dx, x1 + minSize); y1 = Math.min(y1 + dy, y2 - minSize); break;
-                            case "bl": x1 = Math.min(x1 + dx, x2 - minSize); y2 = Math.max(y2 + dy, y1 + minSize); break;
-                            case "br": x2 = Math.max(x2 + dx, x1 + minSize); y2 = Math.max(y2 + dy, y1 + minSize); break;
-                            case "tc": y1 = Math.min(y1 + dy, y2 - minSize); break;
-                            case "bc": y2 = Math.max(y2 + dy, y1 + minSize); break;
-                            case "lc": x1 = Math.min(x1 + dx, x2 - minSize); break;
-                            case "rc": x2 = Math.max(x2 + dx, x1 + minSize); break;
-                        }
-
-                        if (mouse.modifiers & Qt.ShiftModifier) {
-                            if (window.activeHandle === "tl" || window.activeHandle === "tr" ||
-                                window.activeHandle === "bl" || window.activeHandle === "br") {
-                                let w = x2 - x1;
-                                let h = y2 - y1;
-                                let side = Math.max(w, h);
-                                if (window.activeHandle === "br") {
-                                    x2 = x1 + side;
-                                    y2 = y1 + side;
-                                } else if (window.activeHandle === "tl") {
-                                    x1 = x2 - side;
-                                    y1 = y2 - side;
-                                } else if (window.activeHandle === "tr") {
-                                    x2 = x1 + side;
-                                    y1 = y2 - side;
-                                } else if (window.activeHandle === "bl") {
-                                    x1 = x2 - side;
-                                    y2 = y1 + side;
-                                }
-                            }
-                        }
-
-                        const wasFlippedX = p0.x > p1.x;
-                        const wasFlippedY = p0.y > p1.y;
-                        const newP0 = Qt.point(wasFlippedX ? x2 : x1, wasFlippedY ? y2 : y1);
-                        const newP1 = Qt.point(wasFlippedX ? x1 : x2, wasFlippedY ? y1 : y2);
+                        const resized = resizeRectEndpoints(p0, p1, window.activeHandle, dx, dy, mouse.modifiers & Qt.ShiftModifier);
 
                         const newPoints = [...window.selectedStroke.points];
-                        newPoints[0] = newP0;
-                        newPoints[newPoints.length - 1] = newP1;
+                        newPoints[0] = resized.start;
+                        newPoints[newPoints.length - 1] = resized.end;
                         window.selectedStroke.points = newPoints;
 
                         if (tool === "redact") {
@@ -233,56 +224,15 @@ MouseArea {
                     } else if (tool === "callout" && window.activeHandle && window.activeHandle.indexOf("src_") === 0 && orig.length === 4) {
                         const p0 = orig[0];
                         const p1 = orig[1];
-                        let x1 = Math.min(p0.x, p1.x);
-                        let y1 = Math.min(p0.y, p1.y);
-                        let x2 = Math.max(p0.x, p1.x);
-                        let y2 = Math.max(p0.y, p1.y);
-                        const minSize = 10;
                         const h = window.activeHandle.slice(4);
-
-                        switch (h) {
-                            case "tl": x1 = Math.min(x1 + dx, x2 - minSize); y1 = Math.min(y1 + dy, y2 - minSize); break;
-                            case "tr": x2 = Math.max(x2 + dx, x1 + minSize); y1 = Math.min(y1 + dy, y2 - minSize); break;
-                            case "bl": x1 = Math.min(x1 + dx, x2 - minSize); y2 = Math.max(y2 + dy, y1 + minSize); break;
-                            case "br": x2 = Math.max(x2 + dx, x1 + minSize); y2 = Math.max(y2 + dy, y1 + minSize); break;
-                            case "tc": y1 = Math.min(y1 + dy, y2 - minSize); break;
-                            case "bc": y2 = Math.max(y2 + dy, y1 + minSize); break;
-                            case "lc": x1 = Math.min(x1 + dx, x2 - minSize); break;
-                            case "rc": x2 = Math.max(x2 + dx, x1 + minSize); break;
-                        }
-
-                        if (mouse.modifiers & Qt.ShiftModifier) {
-                            if (h === "tl" || h === "tr" || h === "bl" || h === "br") {
-                                let w = x2 - x1;
-                                let h_dim = y2 - y1;
-                                let side = Math.max(w, h_dim);
-                                if (h === "br") {
-                                    x2 = x1 + side;
-                                    y2 = y1 + side;
-                                } else if (h === "tl") {
-                                    x1 = x2 - side;
-                                    y1 = y2 - side;
-                                } else if (h === "tr") {
-                                    x2 = x1 + side;
-                                    y1 = y2 - side;
-                                } else if (h === "bl") {
-                                    x1 = x2 - side;
-                                    y2 = y1 + side;
-                                }
-                            }
-                        }
-
-                        const wasFlippedX = p0.x > p1.x;
-                        const wasFlippedY = p0.y > p1.y;
-                        const newP0 = Qt.point(wasFlippedX ? x2 : x1, wasFlippedY ? y2 : y1);
-                        const newP1 = Qt.point(wasFlippedX ? x1 : x2, wasFlippedY ? y1 : y2);
+                        const resized = resizeRectEndpoints(p0, p1, h, dx, dy, mouse.modifiers & Qt.ShiftModifier);
 
                         const newPoints = [...window.selectedStroke.points];
-                        newPoints[0] = newP0;
-                        newPoints[1] = newP1;
+                        newPoints[0] = resized.start;
+                        newPoints[1] = resized.end;
 
-                        const newSW = Math.abs(newP1.x - newP0.x);
-                        const newSH = Math.abs(newP1.y - newP0.y);
+                        const newSW = Math.abs(resized.end.x - resized.start.x);
+                        const newSH = Math.abs(resized.end.y - resized.start.y);
                         const zoom = window.selectedStroke.width / 100.0;
                         newPoints[3] = Qt.point(newPoints[2].x + newSW * zoom, newPoints[2].y + newSH * zoom);
                         window.selectedStroke.points = newPoints;
