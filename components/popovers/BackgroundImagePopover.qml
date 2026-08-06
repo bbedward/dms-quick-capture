@@ -3,52 +3,20 @@ import QtQuick.Controls
 import qs.Common
 import qs.Widgets
 
-Rectangle {
+PopoverSurface {
     id: popoverRoot
 
     property var images: []
     property string folderPath: ""
     property string selectedPath: ""
     property bool loading: false
-    property bool opened: false
-    property bool allowOpen: true
-    onAllowOpenChanged: {
-        if (!allowOpen) popoverRoot.close();
-    }
 
     signal imageSelected(string path)
     signal refreshRequested()
 
     width: 380
     height: 330
-    color: Theme.surfaceContainer
     border.color: Theme.withAlpha(Theme.outline, 0.2)
-    border.width: 1
-    radius: Theme.cornerRadius
-    z: 10001
-
-    visible: opacity > 0
-    opacity: 0
-    scale: 0.96
-
-    states: State {
-        name: "visible"
-        when: popoverRoot.opened
-        PropertyChanges { target: popoverRoot; opacity: 1; scale: 1 }
-    }
-
-    transitions: Transition {
-        NumberAnimation { properties: "opacity,scale"; duration: 120; easing.type: Easing.OutQuad }
-    }
-
-    function open() {
-        if (!popoverRoot.allowOpen) return;
-        popoverRoot.opened = true;
-    }
-
-    function close() {
-        popoverRoot.opened = false;
-    }
 
     Column {
         anchors.fill: parent

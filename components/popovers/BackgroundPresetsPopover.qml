@@ -4,16 +4,12 @@ import qs.Common
 import qs.Widgets
 import "../core/Constants.js" as Constants
 
-Rectangle {
+PopoverSurface {
     id: popoverRoot
 
     property var presetsList: []
-    property bool opened: false
-    property bool allowOpen: true
     property bool editMode: false
-    onAllowOpenChanged: {
-        if (!allowOpen) popoverRoot.close();
-    }
+    onClosed: popoverRoot.editMode = false
 
     signal presetSelected(var preset)
     signal saveCurrentAsPreset()
@@ -23,55 +19,6 @@ Rectangle {
 
     width: 260
     height: Math.min(320, contentColumn.implicitHeight + Theme.spacingS * 2)
-    color: Theme.surfaceContainer
-    border.color: Theme.withAlpha(Theme.outline, 0.15)
-    border.width: 1
-    radius: Theme.cornerRadius
-    z: 10001
-
-    visible: opacity > 0
-    opacity: 0
-    scale: 0.9
-
-    states: [
-        State {
-            name: "visible"
-            when: popoverRoot.opened
-            PropertyChanges { target: popoverRoot; opacity: 1.0; scale: 1.0 }
-        }
-    ]
-
-    transitions: [
-        Transition {
-            NumberAnimation { properties: "opacity,scale"; duration: 120; easing.type: Easing.OutQuad }
-        }
-    ]
-
-    function open() {
-        if (!popoverRoot.allowOpen) return;
-        closeTimer.stop();
-        popoverRoot.opened = true;
-    }
-
-    function close() {
-        popoverRoot.editMode = false;
-        popoverRoot.opened = false;
-    }
-
-    function startCloseTimer() {
-        closeTimer.start();
-    }
-
-    function stopCloseTimer() {
-        closeTimer.stop();
-    }
-
-    Timer {
-        id: closeTimer
-        interval: 300
-        onTriggered: popoverRoot.close()
-    }
-
     HoverHandler {
         id: popoverHoverHandler
         onHoveredChanged: {

@@ -3,27 +3,16 @@ import qs.Common
 import qs.Widgets
 import "../core/Constants.js" as Constants
 
-Rectangle {
+PopoverSurface {
     id: popoverRoot
 
     width: isVertical ? Constants.btnSize : Constants.customRatioPopoverHeight
     height: isVertical ? Constants.customRatioPopoverHeight : Constants.btnSize
-    color: Theme.surfaceContainer
-    border.color: Theme.withAlpha(Theme.outline, 0.15)
-    border.width: 1
-    radius: Theme.cornerRadius
-    z: 10001
-
     property int minimum: 0
     property int maximum: 100
     property int value: 0
     property int stepSize: 5
-    property bool opened: false
-    property bool allowOpen: true
     property bool isVertical: false
-    onAllowOpenChanged: {
-        if (!allowOpen) popoverRoot.close();
-    }
     onValueChanged: slider.value = value
 
     signal userValueChanged(int val)
@@ -32,48 +21,6 @@ Rectangle {
         let rawVal = minimum + ratio * (maximum - minimum);
         let newVal = stepSize > 1 ? Math.round(rawVal / stepSize) * stepSize : Math.round(rawVal);
         return Math.max(minimum, Math.min(maximum, newVal));
-    }
-
-    visible: opacity > 0
-    opacity: 0
-    scale: 0.9
-
-    states: [
-        State {
-            name: "visible"
-            when: popoverRoot.opened
-            PropertyChanges { target: popoverRoot; opacity: 1.0; scale: 1.0 }
-        }
-    ]
-
-    transitions: [
-        Transition {
-            NumberAnimation { properties: "opacity,scale"; duration: 120; easing.type: Easing.OutQuad }
-        }
-    ]
-
-    function open() {
-        if (!popoverRoot.allowOpen) return;
-        closeTimer.stop();
-        popoverRoot.opened = true;
-    }
-
-    function close() {
-        popoverRoot.opened = false;
-    }
-
-    function startCloseTimer() {
-        closeTimer.start();
-    }
-
-    function stopCloseTimer() {
-        closeTimer.stop();
-    }
-
-    Timer {
-        id: closeTimer
-        interval: 200
-        onTriggered: popoverRoot.close()
     }
 
     MouseArea {

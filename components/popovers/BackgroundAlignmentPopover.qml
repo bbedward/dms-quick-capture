@@ -2,16 +2,10 @@ import QtQuick
 import qs.Common
 import qs.Widgets
 
-Rectangle {
+PopoverSurface {
     id: popoverRoot
 
     property string backgroundAlignment: "center"
-    property bool opened: false
-    property bool allowOpen: true
-    onAllowOpenChanged: {
-        if (!allowOpen) popoverRoot.close();
-    }
-
     signal changeBackgroundAlignment(string alignment)
 
     // 9 positions in row-major order (top → bottom, left → right)
@@ -28,54 +22,6 @@ Rectangle {
 
     width: _gridSize + _padding * 2
     height: _gridSize + _padding * 2
-    color: Theme.surfaceContainer
-    border.color: Theme.withAlpha(Theme.outline, 0.15)
-    border.width: 1
-    radius: Theme.cornerRadius
-    z: 10001
-
-    visible: opacity > 0
-    opacity: 0
-    scale: 0.9
-
-    states: [
-        State {
-            name: "visible"
-            when: popoverRoot.opened
-            PropertyChanges { target: popoverRoot; opacity: 1.0; scale: 1.0 }
-        }
-    ]
-
-    transitions: [
-        Transition {
-            NumberAnimation { properties: "opacity,scale"; duration: 120; easing.type: Easing.OutQuad }
-        }
-    ]
-
-    function open() {
-        if (!popoverRoot.allowOpen) return;
-        closeTimer.stop();
-        popoverRoot.opened = true;
-    }
-
-    function close() {
-        popoverRoot.opened = false;
-    }
-
-    function startCloseTimer() {
-        closeTimer.start();
-    }
-
-    function stopCloseTimer() {
-        closeTimer.stop();
-    }
-
-    Timer {
-        id: closeTimer
-        interval: 200
-        onTriggered: popoverRoot.close()
-    }
-
     MouseArea {
         anchors.fill: parent
         hoverEnabled: true
