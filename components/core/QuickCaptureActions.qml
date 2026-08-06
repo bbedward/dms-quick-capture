@@ -90,6 +90,10 @@ QtObject {
         if (originalPng) cleanupTemp(originalPng);
     }
 
+    function commandOutputOrFallback(output, fallback) {
+        return output ? output.trim() : fallback;
+    }
+
     function sendNotification(title, message, imagePath, openPath) {
         if (!message) return;
         const hasParent = root.parentWidget && root.parentWidget.pluginData;
@@ -195,7 +199,7 @@ QtObject {
         const checkCmd = "[ -s " + shellPathExpression(tempOut) + " ] || { echo 'ERROR: Exported screenshot file is empty or missing' >&2; exit 2; }";
         Proc.runCommand("check-copy-file", ["sh", "-c", checkCmd], (checkOut, checkCode) => {
             if (checkCode !== 0) {
-                const errDetail = checkOut ? checkOut.trim() : ("Exported file missing or empty (" + tempOut + ")");
+                const errDetail = commandOutputOrFallback(checkOut, "Exported file missing or empty (" + tempOut + ")");
                 console.error("[QuickCapture] Copy pre-check failed:", errDetail);
                 callback(errDetail, checkCode);
                 return;
@@ -235,7 +239,7 @@ QtObject {
                         root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot saved to %1/%2").arg(saveDir).arg(filename), iconPath, notifyPath);
                         root.closeRequested();
                     } else {
-                        const errDetail = stdout ? stdout.trim() : ("Save command failed with exit code " + exitCode);
+                        const errDetail = commandOutputOrFallback(stdout, "Save command failed with exit code " + exitCode);
                         console.error("[QuickCapture] Save failed:", errDetail);
                         notifyError(I18n.tr("Failed to save screenshot file."), errDetail);
                     }
@@ -254,7 +258,7 @@ QtObject {
                         root.sendNotification(I18n.tr("Screenshot Copied"), I18n.tr("Screenshot copied to clipboard."), clipSource);
                         root.closeRequested();
                     } else {
-                        const errDetail = stdout ? stdout.trim() : ("Clipboard exit code " + exitCode);
+                        const errDetail = commandOutputOrFallback(stdout, "Clipboard exit code " + exitCode);
                         console.error("[QuickCapture] Copy failed:", errDetail);
                         notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
                         root.closeRequested();
@@ -291,7 +295,7 @@ QtObject {
                             root.sendNotification(I18n.tr("Copied Anonymously"), msg, sourceFile);
                             root.closeRequested();
                         } else {
-                            const errDetail = clipOut ? clipOut.trim() : ("Clipboard exit code " + clipExit);
+                            const errDetail = commandOutputOrFallback(clipOut, "Clipboard exit code " + clipExit);
                             notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
                             root.closeRequested();
                         }
@@ -325,14 +329,14 @@ QtObject {
                                 const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
                                 root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot copied to clipboard and saved to %1").arg(saveDir), iconPath, notifyPath);
                             } else {
-                                const errDetail = saveOut ? saveOut.trim() : ("Save exit code " + saveCode);
+                                const errDetail = commandOutputOrFallback(saveOut, "Save exit code " + saveCode);
                                 notifyWarning(I18n.tr("Screenshot copied to clipboard but failed to save file: %1").arg(errDetail));
                             }
                             root.closeRequested();
                             cleanupConvertedFiles(finalPath, originalPng);
                         });
                     } else {
-                        const errDetail = stdout ? stdout.trim() : ("Clipboard exit code " + exitCode);
+                        const errDetail = commandOutputOrFallback(stdout, "Clipboard exit code " + exitCode);
                         console.error("[QuickCapture] Copy&Save failed on copy step:", errDetail);
                         notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
                         root.closeRequested();
