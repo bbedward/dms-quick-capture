@@ -113,6 +113,18 @@ MouseArea {
         };
     }
 
+    // Snaps a point around a fixed point to the nearest 15-degree direction.
+    function snapPointToAngle(point, fixed) {
+        const dx = point.x - fixed.x;
+        const dy = point.y - fixed.y;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        if (length === 0) return point;
+        const snapStep = Math.PI / 12;
+        const angle = Math.atan2(dy, dx);
+        const snapped = Math.round(angle / snapStep) * snapStep;
+        return Qt.point(fixed.x + length * Math.cos(snapped), fixed.y + length * Math.sin(snapped));
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -197,7 +209,7 @@ MouseArea {
                         const newPoints = [...window.selectedStroke.points];
                         let targetIdx = -1;
                         let fixedIdx = -1;
-                        if (window.activeHandle === "start") {
+                            if (window.activeHandle === "start") {
                             targetIdx = 0;
                             fixedIdx = orig.length - 1;
                         } else if (window.activeHandle === "end") {
@@ -207,16 +219,7 @@ MouseArea {
                         if (targetIdx !== -1) {
                             let newPt = Qt.point(orig[targetIdx].x + dx, orig[targetIdx].y + dy);
                             if (mouse.modifiers & Qt.ShiftModifier) {
-                                const fixed = orig[fixedIdx];
-                                const sdx = newPt.x - fixed.x;
-                                const sdy = newPt.y - fixed.y;
-                                const L = Math.sqrt(sdx * sdx + sdy * sdy);
-                                if (L > 0) {
-                                    const angle = Math.atan2(sdy, sdx);
-                                    const SNAP_STEP = Math.PI / 12;
-                                    const snapped = Math.round(angle / SNAP_STEP) * SNAP_STEP;
-                                    newPt = Qt.point(fixed.x + L * Math.cos(snapped), fixed.y + L * Math.sin(snapped));
-                                }
+                                newPt = snapPointToAngle(newPt, orig[fixedIdx]);
                             }
                             newPoints[targetIdx] = newPt;
                         }
@@ -242,32 +245,14 @@ MouseArea {
                         if (window.activeHandle === "anchor" && hasLeader) {
                             let newPt = Qt.point(orig[0].x + dx, orig[0].y + dy);
                             if (mouse.modifiers & Qt.ShiftModifier) {
-                                const fixed = orig[1];
-                                const sdx = newPt.x - fixed.x;
-                                const sdy = newPt.y - fixed.y;
-                                const L = Math.sqrt(sdx * sdx + sdy * sdy);
-                                if (L > 0) {
-                                    const angle = Math.atan2(sdy, sdx);
-                                    const SNAP_STEP = Math.PI / 12;
-                                    const snapped = Math.round(angle / SNAP_STEP) * SNAP_STEP;
-                                    newPt = Qt.point(fixed.x + L * Math.cos(snapped), fixed.y + L * Math.sin(snapped));
-                                }
+                                newPt = snapPointToAngle(newPt, orig[1]);
                             }
                             newPoints[0] = newPt;
                         } else if (window.activeHandle === "stamp") {
                             const idx = hasLeader ? 1 : 0;
                             let newPt = Qt.point(orig[idx].x + dx, orig[idx].y + dy);
                             if (idx === 1 && (mouse.modifiers & Qt.ShiftModifier)) {
-                                const fixed = orig[0];
-                                const sdx = newPt.x - fixed.x;
-                                const sdy = newPt.y - fixed.y;
-                                const L = Math.sqrt(sdx * sdx + sdy * sdy);
-                                if (L > 0) {
-                                    const angle = Math.atan2(sdy, sdx);
-                                    const SNAP_STEP = Math.PI / 12;
-                                    const snapped = Math.round(angle / SNAP_STEP) * SNAP_STEP;
-                                    newPt = Qt.point(fixed.x + L * Math.cos(snapped), fixed.y + L * Math.sin(snapped));
-                                }
+                                newPt = snapPointToAngle(newPt, orig[0]);
                             }
                             newPoints[idx] = newPt;
                         } else if (window.activeHandle === "stampBody") {
@@ -397,15 +382,7 @@ MouseArea {
                      // Snapping angle calculation (24 directions / 15 degrees)
                      const p0 = window.currentStroke.points[0];
                      if (p0) {
-                         const dx = absPt.x - p0.x;
-                         const dy = absPt.y - p0.y;
-                         const L = Math.sqrt(dx * dx + dy * dy);
-                         if (L > 0) {
-                             const angle = Math.atan2(dy, dx);
-                             const SNAP_STEP = Math.PI / 12; // 15 degrees
-                             const snappedAngle = Math.round(angle / SNAP_STEP) * SNAP_STEP;
-                             finalPt = Qt.point(p0.x + L * Math.cos(snappedAngle), p0.y + L * Math.sin(snappedAngle));
-                         }
+                         finalPt = snapPointToAngle(absPt, p0);
                      }
                  } else if ((mouse.modifiers & Qt.ShiftModifier) && (window.currentTool === "ellipse" || window.currentTool === "rect" || window.currentTool === "redact" || window.currentTool === "pixelate" || window.currentTool === "spotlight" || window.currentTool === "callout")) {
                      if (window.currentStroke.points[0]) {
@@ -441,10 +418,7 @@ MouseArea {
                            window.currentStroke.hasLeaderLine = true;
                            
                            if (mouse.modifiers & Qt.ShiftModifier) {
-                               const angle = Math.atan2(dy, dx);
-                               const SNAP_STEP = Math.PI / 12; // 15 degrees
-                               const snappedAngle = Math.round(angle / SNAP_STEP) * SNAP_STEP;
-                               finalPt = Qt.point(p0.x + dist * Math.cos(snappedAngle), p0.y + dist * Math.sin(snappedAngle));
+                               finalPt = snapPointToAngle(absPt, p0);
                            }
 
                            if (window.currentStroke.points.length > 1) {
