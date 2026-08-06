@@ -202,6 +202,114 @@ MouseArea {
         drawingCanvas.requestPaint();
     }
 
+    function handleSelectPosition(mouse, absPt) {
+        if (window.selectedStroke) {
+            hoveredHandle = window.getSelectedStrokeHandleAt(absPt.x, absPt.y);
+
+            if (window.activeHandle === "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
+                let dx = absPt.x - window.pressCoords.x;
+                let dy = absPt.y - window.pressCoords.y;
+
+                if (mouse.modifiers & Qt.ShiftModifier) {
+                    if (shiftLockAxis === "none") {
+                        const threshold = 4;
+                        if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+                            shiftLockAxis = Math.abs(dx) > Math.abs(dy) ? "horizontal" : "vertical";
+                        }
+                    }
+                    if (shiftLockAxis === "horizontal") dy = 0;
+                    else if (shiftLockAxis === "vertical") dx = 0;
+                } else {
+                    shiftLockAxis = "none";
+                }
+
+                if (window.selectedStroke.tool === "callout" && window.calloutDestDragging && window.originalPoints.length === 4) {
+                    const newPoints = [...window.selectedStroke.points];
+                    newPoints[2] = Qt.point(window.originalPoints[2].x + dx, window.originalPoints[2].y + dy);
+                    newPoints[3] = Qt.point(window.originalPoints[3].x + dx, window.originalPoints[3].y + dy);
+                    window.selectedStroke.points = newPoints;
+                } else {
+                    const newPoints = [];
+                    for (let i = 0; i < window.originalPoints.length; i++) {
+                        newPoints.push(Qt.point(window.originalPoints[i].x + dx, window.originalPoints[i].y + dy));
+                    }
+                    window.selectedStroke.points = newPoints;
+                }
+                if (window.selectedStroke.tool === "redact") {
+                    window.selectedStroke.cachedCleanColor = undefined;
+                }
+            } else if (window.activeHandle !== "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
+                const dx = absPt.x - window.pressCoords.x;
+                const dy = absPt.y - window.pressCoords.y;
+                const orig = window.originalPoints;
+                const tool = window.selectedStroke.tool;
+
+                if (tool === "rect" || tool === "ellipse" || tool === "redact" ||
+                    tool === "pixelate" || tool === "spotlight") {
+                    const resized = resizeRectEndpoints(orig[0], orig[orig.length - 1], window.activeHandle, dx, dy, mouse.modifiers & Qt.ShiftModifier);
+                    const newPoints = [...window.selectedStroke.points];
+                    newPoints[0] = resized.start;
+                    newPoints[newPoints.length - 1] = resized.end;
+                    window.selectedStroke.points = newPoints;
+                    if (tool === "redact") window.selectedStroke.cachedCleanColor = undefined;
+                } else if (tool === "line" || tool === "arrow" || tool === "highlighter" || (tool === "text" && window.selectedStroke.isSpeechBubble)) {
+                    const newPoints = [...window.selectedStroke.points];
+                    let targetIdx = -1;
+                    let fixedIdx = -1;
+                    if (window.activeHandle === "start") {
+                        targetIdx = 0;
+                        fixedIdx = orig.length - 1;
+                    } else if (window.activeHandle === "end") {
+                        targetIdx = orig.length - 1;
+                        fixedIdx = 0;
+                    }
+                    if (targetIdx !== -1) {
+                        let newPt = Qt.point(orig[targetIdx].x + dx, orig[targetIdx].y + dy);
+                        if (mouse.modifiers & Qt.ShiftModifier) newPt = snapPointToAngle(newPt, orig[fixedIdx]);
+                        newPoints[targetIdx] = newPt;
+                    }
+                    window.selectedStroke.points = newPoints;
+                } else if (tool === "callout" && window.activeHandle && window.activeHandle.indexOf("src_") === 0 && orig.length === 4) {
+                    const resized = resizeRectEndpoints(orig[0], orig[1], window.activeHandle.slice(4), dx, dy, mouse.modifiers & Qt.ShiftModifier);
+                    const newPoints = [...window.selectedStroke.points];
+                    newPoints[0] = resized.start;
+                    newPoints[1] = resized.end;
+                    const zoom = window.selectedStroke.width / 100.0;
+                    newPoints[3] = Qt.point(newPoints[2].x + Math.abs(resized.end.x - resized.start.x) * zoom,
+                        newPoints[2].y + Math.abs(resized.end.y - resized.start.y) * zoom);
+                    window.selectedStroke.points = newPoints;
+                } else if (tool === "stamp") {
+                    const newPoints = [...window.selectedStroke.points];
+                    const hasLeader = window.selectedStroke.hasLeaderLine && window.selectedStroke.points.length >= 2;
+                    if (window.activeHandle === "anchor" && hasLeader) {
+                        let newPt = Qt.point(orig[0].x + dx, orig[0].y + dy);
+                        if (mouse.modifiers & Qt.ShiftModifier) newPt = snapPointToAngle(newPt, orig[1]);
+                        newPoints[0] = newPt;
+                    } else if (window.activeHandle === "stamp") {
+                        const idx = hasLeader ? 1 : 0;
+                        let newPt = Qt.point(orig[idx].x + dx, orig[idx].y + dy);
+                        if (idx === 1 && (mouse.modifiers & Qt.ShiftModifier)) newPt = snapPointToAngle(newPt, orig[0]);
+                        newPoints[idx] = newPt;
+                    } else if (window.activeHandle === "stampBody") {
+                        for (let i = 0; i < orig.length; i++) {
+                            newPoints[i] = Qt.point(orig[i].x + dx, orig[i].y + dy);
+                        }
+                    }
+                    window.selectedStroke.points = newPoints;
+                }
+            }
+            if (window.originalPoints.length === 0 || !(mouse.buttons & Qt.LeftButton)) {
+                hoveredStrokeIdx = hoveredHandle !== "none"
+                    ? window.strokes.indexOf(window.selectedStroke)
+                    : window.findStrokeAt(absPt.x, absPt.y);
+            }
+            drawingCanvas.requestPaint();
+        } else {
+            hoveredStrokeIdx = window.findStrokeAt(absPt.x, absPt.y);
+            hoveredHandle = "none";
+        }
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -220,136 +328,7 @@ MouseArea {
         const absPt = getAbsolutePoint(mouse.x, mouse.y);
 
         if (window.currentTool === "select") {
-            if (window.selectedStroke) {
-                hoveredHandle = window.getSelectedStrokeHandleAt(absPt.x, absPt.y);
-
-                if (window.activeHandle === "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
-                    let dx = absPt.x - window.pressCoords.x;
-                    let dy = absPt.y - window.pressCoords.y;
-
-                    if (mouse.modifiers & Qt.ShiftModifier) {
-                        if (shiftLockAxis === "none") {
-                            const threshold = 4;
-                            if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
-                                if (Math.abs(dx) > Math.abs(dy)) {
-                                    shiftLockAxis = "horizontal";
-                                } else {
-                                    shiftLockAxis = "vertical";
-                                }
-                            }
-                        }
-                        if (shiftLockAxis === "horizontal") {
-                            dy = 0;
-                        } else if (shiftLockAxis === "vertical") {
-                            dx = 0;
-                        }
-                    } else {
-                        shiftLockAxis = "none";
-                    }
-
-                    if (window.selectedStroke.tool === "callout" && window.calloutDestDragging && window.originalPoints.length === 4) {
-                        const newPoints = [...window.selectedStroke.points];
-                        newPoints[2] = Qt.point(window.originalPoints[2].x + dx, window.originalPoints[2].y + dy);
-                        newPoints[3] = Qt.point(window.originalPoints[3].x + dx, window.originalPoints[3].y + dy);
-                        window.selectedStroke.points = newPoints;
-                    } else {
-                        const newPoints = [];
-                        for (let i = 0; i < window.originalPoints.length; i++) {
-                            newPoints.push(Qt.point(window.originalPoints[i].x + dx, window.originalPoints[i].y + dy));
-                        }
-                        window.selectedStroke.points = newPoints;
-                    }
-                    if (window.selectedStroke.tool === "redact") {
-                        window.selectedStroke.cachedCleanColor = undefined;
-                    }
-                } else if (window.activeHandle !== "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
-                    const dx = absPt.x - window.pressCoords.x;
-                    const dy = absPt.y - window.pressCoords.y;
-                    const orig = window.originalPoints;
-                    const tool = window.selectedStroke.tool;
-
-                    if (tool === "rect" || tool === "ellipse" || tool === "redact" ||
-                        tool === "pixelate" || tool === "spotlight") {
-                        const p0 = orig[0];
-                        const p1 = orig[orig.length - 1];
-                        const resized = resizeRectEndpoints(p0, p1, window.activeHandle, dx, dy, mouse.modifiers & Qt.ShiftModifier);
-
-                        const newPoints = [...window.selectedStroke.points];
-                        newPoints[0] = resized.start;
-                        newPoints[newPoints.length - 1] = resized.end;
-                        window.selectedStroke.points = newPoints;
-
-                        if (tool === "redact") {
-                            window.selectedStroke.cachedCleanColor = undefined;
-                        }
-                    } else if (tool === "line" || tool === "arrow" || tool === "highlighter" || (tool === "text" && window.selectedStroke.isSpeechBubble)) {
-                        const newPoints = [...window.selectedStroke.points];
-                        let targetIdx = -1;
-                        let fixedIdx = -1;
-                            if (window.activeHandle === "start") {
-                            targetIdx = 0;
-                            fixedIdx = orig.length - 1;
-                        } else if (window.activeHandle === "end") {
-                            targetIdx = orig.length - 1;
-                            fixedIdx = 0;
-                        }
-                        if (targetIdx !== -1) {
-                            let newPt = Qt.point(orig[targetIdx].x + dx, orig[targetIdx].y + dy);
-                            if (mouse.modifiers & Qt.ShiftModifier) {
-                                newPt = snapPointToAngle(newPt, orig[fixedIdx]);
-                            }
-                            newPoints[targetIdx] = newPt;
-                        }
-                        window.selectedStroke.points = newPoints;
-                    } else if (tool === "callout" && window.activeHandle && window.activeHandle.indexOf("src_") === 0 && orig.length === 4) {
-                        const p0 = orig[0];
-                        const p1 = orig[1];
-                        const h = window.activeHandle.slice(4);
-                        const resized = resizeRectEndpoints(p0, p1, h, dx, dy, mouse.modifiers & Qt.ShiftModifier);
-
-                        const newPoints = [...window.selectedStroke.points];
-                        newPoints[0] = resized.start;
-                        newPoints[1] = resized.end;
-
-                        const newSW = Math.abs(resized.end.x - resized.start.x);
-                        const newSH = Math.abs(resized.end.y - resized.start.y);
-                        const zoom = window.selectedStroke.width / 100.0;
-                        newPoints[3] = Qt.point(newPoints[2].x + newSW * zoom, newPoints[2].y + newSH * zoom);
-                        window.selectedStroke.points = newPoints;
-                    } else if (tool === "stamp") {
-                        const newPoints = [...window.selectedStroke.points];
-                        const hasLeader = window.selectedStroke.hasLeaderLine && window.selectedStroke.points.length >= 2;
-                        if (window.activeHandle === "anchor" && hasLeader) {
-                            let newPt = Qt.point(orig[0].x + dx, orig[0].y + dy);
-                            if (mouse.modifiers & Qt.ShiftModifier) {
-                                newPt = snapPointToAngle(newPt, orig[1]);
-                            }
-                            newPoints[0] = newPt;
-                        } else if (window.activeHandle === "stamp") {
-                            const idx = hasLeader ? 1 : 0;
-                            let newPt = Qt.point(orig[idx].x + dx, orig[idx].y + dy);
-                            if (idx === 1 && (mouse.modifiers & Qt.ShiftModifier)) {
-                                newPt = snapPointToAngle(newPt, orig[0]);
-                            }
-                            newPoints[idx] = newPt;
-                        } else if (window.activeHandle === "stampBody") {
-                            for (let i = 0; i < orig.length; i++) {
-                                newPoints[i] = Qt.point(orig[i].x + dx, orig[i].y + dy);
-                            }
-                        }
-                        window.selectedStroke.points = newPoints;
-                    }
-                }
-                if (window.originalPoints.length === 0 || !(mouse.buttons & Qt.LeftButton)) {
-                    hoveredStrokeIdx = hoveredHandle !== "none"
-                        ? window.strokes.indexOf(window.selectedStroke)
-                        : window.findStrokeAt(absPt.x, absPt.y);
-                }
-                drawingCanvas.requestPaint();
-            } else {
-                hoveredStrokeIdx = window.findStrokeAt(absPt.x, absPt.y);
-                hoveredHandle = "none";
-            }
+            handleSelectPosition(mouse, absPt);
             return;
         }
 
