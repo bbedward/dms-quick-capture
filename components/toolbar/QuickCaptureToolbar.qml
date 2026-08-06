@@ -368,6 +368,8 @@ Rectangle {
                 onChangeBackgroundMode: (mode, controlItem) => root.changeBackgroundMode(mode, controlItem)
                 anchors.verticalCenter: parent.verticalCenter
             }
+
+            ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
             
             // Sliders Row (Hover to reveal popup controls)
             Row {
