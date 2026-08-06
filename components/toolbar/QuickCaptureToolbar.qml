@@ -3,8 +3,9 @@ import QtQuick.Controls
 import qs.Common
 import qs.Widgets
 import ".."
-import "Helpers.js" as Helpers
-import "Constants.js" as Constants
+import "../.."
+import "../Helpers.js" as Helpers
+import "../Constants.js" as Constants
 
 Rectangle {
     id: root

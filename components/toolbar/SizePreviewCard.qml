@@ -3,8 +3,8 @@ import qs.Common
 import qs.Widgets
 import qs.Modals.Common
 import qs.Services
-import "../dms-common"
-import "Constants.js" as Constants
+import "../../dms-common"
+import "../Constants.js" as Constants
 
 Rectangle {
     id: sizePreviewItem
