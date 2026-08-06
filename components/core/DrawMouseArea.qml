@@ -134,6 +134,22 @@ MouseArea {
         }
     }
 
+    /**
+     * Calculates the normalized rectangle covered by a drag.
+     * @param {object} start - Drag start point with x and y properties.
+     * @param {number} x - Current pointer X coordinate.
+     * @param {number} y - Current pointer Y coordinate.
+     * @returns {object} Rectangle with x, y, width and height properties.
+     */
+    function getDragRect(start, x, y) {
+        return {
+            x: Math.min(start.x, x),
+            y: Math.min(start.y, y),
+            width: Math.abs(x - start.x),
+            height: Math.abs(y - start.y)
+        };
+    }
+
     function handleCropPosition(origX, origY) {
         const ox = Helpers.clamp(origX, 0, window.screenshotWidth);
         const oy = Helpers.clamp(origY, 0, window.screenshotHeight);
@@ -143,11 +159,8 @@ MouseArea {
             drawingCanvas.requestPaint();
         }
         if (window.activeHandle === "new") {
-            const x1 = Math.min(window.selectStart.x, ox);
-            const y1 = Math.min(window.selectStart.y, oy);
-            const w = Math.abs(ox - window.selectStart.x);
-            const h = Math.abs(oy - window.selectStart.y);
-            window.cropRect = window.clampCropRect(x1, y1, w, h);
+            const rect = getDragRect(window.selectStart, ox, oy);
+            window.cropRect = window.clampCropRect(rect.x, rect.y, rect.width, rect.height);
             drawingCanvas.requestPaint();
             return;
         }
@@ -194,11 +207,8 @@ MouseArea {
         if (window.activeHandle !== "ocr" && window.activeHandle !== "qr") return;
         const ox = mouse.x / window.editScale;
         const oy = mouse.y / window.editScale;
-        const x1 = Math.min(window.selectStart.x, ox);
-        const y1 = Math.min(window.selectStart.y, oy);
-        const w = Math.abs(ox - window.selectStart.x);
-        const h = Math.abs(oy - window.selectStart.y);
-        window.ocrRect = Qt.rect(x1, y1, w, h);
+        const rect = getDragRect(window.selectStart, ox, oy);
+        window.ocrRect = Qt.rect(rect.x, rect.y, rect.width, rect.height);
         drawingCanvas.requestPaint();
     }
 
