@@ -1,6 +1,16 @@
 .pragma library
 .import "Constants.js" as Constants
 
+/**
+ * Returns the point where a ray from an ellipse center toward a target hits the ellipse edge.
+ * @param {number} cx - Ellipse center X.
+ * @param {number} cy - Ellipse center Y.
+ * @param {number} rx - Ellipse X radius.
+ * @param {number} ry - Ellipse Y radius.
+ * @param {number} tx - Target X.
+ * @param {number} ty - Target Y.
+ * @returns {object} Edge point { x, y }.
+ */
 function ellipseEdgePoint(cx, cy, rx, ry, tx, ty) {
     const dx = tx - cx;
     const dy = ty - cy;
@@ -9,6 +19,12 @@ function ellipseEdgePoint(cx, cy, rx, ry, tx, ty) {
     return { x: cx + rx * Math.cos(angle), y: cy + ry * Math.sin(angle) };
 }
 
+/**
+ * Converts a user/theme font family into a safe Canvas font-family token.
+ * Generic families are returned as-is; custom names are quoted and escaped.
+ * @param {string} family - Requested font family.
+ * @returns {string} Canvas-safe font family.
+ */
 function canvasFontFamily(family) {
     const fallback = "sans-serif";
     if (!family) return fallback;
@@ -30,12 +46,24 @@ function canvasFontFamily(family) {
     return `"${normalized.replace(/"/g, "\\\"")}"`;
 }
 
+/**
+ * Resolves the font family used by a text stroke.
+ * @param {object} stroke - Text stroke data.
+ * @param {object} Theme - The Theme object.
+ * @returns {string} Canvas-safe font family.
+ */
 function textFontFamily(stroke, Theme) {
     const systemFamily = (typeof Theme !== "undefined" && Theme.fontFamily) ? Theme.fontFamily : "sans-serif";
     const family = (stroke.fontFamily && stroke.fontFamily !== "system") ? stroke.fontFamily : systemFamily;
     return canvasFontFamily(family);
 }
 
+/**
+ * Applies font and text alignment settings for rendering or measuring a text stroke.
+ * @param {object} ctx - The Canvas 2D context.
+ * @param {object} stroke - Text stroke data.
+ * @param {object} Theme - The Theme object.
+ */
 function configureTextContext(ctx, stroke, Theme) {
     let style = "";
     if (stroke.isItalic) style += "italic ";
@@ -75,6 +103,10 @@ function handleColors(Theme) {
 /**
  * Measures the same multiline text layout used by drawStroke(). Width comes
  * from Canvas and vertical bounds come from the renderer's line boxes.
+ * @param {object} ctx - The Canvas 2D context.
+ * @param {object} stroke - Text stroke data.
+ * @param {object} Theme - The Theme object.
+ * @returns {object|null} Text bounds and line metrics, or null when unavailable.
  */
 function measureTextLayout(ctx, stroke, Theme) {
     if (!ctx || !stroke || !stroke.points || stroke.points.length === 0) return null;
@@ -214,6 +246,14 @@ function drawSpotlightOverlay(ctx, spotlights, config) {
     ctx.restore();
 }
 
+/**
+ * Creates an ellipse path on the current context.
+ * @param {object} ctx - The Canvas 2D context.
+ * @param {number} cx - Ellipse center X.
+ * @param {number} cy - Ellipse center Y.
+ * @param {number} rx - Ellipse X radius.
+ * @param {number} ry - Ellipse Y radius.
+ */
 function drawEllipsePath(ctx, cx, cy, rx, ry) {
     ctx.save();
     ctx.translate(cx, cy);
@@ -1175,8 +1215,8 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
 }
 
 /**
- * Draws resize handles for a selected stroke in select mode.
- * 8-point handles for shapes, 2-point handles for lines.
+ * Draws selection outlines and edit handles for a selected stroke in select mode.
+ * Shape resize handles are square; endpoint/control-point handles are circular.
  * @param {object} ctx - The Canvas 2D context.
  * @param {object} stroke - The selected stroke data object.
  * @param {object} Theme - The Theme object.
@@ -1523,7 +1563,6 @@ function drawSelectionOverlay(ctx, options, Theme) {
 
 /**
  * Draws the watermark overlay.
-
  * @param {object} ctx - The Canvas 2D context.
  * @param {object} options - Watermark options and dimensions.
  * @param {object} config - Format helper.
