@@ -229,7 +229,7 @@ DankModal {
         const parsed = parseInt(value, 10);
         const fallback = meta.defaultValue;
         const nextValue = isNaN(parsed) ? fallback : parsed;
-        return Math.max(meta.min, Math.min(meta.max, nextValue));
+        return Helpers.clamp(nextValue, meta.min, meta.max);
     }
 
     function configuredToolIntensity(tool) {
@@ -549,7 +549,7 @@ DankModal {
     }
 
     function setBackgroundImageDimStrength(value, persist) {
-        window.backgroundImageDimStrength = Math.max(0, Math.min(80, Math.round(value)));
+        window.backgroundImageDimStrength = Helpers.clamp(Math.round(value), 0, 80);
         if (persist) window.savePluginData("backgroundImageDimStrength", window.backgroundImageDimStrength);
     }
 
@@ -661,7 +661,7 @@ DankModal {
 
     function updateActiveIntensity(val) {
         const meta = Constants.getToolMeta(effectiveTool);
-        const clamped = Math.max(meta.min, Math.min(meta.max, val));
+        const clamped = Helpers.clamp(val, meta.min, meta.max);
 
         window.updateSessionToolIntensity(effectiveTool, clamped);
 
@@ -2453,12 +2453,12 @@ DankModal {
 
     function clampedTypingCursorIndex() {
         const txt = window.currentTypingText || "";
-        return Math.max(0, Math.min(txt.length, window.typingCursorIndex));
+        return Helpers.clamp(window.typingCursorIndex, 0, txt.length);
     }
 
     function setTypingText(text, cursorIndex) {
         window.currentTypingText = text;
-        window.typingCursorIndex = Math.max(0, Math.min(text.length, cursorIndex));
+        window.typingCursorIndex = Helpers.clamp(cursorIndex, 0, text.length);
         window.repaintActiveCanvas();
     }
 
@@ -2470,7 +2470,7 @@ DankModal {
 
     function moveTypingCursor(delta) {
         const len = window.currentTypingText.length;
-        window.typingCursorIndex = Math.max(0, Math.min(len, window.typingCursorIndex + delta));
+        window.typingCursorIndex = Helpers.clamp(window.typingCursorIndex + delta, 0, len);
         window.repaintActiveCanvas();
     }
 
@@ -3381,19 +3381,19 @@ DankModal {
     function handleBackgroundControlWheel(type, delta) {
         const step = delta > 0 ? 5 : -5;
         if (type === "padding") {
-            window.backgroundPadding = Math.max(10, Math.min(150, window.backgroundPadding + step));
+            window.backgroundPadding = Helpers.clamp(window.backgroundPadding + step, 10, 150);
         } else if (type === "radius") {
             const rStep = delta > 0 ? 2 : -2;
-            window.backgroundCornerRadius = Math.max(0, Math.min(60, window.backgroundCornerRadius + rStep));
+            window.backgroundCornerRadius = Helpers.clamp(window.backgroundCornerRadius + rStep, 0, 60);
         } else if (type === "shadow") {
-            window.backgroundShadowStrength = Math.max(0, Math.min(100, window.backgroundShadowStrength + step));
+            window.backgroundShadowStrength = Helpers.clamp(window.backgroundShadowStrength + step, 0, 100);
         } else if (type === "angle") {
             const aStep = delta > 0 ? 15 : -15;
             window.backgroundGradientAngle = (window.backgroundGradientAngle + aStep + 360) % 360;
         } else if (type === "aspectRatio" && window.backgroundAspectRatio === "custom") {
             const ratioStep = delta > 0 ? 5 : -5;
             const scaled = Math.round(window.customAspectRatio * 100) + ratioStep;
-            window.customAspectRatio = Math.max(50, Math.min(250, scaled)) / 100.0;
+            window.customAspectRatio = Helpers.clamp(scaled, 50, 250) / 100.0;
         } else if (type === "imageDim" && window.backgroundImageDim) {
             window.setBackgroundImageDimStrength(window.backgroundImageDimStrength + step, true);
         }
@@ -3935,7 +3935,7 @@ DankModal {
                         window.currentTool = preset.tool;
                         window.currentColor = preset.color;
                         const meta = Constants.getToolMeta(preset.tool);
-                        const clamped = Math.max(meta.min, Math.min(meta.max, preset.thickness));
+                        const clamped = Helpers.clamp(preset.thickness, meta.min, meta.max);
                         window.applyToolIntensity(preset.tool, clamped);
                         window.updateSessionToolIntensity(preset.tool, clamped);
                         window.recordPresetUsage(preset);
