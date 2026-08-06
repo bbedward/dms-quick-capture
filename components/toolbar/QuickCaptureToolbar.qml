@@ -4,6 +4,8 @@ import qs.Common
 import qs.Widgets
 import ".."
 import "../.."
+import "../background"
+import "../popovers"
 import "../Helpers.js" as Helpers
 import "../Constants.js" as Constants
 

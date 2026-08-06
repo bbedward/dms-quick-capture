@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.Widgets
-import "Constants.js" as Constants
+import "../Constants.js" as Constants
 
 Item {
     id: root
