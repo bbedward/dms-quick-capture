@@ -1,5 +1,4 @@
 import "./dms-common"
-import "./components"
 import "./components/floating"
 import "./components/history"
 import QtQuick

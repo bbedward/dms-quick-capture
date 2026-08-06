@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Common
 import Quickshell
-import "components/Helpers.js" as Helpers
+import "components/core/Helpers.js" as Helpers
 
 QtObject {
     property var pluginData: ({})

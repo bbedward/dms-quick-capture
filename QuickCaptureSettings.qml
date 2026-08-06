@@ -1,5 +1,5 @@
 import "./dms-common"
-import "components/Constants.js" as Constants
+import "components/core/Constants.js" as Constants
 import QtQuick
 import Quickshell
 import qs.Common

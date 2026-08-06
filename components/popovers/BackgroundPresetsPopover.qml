@@ -2,7 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import qs.Common
 import qs.Widgets
-import "../Constants.js" as Constants
+import "../core/Constants.js" as Constants
 
 Rectangle {
     id: popoverRoot

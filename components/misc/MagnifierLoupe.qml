@@ -5,7 +5,7 @@ import qs.Widgets
 import qs.Modals.Common
 import qs.Services
 import "../../dms-common"
-import "../Constants.js" as Constants
+import "../core/Constants.js" as Constants
 
 Rectangle {
     id: magnifier

@@ -1,6 +1,6 @@
 import QtQuick
 import qs.Common
-import "../Constants.js" as Constants
+import "../core/Constants.js" as Constants
 
 Rectangle {
     id: root

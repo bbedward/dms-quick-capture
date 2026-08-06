@@ -1,6 +1,6 @@
 import QtQuick
 import qs.Common
-import "../../Helpers.js" as Helpers
+import "../../core/Helpers.js" as Helpers
 
 Rectangle {
     id: root

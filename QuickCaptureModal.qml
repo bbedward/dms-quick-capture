@@ -8,14 +8,14 @@ import qs.Widgets
 import qs.Modals.Common
 import qs.Services
 import "./dms-common"
-import "components"
+import "components/core"
 import "components/misc"
 import "components/popovers"
 import "components/toolbar"
 import "components/toolbar/options"
-import "components/Helpers.js" as Helpers
-import "components/DrawingRenderer.js" as DrawingRenderer
-import "components/Constants.js" as Constants
+import "components/core/Helpers.js" as Helpers
+import "components/core/DrawingRenderer.js" as DrawingRenderer
+import "components/core/Constants.js" as Constants
 
 DankModal {
     id: window
