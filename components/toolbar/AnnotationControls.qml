@@ -13,12 +13,12 @@ Item {
     signal toolSelected(string tool)
     signal annotationsToggled()
 
-    width: compact ? Constants.btnSize : content.implicitWidth
-    height: compact ? content.implicitHeight : Constants.btnSize
+    width: content.implicitWidth
+    height: content.implicitHeight
 
-    Flow {
+    Grid {
         id: content
-        width: control.compact ? Constants.btnSize : implicitWidth
+        columns: control.compact ? 1 : 3
         spacing: Theme.spacingXS
         anchors.centerIn: parent
 
