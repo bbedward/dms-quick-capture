@@ -1205,10 +1205,11 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
         if (stroke.points.length < 2) return;
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        const x1 = Math.min(p0.x, p1.x);
-        const y1 = Math.min(p0.y, p1.y);
-        const rw = Math.abs(p1.x - p0.x);
-        const rh = Math.abs(p1.y - p0.y);
+        const bounds = Helpers.getRectBounds(p0, p1);
+        const x1 = bounds.x1;
+        const y1 = bounds.y1;
+        const rw = bounds.x2 - bounds.x1;
+        const rh = bounds.y2 - bounds.y1;
         const x2 = x1 + rw;
         const y2 = y1 + rh;
         const cx = (x1 + x2) / 2;
@@ -1239,10 +1240,11 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
         if (stroke.points.length < 2) return;
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        const x1 = Math.min(p0.x, p1.x);
-        const y1 = Math.min(p0.y, p1.y);
-        const x2 = Math.max(p0.x, p1.x);
-        const y2 = Math.max(p0.y, p1.y);
+        const bounds = Helpers.getRectBounds(p0, p1);
+        const x1 = bounds.x1;
+        const y1 = bounds.y1;
+        const x2 = bounds.x2;
+        const y2 = bounds.y2;
         const cx = (x1 + x2) / 2;
         const cy = (y1 + y2) / 2;
 
@@ -1375,10 +1377,11 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
     if (stroke.tool === "callout" && stroke.points.length === 4) {
         const p0 = stroke.points[0];
         const p1 = stroke.points[1];
-        const x1 = Math.min(p0.x, p1.x);
-        const y1 = Math.min(p0.y, p1.y);
-        const x2 = Math.max(p0.x, p1.x);
-        const y2 = Math.max(p0.y, p1.y);
+        const bounds = Helpers.getRectBounds(p0, p1);
+        const x1 = bounds.x1;
+        const y1 = bounds.y1;
+        const x2 = bounds.x2;
+        const y2 = bounds.y2;
         const cx = (x1 + x2) / 2;
         const cy = (y1 + y2) / 2;
         const sw = x2 - x1;
