@@ -511,6 +511,7 @@ Rectangle {
                 iconName: "arrow_back"
                 buttonSize: Constants.btnSize
                 iconSize: Constants.iconSize
+                anchors.horizontalCenter: parent.horizontalCenter
                 tooltipText: I18n.tr("Back to Annotation (B)")
                 onClicked: root.toolSelected("back")
             }
