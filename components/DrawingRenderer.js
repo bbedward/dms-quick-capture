@@ -333,32 +333,6 @@ function drawHandlePoints(ctx, points, hh, hs, Theme) {
 }
 
 /**
- * Draws circular endpoint/control-point handles with contrast halo and accent stroke.
- * @param {object} ctx - The Canvas 2D context.
- * @param {Array} points - Array of {x, y} control point positions.
- * @param {number} hh - Handle radius.
- * @param {object} Theme - The Theme object.
- */
-function drawControlPoints(ctx, points, hh, Theme) {
-    const colors = handleColors(Theme);
-    for (let p of points) {
-        ctx.fillStyle = colors.fill;
-        ctx.strokeStyle = colors.halo;
-        ctx.lineWidth = 3;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, hh, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-        ctx.strokeStyle = colors.accent;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, hh, 0, 2 * Math.PI);
-        ctx.fill();
-        ctx.stroke();
-    }
-}
-
-/**
  * Draws a single stroke (annotation) onto the provided context.
  * @param {object} ctx - The Canvas 2D context.
  * @param {object} stroke - The stroke data object.
@@ -1216,7 +1190,7 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
 
 /**
  * Draws selection outlines and edit handles for a selected stroke in select mode.
- * Shape resize handles are square; endpoint/control-point handles are circular.
+ * Shape resize handles and endpoint/control-point handles are square.
  * @param {object} ctx - The Canvas 2D context.
  * @param {object} stroke - The selected stroke data object.
  * @param {object} Theme - The Theme object.
@@ -1306,7 +1280,7 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
             ctx.restore();
         }
 
-        drawControlPoints(ctx, [p0, p1], hh, Theme);
+        drawHandlePoints(ctx, [p0, p1], hh, hs, Theme);
         return;
     }
 
@@ -1369,7 +1343,7 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
                 x: stampPt.x - radius,
                 y: stampPt.y - radius
             };
-            drawControlPoints(ctx, [anchorPt, stampHandlePt], hh, Theme);
+            drawHandlePoints(ctx, [anchorPt, stampHandlePt], hh, hs, Theme);
         }
 
         return;
@@ -1390,7 +1364,7 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
             ctx.stroke();
             ctx.restore();
 
-            drawControlPoints(ctx, [p0, p1], hh, Theme);
+            drawHandlePoints(ctx, [p0, p1], hh, hs, Theme);
             return;
         }
 
