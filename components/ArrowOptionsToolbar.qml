@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Common
 import "Constants.js" as Constants
-import "Helpers.js" as Helpers
 
 Item {
     id: root
@@ -58,18 +57,11 @@ Item {
         }
     }
 
-    Rectangle {
+    OptionToolbarPanel {
         id: menuContent
+        popupRoot: root
         width: contentColumn.implicitWidth + Theme.spacingM * 2
         height: contentColumn.implicitHeight + Theme.spacingM * 2
-        x: Helpers.popoverX(root.width, width, root.menuX)
-        y: Helpers.popoverY(root.height, height, root.menuY, root.toolbarPosition)
-        scale: 0.95
-
-        color: Theme.surfaceContainer
-        border.color: Theme.withAlpha(Theme.outline, 0.15)
-        border.width: 1
-        radius: Theme.cornerRadius
         
         Column {
             id: contentColumn
