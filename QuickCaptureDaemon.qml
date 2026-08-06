@@ -1,5 +1,7 @@
 import "./dms-common"
 import "./components"
+import "./components/floating"
+import "./components/history"
 import QtQuick
 import QtQuick.Controls
 import Quickshell

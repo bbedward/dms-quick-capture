@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Common
 import qs.Widgets
-import ".."
+import "../.."
 
 Item {
     id: root

@@ -9,6 +9,7 @@ import qs.Modals.Common
 import qs.Services
 import "./dms-common"
 import "components"
+import "components/misc"
 import "components/Helpers.js" as Helpers
 import "components/DrawingRenderer.js" as DrawingRenderer
 import "components/Constants.js" as Constants
