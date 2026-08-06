@@ -165,29 +165,12 @@ Rectangle {
             id: horizontalItems
             spacing: Theme.spacingL
             
-            // Left Group
-            Row {
-                spacing: Theme.spacingXS; anchors.verticalCenter: parent.verticalCenter
-                DankActionButton {
-                    iconName: "near_me"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Select (Tab)"
-                    backgroundColor: root.currentTool === "select" ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                    iconColor: root.currentTool === "select" ? Theme.primary : Theme.surfaceText
-                    onClicked: root.toolSelected("select")
-                }
-                DankActionButton {
-                    iconName: root.showAnnotations ? "visibility" : "visibility_off"
-                    buttonSize: Constants.btnSize; iconSize: Constants.iconSize
-                    tooltipText: root.showAnnotations ? "Hide Annotations (X)" : "Show Annotations (X)"
-                    iconColor: root.showAnnotations ? Theme.primary : Theme.surfaceText
-                    backgroundColor: "transparent"
-                    onClicked: root.annotationsToggled()
-                }
-                DankActionButton {
-                    iconName: "crop"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Crop (Ctrl+X)"
-                    backgroundColor: root.currentTool === "crop" ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                    iconColor: root.currentTool === "crop" ? Theme.primary : Theme.surfaceText
-                    onClicked: root.toolSelected("crop")
-                }
+            AnnotationControls {
+                anchors.verticalCenter: parent.verticalCenter
+                currentTool: root.currentTool
+                showAnnotations: root.showAnnotations
+                onToolSelected: (tool) => root.toolSelected(tool)
+                onAnnotationsToggled: root.annotationsToggled()
             }
 
             ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
@@ -328,28 +311,13 @@ Rectangle {
             id: verticalItems
             spacing: Theme.spacingL
             
-            Column {
-                spacing: Theme.spacingXS; anchors.horizontalCenter: parent.horizontalCenter
-                DankActionButton {
-                    iconName: "near_me"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Select (Tab)"
-                    backgroundColor: root.currentTool === "select" ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                    iconColor: root.currentTool === "select" ? Theme.primary : Theme.surfaceText
-                    onClicked: root.toolSelected("select")
-                }
-                DankActionButton {
-                    iconName: root.showAnnotations ? "visibility" : "visibility_off"
-                    buttonSize: Constants.btnSize; iconSize: Constants.iconSize
-                    tooltipText: root.showAnnotations ? "Hide Annotations (X)" : "Show Annotations (X)"
-                    iconColor: root.showAnnotations ? Theme.primary : Theme.surfaceText
-                    backgroundColor: "transparent"
-                    onClicked: root.annotationsToggled()
-                }
-                DankActionButton {
-                    iconName: "crop"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Crop (Ctrl+X)"
-                    backgroundColor: root.currentTool === "crop" ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                    iconColor: root.currentTool === "crop" ? Theme.primary : Theme.surfaceText
-                    onClicked: root.toolSelected("crop")
-                }
+            AnnotationControls {
+                anchors.horizontalCenter: parent.horizontalCenter
+                compact: true
+                currentTool: root.currentTool
+                showAnnotations: root.showAnnotations
+                onToolSelected: (tool) => root.toolSelected(tool)
+                onAnnotationsToggled: root.annotationsToggled()
             }
 
             ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
