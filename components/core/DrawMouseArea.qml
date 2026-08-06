@@ -380,6 +380,18 @@ MouseArea {
         drawingCanvas.requestPaint();
     }
 
+    /**
+     * Returns the wheel-step multiplier for a tool's intensity setting.
+     * @param {string} tool - Active tool name.
+     * @returns {number} Intensity multiplier.
+     */
+    function getIntensityMultiplier(tool) {
+        if (tool === "text" || tool === "pixelate") return 2;
+        if (tool === "spotlight") return 5;
+        if (tool === "callout") return 10;
+        return 1;
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -784,10 +796,7 @@ MouseArea {
 
           if (window.pastePreviewActive) {
               const tool = window.effectiveTool;
-              let multiplier = 1;
-              if (tool === "text" || tool === "pixelate") multiplier = 2;
-              else if (tool === "spotlight") multiplier = 5;
-              else if (tool === "callout") multiplier = 10;
+              const multiplier = getIntensityMultiplier(tool);
 
               window.updateActiveIntensity(window.activeIntensity + (step * multiplier));
               window.previewX = wheel.x;
@@ -843,10 +852,7 @@ MouseArea {
           }
  
           const tool = window.effectiveTool;
-          let multiplier = 1;
-          if (tool === "text" || tool === "pixelate") multiplier = 2;
-          else if (tool === "spotlight") multiplier = 5;
-          else if (tool === "callout") multiplier = 10;
+          const multiplier = getIntensityMultiplier(tool);
  
           window.updateActiveIntensity(window.activeIntensity + (step * multiplier));
  
