@@ -1,5 +1,6 @@
 import "./dms-common"
 import "components/core/Constants.js" as Constants
+import "components/core/Helpers.js" as Helpers
 import QtQuick
 import Quickshell
 import qs.Common
@@ -339,7 +340,7 @@ PluginSettings {
                             anchors.centerIn: parent
                             name: "check"
                             size: 14
-                            color: (parent.color.r * 0.299 + parent.color.g * 0.587 + parent.color.b * 0.114) > 0.6 ? "#000000" : "#ffffff"
+                            color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
                             visible: parent.isSelected
                         }
 
@@ -388,7 +389,7 @@ PluginSettings {
                         size: 14
                         color: {
                             if (!parent.isSelected) return Theme.surfaceText;
-                            return (parent.color.r * 0.299 + parent.color.g * 0.587 + parent.color.b * 0.114) > 0.6 ? "#000000" : "#ffffff";
+                            return Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff";
                         }
                     }
 
@@ -422,7 +423,7 @@ PluginSettings {
                         font.pixelSize: Theme.fontSizeSmall - 1
                         font.weight: Font.Bold
                         isMonospace: true
-                        color: (parent.color.r * 0.299 + parent.color.g * 0.587 + parent.color.b * 0.114) > 0.6 ? "#000000" : "#ffffff"
+                        color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
                     }
 
                     MouseArea {
@@ -3067,7 +3068,7 @@ PluginSettings {
                                         anchors.centerIn: parent
                                         name: "check"
                                         size: 14
-                                        color: (parent.color.r * 0.299 + parent.color.g * 0.587 + parent.color.b * 0.114) > 0.6 ? "#000000" : "#ffffff"
+                                        color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
                                         visible: parent.isSelected
                                     }
 
@@ -3118,7 +3119,7 @@ PluginSettings {
                                     size: 14
                                     color: {
                                         if (!parent.isSelected) return Theme.surfaceText;
-                                        return (parent.color.r * 0.299 + parent.color.g * 0.587 + parent.color.b * 0.114) > 0.6 ? "#000000" : "#ffffff";
+                                        return Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff";
                                     }
                                 }
 
@@ -3154,7 +3155,7 @@ PluginSettings {
                                     font.pixelSize: Theme.fontSizeSmall - 1
                                     font.weight: Font.Bold
                                     isMonospace: true
-                                    color: (parent.color.r * 0.299 + parent.color.g * 0.587 + parent.color.b * 0.114) > 0.6 ? "#000000" : "#ffffff"
+                                    color: Helpers.getLuminance(parent.color) > 0.6 ? "#000000" : "#ffffff"
                                 }
 
                                 MouseArea {

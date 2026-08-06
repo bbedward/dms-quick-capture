@@ -312,13 +312,13 @@ function extractDominantColors(imgData, Qt) {
         const pr = imgData.data[i * 4] / 255;
         const pg = imgData.data[i * 4 + 1] / 255;
         const pb = imgData.data[i * 4 + 2] / 255;
-        imgLuminance += (0.299 * pr + 0.587 * pg + 0.114 * pb);
+        imgLuminance += getLuminance({ r: pr, g: pg, b: pb });
     }
     imgLuminance /= 16;
 
     // Helper to adjust color to a specific target luminance
     const adjustToLuminance = (c, targetL) => {
-        const l = 0.299 * c.r + 0.587 * c.g + 0.114 * c.b;
+        const l = getLuminance(c);
         if (Math.abs(l - targetL) < 0.01) return c;
         
         if (targetL < l) {
@@ -333,7 +333,7 @@ function extractDominantColors(imgData, Qt) {
         }
     };
 
-    const lStart = 0.299 * colorStart.r + 0.587 * colorStart.g + 0.114 * colorStart.b;
+    const lStart = getLuminance(colorStart);
     const ratioStart = (Math.max(lStart, imgLuminance) + 0.05) / (Math.min(lStart, imgLuminance) + 0.05);
     
     let finalStart = colorStart;
@@ -356,7 +356,7 @@ function extractDominantColors(imgData, Qt) {
     } else {
         // Start color already has good contrast. Ensure End color also has contrast,
         // and keep a healthy luminance gap between them to ensure gradient visibility.
-        const lEnd = 0.299 * colorEnd.r + 0.587 * colorEnd.g + 0.114 * colorEnd.b;
+        const lEnd = getLuminance(colorEnd);
         const ratioEnd = (Math.max(lEnd, imgLuminance) + 0.05) / (Math.min(lEnd, imgLuminance) + 0.05);
         
         if (ratioEnd < 4.5) {

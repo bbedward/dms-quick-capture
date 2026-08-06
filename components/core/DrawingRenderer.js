@@ -1,4 +1,5 @@
 .pragma library
+.import "Helpers.js" as Helpers
 .import "Constants.js" as Constants
 
 /**
@@ -90,7 +91,7 @@ function handleColors(Theme) {
             accent: accent
         };
     }
-    const luminance = 0.2126 * primary.r + 0.7152 * primary.g + 0.0722 * primary.b;
+    const luminance = Helpers.getLuminance(primary);
     const fill = luminance < 0.5 ? "#ffffff" : "#000000";
     const halo = luminance < 0.5 ? "#000000" : "#ffffff";
     return {
