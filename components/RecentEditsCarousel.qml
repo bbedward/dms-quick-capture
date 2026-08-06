@@ -62,6 +62,20 @@ Item {
             root.previewIndex = root.entries.length - 1
     }
 
+    function goPrevious() {
+        if (root.previewIndex >= 0)
+            root.previewIndex = Math.max(0, root.previewIndex - 1)
+        else
+            root.currentPage = Math.max(0, root.currentPage - 1)
+    }
+
+    function goNext() {
+        if (root.previewIndex >= 0)
+            root.previewIndex = Math.min(root.entries.length - 1, root.previewIndex + 1)
+        else
+            root.currentPage = Math.min(root.totalPages - 1, root.currentPage + 1)
+    }
+
     function formatTimeElapsed(timestamp) {
         if (!timestamp) return ""
         var now = Date.now()
@@ -457,42 +471,22 @@ Item {
     Shortcut {
         sequence: "Left"
         enabled: root.visible && root.entries.length > 0
-        onActivated: {
-            if (root.previewIndex >= 0)
-                root.previewIndex = Math.max(0, root.previewIndex - 1)
-            else
-                root.currentPage = Math.max(0, root.currentPage - 1)
-        }
+        onActivated: root.goPrevious()
     }
     Shortcut {
         sequence: "A"
         enabled: root.visible && root.entries.length > 0
-        onActivated: {
-            if (root.previewIndex >= 0)
-                root.previewIndex = Math.max(0, root.previewIndex - 1)
-            else
-                root.currentPage = Math.max(0, root.currentPage - 1)
-        }
+        onActivated: root.goPrevious()
     }
     Shortcut {
         sequence: "Right"
         enabled: root.visible && root.entries.length > 0
-        onActivated: {
-            if (root.previewIndex >= 0)
-                root.previewIndex = Math.min(root.entries.length - 1, root.previewIndex + 1)
-            else
-                root.currentPage = Math.min(root.totalPages - 1, root.currentPage + 1)
-        }
+        onActivated: root.goNext()
     }
     Shortcut {
         sequence: "D"
         enabled: root.visible && root.entries.length > 0
-        onActivated: {
-            if (root.previewIndex >= 0)
-                root.previewIndex = Math.min(root.entries.length - 1, root.previewIndex + 1)
-            else
-                root.currentPage = Math.min(root.totalPages - 1, root.currentPage + 1)
-        }
+        onActivated: root.goNext()
     }
     Shortcut {
         sequence: "Escape"
