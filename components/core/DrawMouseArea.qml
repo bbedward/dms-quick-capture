@@ -823,14 +823,12 @@ MouseArea {
           if (window.currentTool === "crop") {
               var resizeHandles = ["new", "tl", "tr", "bl", "br", "tc", "bc", "lc", "rc"];
               if (resizeHandles.indexOf(window.activeHandle) >= 0) {
-                 // Check for accidental click (too small) BEFORE clamping
+                 // Ignore accidental clicks and tiny drags without closing the editor.
                  if (Math.min(window.cropRect.width, window.cropRect.height) <= 3) {
-                     if (window.strokes.length === 0) {
-                         window.discardAndClose();
-                     } else {
-                         window.hasSelection = false;
-                         window.cropRect = Qt.rect(0, 0, 0, 0);
-                     }
+                     window.hasSelection = false;
+                     window.cropRect = Qt.rect(0, 0, 0, 0);
+                     window.activeHandle = "none";
+                     drawingCanvas.requestPaint();
                      return;
                  }
                  window.cropRect = window.clampCropRect(window.cropRect.x, window.cropRect.y, window.cropRect.width, window.cropRect.height);
