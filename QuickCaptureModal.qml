@@ -830,11 +830,13 @@ DankModal {
     }
     readonly property real editScale: {
         if (!window.bgImageItem) return 1.0;
-        // When background is active, render at screen resolution for sharp preview
-        if (window.effectiveBackgroundMode !== "none") return Math.max(1e-3, window.fitScale);
         const w = window.bgImageItem.sourceSize.width;
         const h = window.bgImageItem.sourceSize.height;
-        const max = Math.max(w, h);
+        // Background mode can make the logical canvas much larger than the image.
+        // Keep the editor backing canvas bounded while preserving logical/export size.
+        const logicalW = window.effectiveBackgroundMode !== "none" ? window.canvasWidth : w;
+        const logicalH = window.effectiveBackgroundMode !== "none" ? window.canvasHeight : h;
+        const max = Math.max(logicalW, logicalH);
         let baseScale = 1.0;
         if (!(isNaN(max) || max <= 0 || max <= maxEditDimension)) {
             baseScale = maxEditDimension / max;
