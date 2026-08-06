@@ -57,6 +57,20 @@ function getContrastingColor(hex, Qt) {
     return getContrastingColorFromRgb(rgb);
 }
 
+/**
+ * Converts a normalized RGB color object to a six-digit hex string.
+ * @param {object} rgb - RGB color object with channels between 0 and 1.
+ * @param {boolean} uppercase - Whether to uppercase the hex digits.
+ * @returns {string} A six-digit hex color string.
+ */
+function rgbToHex(rgb, uppercase) {
+    const r = Math.round((rgb.r || 0) * 255).toString(16).padStart(2, "0");
+    const g = Math.round((rgb.g || 0) * 255).toString(16).padStart(2, "0");
+    const b = Math.round((rgb.b || 0) * 255).toString(16).padStart(2, "0");
+    const hex = "#" + r + g + b;
+    return uppercase ? hex.toUpperCase() : hex.toLowerCase();
+}
+
 // ─── 2. UI / formatting ───────────────────────────────────────────────────────
 
 /**
@@ -941,10 +955,7 @@ function formatHexColor(color) {
     
     // Otherwise, check if it is a QML color object (has r, g, b)
     if (color && typeof color === "object" && color.r !== undefined) {
-        const r = Math.round((color.r || 0) * 255).toString(16).padStart(2, '0');
-        const g = Math.round((color.g || 0) * 255).toString(16).padStart(2, '0');
-        const b = Math.round((color.b || 0) * 255).toString(16).padStart(2, '0');
-        return ("#" + r + g + b).toUpperCase();
+        return rgbToHex(color, true);
     }
     
     return "#000000";
@@ -960,10 +971,7 @@ function toHex6(c, Qt) {
     if (c === undefined || c === null) return "";
     const col = (typeof c === "string") ? Qt.color(c) : c;
     if (!col) return "";
-    const r = Math.round((col.r || 0) * 255).toString(16).padStart(2, '0');
-    const g = Math.round((col.g || 0) * 255).toString(16).padStart(2, '0');
-    const b = Math.round((col.b || 0) * 255).toString(16).padStart(2, '0');
-    return ("#" + r + g + b).toLowerCase();
+    return rgbToHex(col, false);
 }
 
 /**
