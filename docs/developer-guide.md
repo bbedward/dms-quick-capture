@@ -9,26 +9,14 @@ Welcome to the Quick Capture contributor guide. This document covers the actual 
 ```
 dms-quick-capture/
 ├── components/
-│   ├── Constants.js                 # All shared constants, ToolMetadata, default values
-│   ├── Helpers.js                   # Pure utility functions (color, geometry, hit-testing, export)
-│   ├── DrawingRenderer.js           # All Canvas 2D drawing logic — drawStroke(), drawSelectionHandles(), etc.
-│   ├── DrawMouseArea.qml            # All mouse/touch input handling for the canvas
-│   ├── QuickCaptureToolbar.qml      # Main toolbar (tool buttons, color swatches, slider)
-│   ├── QuickCaptureActions.qml      # Export pipeline (save, copy, float, notifications)
-│   ├── RadialMenu.qml               # Right-click preset pie menu
-│   ├── MagnifierLoupe.qml           # G-key loupe overlay
-│   ├── SizePreviewCard.qml          # Hover size preview badge
-│   ├── FloatService.qml             # Manages always-on-top float windows
-│   ├── FloatWindow.qml              # A single float window instance
-│   ├── RecentEditsCarousel.qml      # History carousel overlay
-│   ├── MoreToolsMenu.qml            # Secondary actions menu (rotate, mirror, OCR, QR)
-│   ├── TextInputDialog.qml          # Inline text editing dialog
-│   ├── BackgroundPresetsPopover.qml   # Background preset picker
-│   ├── BackgroundModeSelectors.qml    # Background mode toggle buttons
-│   ├── BackgroundColorSelectors.qml   # Background color pickers
-│   ├── BackgroundAspectRatioPopover.qml
-│   ├── *OptionsToolbar.qml          # Per-tool sub-toolbars (Arrow, Line, Text, Stamp, Redact, Callout)
-│   └── AlignmentControl.qml / AspectRatioControl.qml / HoverSliderPopover.qml
+│   ├── core/                        # Canvas, render, export, constants, helpers
+│   ├── toolbar/                     # Main toolbar and reusable toolbar controls
+│   │   └── options/                 # Per-tool sub-toolbars
+│   ├── background/                  # Background mode controls
+│   ├── popovers/                    # Floating menus, sliders, dialogs
+│   ├── floating/                    # Float window service and window instance
+│   ├── history/                     # Recent edits carousel
+│   └── misc/                        # Radial menu, magnifier, warning dialog
 ├── dms-common/                      # Shared DMS UI primitives (sliders, toggles, settings cards)
 ├── docs/                            # Documentation
 ├── scripts/                         # Dev utilities (palette generator, i18n extractor)
@@ -48,17 +36,17 @@ dms-quick-capture/
 | What you want to change | Where to look |
 |---|---|
 | Add/rename a tool | `CaptureConfig.qml` → `toolButtons` array |
-| Tool slider range / step / unit | `components/Constants.js` → `ToolMetadata` |
+| Tool slider range / step / unit | `components/core/Constants.js` → `ToolMetadata` |
 | Add a keyboard shortcut | `CaptureConfig.qml` → shortcut table + `QuickCaptureModal.qml` → `handleShortcutKey()` |
-| Drawing logic for a tool | `components/DrawingRenderer.js` → `drawStroke()` |
-| Mouse press/drag/release behavior | `components/DrawMouseArea.qml` |
-| Hit-testing / selection geometry | `components/Helpers.js` → `findStrokeAt()`, `getStrokeHandleAt()` |
-| Stroke bounding box | `components/Helpers.js` → `getStrokeBBox()` |
-| Export / copy / save pipeline | `components/QuickCaptureActions.qml` |
-| Color utilities | `components/Helpers.js` → `formatHexColor()`, `colorEquals()`, `getContrastingColor()` |
-| Shared layout/sizing constants | `components/Constants.js` |
-| Add a toolbar button | `components/QuickCaptureToolbar.qml` |
-| Per-tool sub-toolbar (options) | `components/*OptionsToolbar.qml` |
+| Drawing logic for a tool | `components/core/DrawingRenderer.js` → `drawStroke()` |
+| Mouse press/drag/release behavior | `components/core/DrawMouseArea.qml` |
+| Hit-testing / selection geometry | `components/core/Helpers.js` → `findStrokeAt()`, `getStrokeHandleAt()` |
+| Stroke bounding box | `components/core/Helpers.js` → `getStrokeBBox()` |
+| Export / copy / save pipeline | `components/core/QuickCaptureActions.qml` |
+| Color utilities | `components/core/Helpers.js` → `formatHexColor()`, `colorEquals()`, `getContrastingColor()` |
+| Shared layout/sizing constants | `components/core/Constants.js` |
+| Add a toolbar button | `components/toolbar/QuickCaptureToolbar.qml` |
+| Per-tool sub-toolbar (options) | `components/toolbar/options/*OptionsToolbar.qml` |
 | i18n string | `CaptureConfig.qml` or component → wrap with `I18n.tr(...)` |
 
 ---
@@ -129,7 +117,7 @@ Add an entry to the `toolButtons` array. The `id` is the string used everywhere 
 Every tool that has a thickness/intensity slider needs an entry in `ToolMetadata`. If your tool reuses an existing behavior (e.g. thickness like a pen), copy an existing entry:
 
 ```js
-// components/Constants.js — ToolMetadata object
+// components/core/Constants.js — ToolMetadata object
 double_arrow: { min: 1, max: 50, step: 1, unit: "px", defaultValue: 8, label: "Thickness", previewType: "thickness" },
 ```
 
@@ -138,7 +126,7 @@ double_arrow: { min: 1, max: 50, step: 1, unit: "px", defaultValue: 8, label: "T
 Inside `drawStroke()`, add a new `else if` branch for your tool. The function receives `ctx` (Canvas 2D context), `stroke` (the stroke data object), and a `config` object with all render-time state:
 
 ```js
-// components/DrawingRenderer.js — inside drawStroke()
+// components/core/DrawingRenderer.js — inside drawStroke()
 } else if (stroke.tool === "double_arrow") {
     // stroke.points[0] = start, stroke.points[last] = end
     const p0 = stroke.points[0];
@@ -165,7 +153,7 @@ Also add your tool's ID to the `effectiveTool` computed property guard in `Quick
 For the Select tool to work with your new stroke, add a branch in `getStrokeBBox()` and `findStrokeAt()` so the user can click and select it:
 
 ```js
-// components/Helpers.js — inside getStrokeBBox()
+// components/core/Helpers.js — inside getStrokeBBox()
 if (stroke.tool === "double_arrow") {
     // same as arrow bounding box
     return getArrowBBox(stroke);
@@ -178,7 +166,7 @@ Find the tools section in the toolbar and add a `DankActionButton`. The toolbar 
 
 ### Step 7 — (Optional) Add a per-tool options sub-toolbar
 
-If your tool has style variants (e.g. dashed/dotted, head shapes), create a new `components/YourToolOptionsToolbar.qml` following the pattern of `ArrowOptionsToolbar.qml`. Mount it in `QuickCaptureToolbar.qml` and show/hide it based on `effectiveTool`.
+If your tool has style variants (e.g. dashed/dotted, head shapes), create a new `components/toolbar/options/YourToolOptionsToolbar.qml` following the pattern of `ArrowOptionsToolbar.qml`. Mount it in `QuickCaptureToolbar.qml` and show/hide it based on `effectiveTool`.
 
 ---
 

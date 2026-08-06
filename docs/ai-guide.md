@@ -21,10 +21,10 @@ DMS Quick Capture is an interactive vector annotation and screenshot utility for
 | [QuickCaptureDaemon.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureDaemon.qml) | Background daemon | Listens to IPC requests, triggers screenshot portal capture, saves background configs. |
 | [QuickCaptureSettings.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/QuickCaptureSettings.qml) | Settings Panel UI | Visual settings for brushes, watermarks, radial menus, and preset bindings. |
 | [CaptureConfig.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/CaptureConfig.qml) | Configuration model | Defines tool properties, keyboard shortcuts, color palette mappings, watermark templates. |
-| [components/QuickCaptureActions.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/QuickCaptureActions.qml) | Export action processor | Coordinates file saving, clipboard copy, desktop floating, and system notifications. |
-| [components/QuickCaptureToolbar.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/QuickCaptureToolbar.qml) | Editor toolbar card | Layout buttons for selected drawing tools, colors, sliders. Supports vertical/horizontal views. |
-| [components/MoreToolsMenu.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/MoreToolsMenu.qml) | Secondary actions menu | Provides quick controls for Rotate and Mirror operations. |
-| [components/RadialMenu.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/RadialMenu.qml) | Pie preset menu | Canvas right-click menu to instantly switch drawing style presets. |
+| [components/core/QuickCaptureActions.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/core/QuickCaptureActions.qml) | Export action processor | Coordinates file saving, clipboard copy, desktop floating, and system notifications. |
+| [components/toolbar/QuickCaptureToolbar.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/toolbar/QuickCaptureToolbar.qml) | Editor toolbar card | Layout buttons for selected drawing tools, colors, sliders. Supports vertical/horizontal views. |
+| [components/popovers/MoreToolsMenu.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/popovers/MoreToolsMenu.qml) | Secondary actions menu | Provides quick controls for Rotate and Mirror operations. |
+| [components/misc/RadialMenu.qml](file:///home/loccun/Documents/GitHub/dms-quick-capture/components/misc/RadialMenu.qml) | Pie preset menu | Canvas right-click menu to instantly switch drawing style presets. |
 
 ---
 
