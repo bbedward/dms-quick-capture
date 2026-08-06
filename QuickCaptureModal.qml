@@ -1309,13 +1309,21 @@ DankModal {
         window.toolbarVisible = window.configShowToolbar;
     }
 
-    function rotateScreenshot(direction) {
-        const isLeft = (direction === "left");
+    function getUncroppedImageSize() {
         const rawW = window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
         const rawH = window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
         const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
-        const uncroppedW = isRotated90 ? rawH : rawW;
-        const uncroppedH = isRotated90 ? rawW : rawH;
+        return {
+            width: isRotated90 ? rawH : rawW,
+            height: isRotated90 ? rawW : rawH
+        };
+    }
+
+    function rotateScreenshot(direction) {
+        const isLeft = (direction === "left");
+        const imageSize = window.getUncroppedImageSize();
+        const uncroppedW = imageSize.width;
+        const uncroppedH = imageSize.height;
 
         if (window.hasSelection) {
             const cx = window.cropRect.x;
@@ -1345,11 +1353,9 @@ DankModal {
 
     function mirrorScreenshot(direction) {
         const isVertical = (direction === "vertical" || direction === "v");
-        const rawW = window.bgImageItem ? window.bgImageItem.sourceSize.width : 1;
-        const rawH = window.bgImageItem ? window.bgImageItem.sourceSize.height : 1;
-        const isRotated90 = (window.bgRotation === 90 || window.bgRotation === 270);
-        const uncroppedW = isRotated90 ? rawH : rawW;
-        const uncroppedH = isRotated90 ? rawW : rawH;
+        const imageSize = window.getUncroppedImageSize();
+        const uncroppedW = imageSize.width;
+        const uncroppedH = imageSize.height;
 
         if (window.hasSelection) {
             const cx = window.cropRect.x;
