@@ -2637,7 +2637,7 @@ DankModal {
                 window.repaintActiveCanvas();
                 return window.acceptKeyEvent(event);
             }
-            if (window.currentTool === "crop" || window.hasSelection) {
+            if (window.currentTool === "crop") {
                 window.hasSelection = false;
                 window.cropRect = Qt.rect(0, 0, 0, 0);
                 window.activeHandle = "none";
