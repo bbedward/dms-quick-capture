@@ -21,6 +21,38 @@ function ellipseEdgePoint(cx, cy, rx, ry, tx, ty) {
 }
 
 /**
+ * Calculates the shared stamp leader geometry at the circle edge.
+ * @param {object} stampPt - Stamp center point.
+ * @param {object} leaderPt - Leader anchor point.
+ * @param {number} radius - Stamp circle radius.
+ * @param {number} baseHalfWidth - Half-width of the leader base.
+ * @returns {object|null} Unit vector, edge point and leader base points.
+ */
+function stampTailGeometry(stampPt, leaderPt, radius, baseHalfWidth) {
+    const dx = leaderPt.x - stampPt.x;
+    const dy = leaderPt.y - stampPt.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance <= 0.001) return null;
+
+    const ux = dx / distance;
+    const uy = dy / distance;
+    const px = -uy;
+    const py = ux;
+    const overlap = Math.max(1.5, Math.min(radius * 0.18, baseHalfWidth * 0.35));
+    const edge = {
+        x: stampPt.x + ux * (radius - overlap),
+        y: stampPt.y + uy * (radius - overlap)
+    };
+    return {
+        ux: ux,
+        uy: uy,
+        edge: edge,
+        base1: { x: edge.x + px * baseHalfWidth, y: edge.y + py * baseHalfWidth },
+        base2: { x: edge.x - px * baseHalfWidth, y: edge.y - py * baseHalfWidth }
+    };
+}
+
+/**
  * Converts a user/theme font family into a safe Canvas font-family token.
  * Generic families are returned as-is; custom names are quoted and escaped.
  * @param {string} family - Requested font family.
@@ -682,38 +714,18 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
 
         function drawStampTail(fillColor, shapeRadius, baseHalfWidth, tipInset) {
             if (!hasLeader) return;
-            const dx = leaderStartPt.x - stampPt.x;
-            const dy = leaderStartPt.y - stampPt.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance <= 0.001) return;
-
-            const ux = dx / distance;
-            const uy = dy / distance;
-            const px = -uy;
-            const py = ux;
-            const overlap = Math.max(1.5, Math.min(shapeRadius * 0.18, baseHalfWidth * 0.35));
-            const edge = {
-                x: stampPt.x + ux * (shapeRadius - overlap),
-                y: stampPt.y + uy * (shapeRadius - overlap)
-            };
-            const base1 = {
-                x: edge.x + px * baseHalfWidth,
-                y: edge.y + py * baseHalfWidth
-            };
-            const base2 = {
-                x: edge.x - px * baseHalfWidth,
-                y: edge.y - py * baseHalfWidth
-            };
+            const geometry = stampTailGeometry(stampPt, leaderStartPt, shapeRadius, baseHalfWidth);
+            if (!geometry) return;
             const tip = {
-                x: leaderStartPt.x - ux * tipInset,
-                y: leaderStartPt.y - uy * tipInset
+                x: leaderStartPt.x - geometry.ux * tipInset,
+                y: leaderStartPt.y - geometry.uy * tipInset
             };
 
             ctx.fillStyle = fillColor;
             ctx.beginPath();
-            ctx.moveTo(base1.x, base1.y);
+            ctx.moveTo(geometry.base1.x, geometry.base1.y);
             ctx.lineTo(tip.x, tip.y);
-            ctx.lineTo(base2.x, base2.y);
+            ctx.lineTo(geometry.base2.x, geometry.base2.y);
             ctx.closePath();
             ctx.fill();
         }
@@ -1295,34 +1307,15 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
         let circleGapAngle = null;
         let circleGapHalfAngle = 0;
         if (hasLeader) {
-            const anchorPt = stroke.points[0];
-            const dx = anchorPt.x - stampPt.x;
-            const dy = anchorPt.y - stampPt.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            if (distance > 0.001) {
-                const ux = dx / distance;
-                const uy = dy / distance;
-                const px = -uy;
-                const py = ux;
-                const overlap = Math.max(1.5, Math.min(radius * 0.18, tailBaseHalfWidth * 0.35));
-                const edge = {
-                    x: stampPt.x + ux * (radius - overlap),
-                    y: stampPt.y + uy * (radius - overlap)
-                };
-                const base1 = {
-                    x: edge.x + px * tailBaseHalfWidth,
-                    y: edge.y + py * tailBaseHalfWidth
-                };
-                const base2 = {
-                    x: edge.x - px * tailBaseHalfWidth,
-                    y: edge.y - py * tailBaseHalfWidth
-                };
-                circleGapAngle = Math.atan2(uy, ux);
+        const anchorPt = stroke.points[0];
+            const geometry = stampTailGeometry(stampPt, anchorPt, radius, tailBaseHalfWidth);
+            if (geometry) {
+                circleGapAngle = Math.atan2(geometry.uy, geometry.ux);
                 circleGapHalfAngle = Math.asin(Math.min(0.92, (tailBaseHalfWidth + 2) / Math.max(1, radius)));
                 ctx.beginPath();
-                ctx.moveTo(base1.x, base1.y);
+                ctx.moveTo(geometry.base1.x, geometry.base1.y);
                 ctx.lineTo(anchorPt.x, anchorPt.y);
-                ctx.lineTo(base2.x, base2.y);
+                ctx.lineTo(geometry.base2.x, geometry.base2.y);
                 ctx.stroke();
             }
         }
