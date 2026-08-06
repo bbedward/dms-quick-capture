@@ -235,32 +235,11 @@ Rectangle {
                 onColorSelected: (col, idx) => root.colorSelected(col, idx)
             }
 
-            Item {
-                width: Constants.btnSize
-                height: Constants.btnSize
+            ColorPickerControl {
                 anchors.verticalCenter: parent.verticalCenter
-                DankActionButton {
-                    id: colorPickerButton
-                    anchors.fill: parent
-                    iconName: "colorize"
-                    buttonSize: Constants.btnSize
-                    iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("Color Picker (F for RGB / Right-Click for Eyedropper)")
-                    backgroundColor: root.currentTool === "colorpicker" ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                    iconColor: root.currentTool === "colorpicker" ? Theme.primary : Theme.surfaceText
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: mouse => {
-                        if (mouse.button === Qt.RightButton) {
-                            root.toolSelected("colorpicker-draw");
-                        } else {
-                            root.customColorPickerRequested(colorPickerButton);
-                        }
-                    }
-                }
+                currentTool: root.currentTool
+                onCustomPickerRequested: (controlItem) => root.customColorPickerRequested(controlItem)
+                onDrawPickerRequested: root.toolSelected("colorpicker-draw")
             }
 
             ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
@@ -417,32 +396,11 @@ Rectangle {
                 onColorSelected: (col, idx) => root.colorSelected(col, idx)
             }
 
-            Item {
-                width: Constants.btnSize
-                height: Constants.btnSize
+            ColorPickerControl {
                 anchors.horizontalCenter: parent.horizontalCenter
-                DankActionButton {
-                    id: colorPickerVerticalButton
-                    anchors.fill: parent
-                    iconName: "colorize"
-                    buttonSize: Constants.btnSize
-                    iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("Color Picker (F for RGB / Right-Click for Eyedropper)")
-                    backgroundColor: root.currentTool === "colorpicker" ? Theme.withAlpha(Theme.primary, 0.15) : "transparent"
-                    iconColor: root.currentTool === "colorpicker" ? Theme.primary : Theme.surfaceText
-                }
-                MouseArea {
-                    anchors.fill: parent
-                    acceptedButtons: Qt.LeftButton | Qt.RightButton
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: mouse => {
-                        if (mouse.button === Qt.RightButton) {
-                            root.toolSelected("colorpicker-draw");
-                        } else {
-                            root.customColorPickerRequested(colorPickerVerticalButton);
-                        }
-                    }
-                }
+                currentTool: root.currentTool
+                onCustomPickerRequested: (controlItem) => root.customColorPickerRequested(controlItem)
+                onDrawPickerRequested: root.toolSelected("colorpicker-draw")
             }
         }
     }
