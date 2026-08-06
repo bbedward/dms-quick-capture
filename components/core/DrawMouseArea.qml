@@ -342,8 +342,8 @@ MouseArea {
         }
 
         if (window.currentTool === "crop") {
-            const ox = Math.max(0, Math.min(origX, window.screenshotWidth));
-            const oy = Math.max(0, Math.min(origY, window.screenshotHeight));
+            const ox = Helpers.clamp(origX, 0, window.screenshotWidth);
+            const oy = Helpers.clamp(origY, 0, window.screenshotHeight);
             const nextHoveredHandle = window.getHoveredHandle(ox, oy);
             if (hoveredHandle !== nextHoveredHandle) {
                 hoveredHandle = nextHoveredHandle;
@@ -695,7 +695,7 @@ MouseArea {
 
             // Drag-to-select crop area
             window.activeHandle = "new";
-            window.selectStart = Qt.point(Math.max(0, Math.min(ox, pw)), Math.max(0, Math.min(oy, ph)));
+            window.selectStart = Qt.point(Helpers.clamp(ox, 0, pw), Helpers.clamp(oy, 0, ph));
             window.cropRect = Qt.rect(window.selectStart.x, window.selectStart.y, 0, 0);
             window.hasSelection = false;
             drawingCanvas.requestPaint();
@@ -878,7 +878,7 @@ MouseArea {
      onWheel: (wheel) => {
          const step = wheel.angleDelta.y > 0 ? 1 : -1;
          if (window.enableMagnifier && window.isZoomPressed) {
-             magnifier.zoomFactor = Math.max(1.5, Math.min(4.0, magnifier.zoomFactor + (step * 0.5)));
+             magnifier.zoomFactor = Helpers.clamp(magnifier.zoomFactor + (step * 0.5), 1.5, 4.0);
              wheel.accepted = true;
              return;
          }
@@ -903,7 +903,7 @@ MouseArea {
               if (window.calloutDestDragging) {
                   const calloutMeta = Constants.getToolMeta("callout");
                   const currentZoom = window.selectedStroke.width;
-                  const nextZoom = Math.max(calloutMeta.min, Math.min(calloutMeta.max, currentZoom + step * calloutMeta.step));
+                  const nextZoom = Helpers.clamp(currentZoom + step * calloutMeta.step, calloutMeta.min, calloutMeta.max);
                  window.selectedStroke.width = nextZoom;
                  window.calloutZoom = nextZoom;
                  
@@ -927,7 +927,7 @@ MouseArea {
              } else {
                   const calloutMeta = Constants.getToolMeta("callout");
                   const currentBorderWidth = window.selectedStroke.borderWidth !== undefined ? window.selectedStroke.borderWidth : 2;
-                  const nextBorderWidth = Math.max(calloutMeta.borderWidthMin, Math.min(calloutMeta.borderWidthMax, currentBorderWidth + step));
+                  const nextBorderWidth = Helpers.clamp(currentBorderWidth + step, calloutMeta.borderWidthMin, calloutMeta.borderWidthMax);
                  window.selectedStroke.borderWidth = nextBorderWidth;
                  window.strokeWidth = nextBorderWidth;
              }
