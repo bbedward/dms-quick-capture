@@ -398,9 +398,7 @@ MouseArea {
 
                  if (window.currentTool === "text") {
                      const p0 = window.currentStroke.points[0];
-                     const dx = finalPt.x - p0.x;
-                     const dy = finalPt.y - p0.y;
-                     const dist = Math.sqrt(dx * dx + dy * dy);
+                     const dist = Helpers.distance(p0, finalPt);
                      if (dist > Constants.textBubbleDragThreshold / window.editScale) {
                          window.currentStroke.isSpeechBubble = true;
                      } else {
@@ -411,9 +409,7 @@ MouseArea {
                    const p0 = window.currentStroke.points[0];
                    if (p0) {
                        let finalPt = absPt;
-                       const dx = absPt.x - p0.x;
-                       const dy = absPt.y - p0.y;
-                       const dist = Math.sqrt(dx * dx + dy * dy);
+                       const dist = Helpers.distance(p0, absPt);
                        if (dist > Constants.textBubbleDragThreshold / window.editScale) {
                            window.currentStroke.hasLeaderLine = true;
                            

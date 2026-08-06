@@ -328,9 +328,7 @@ DankModal {
                 const snapThreshold = 20 / window.editScale;
                 const fp = stroke.points[0];
                 const lp = stroke.points[stroke.points.length - 1];
-                const dx = lp.x - fp.x;
-                const dy = lp.y - fp.y;
-                if (Math.sqrt(dx * dx + dy * dy) < snapThreshold) {
+                if (Helpers.distance(fp, lp) < snapThreshold) {
                     stroke.points = [...stroke.points, Qt.point(fp.x, fp.y)];
                     stroke.isClosed = true;
                 }
