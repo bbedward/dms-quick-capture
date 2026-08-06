@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Widgets
 import "Constants.js" as Constants
+import "Helpers.js" as Helpers
 
 Item {
     id: root
@@ -68,14 +69,8 @@ Item {
         id: menuContent
         width: contentRow.implicitWidth + Theme.spacingM * 2
         height: Constants.subToolbarHeight
-        x: Math.max(10, Math.min(root.width - width - 10, root.menuX - width / 2))
-        y: {
-            if (root.toolbarPosition === "bottom") {
-                return Math.max(10, Math.min(root.height - height - 10, root.menuY - height - 20));
-            } else {
-                return Math.max(10, Math.min(root.height - height - 10, root.menuY + 20));
-            }
-        }
+        x: Helpers.popoverX(root.width, width, root.menuX)
+        y: Helpers.popoverY(root.height, height, root.menuY, root.toolbarPosition)
         scale: 0.95
 
         color: Theme.surfaceContainer

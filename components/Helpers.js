@@ -1015,3 +1015,33 @@ function distance(p1, p2) {
 function clamp(val, min, max) {
     return Math.max(min, Math.min(max, val));
 }
+
+/**
+ * Positions a popover horizontally around an anchor while keeping it in bounds.
+ * @param {number} containerWidth - Available parent width.
+ * @param {number} popoverWidth - Popover width.
+ * @param {number} anchorX - Anchor center x.
+ * @param {number} margin - Minimum edge margin.
+ * @returns {number} Clamped popover x position.
+ */
+function popoverX(containerWidth, popoverWidth, anchorX, margin) {
+    const edgeMargin = margin === undefined ? 10 : margin;
+    return clamp(anchorX - popoverWidth / 2, edgeMargin, containerWidth - popoverWidth - edgeMargin);
+}
+
+/**
+ * Positions a popover above or below an anchor based on toolbar placement.
+ * @param {number} containerHeight - Available parent height.
+ * @param {number} popoverHeight - Popover height.
+ * @param {number} anchorY - Anchor y.
+ * @param {string} toolbarPosition - Main toolbar position.
+ * @param {number} margin - Minimum edge margin.
+ * @param {number} offset - Distance from anchor.
+ * @returns {number} Clamped popover y position.
+ */
+function popoverY(containerHeight, popoverHeight, anchorY, toolbarPosition, margin, offset) {
+    const edgeMargin = margin === undefined ? 10 : margin;
+    const anchorOffset = offset === undefined ? 20 : offset;
+    const targetY = toolbarPosition === "bottom" ? anchorY - popoverHeight - anchorOffset : anchorY + anchorOffset;
+    return clamp(targetY, edgeMargin, containerHeight - popoverHeight - edgeMargin);
+}
