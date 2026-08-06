@@ -676,6 +676,13 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
 function getStrokeHandleAt(mx, my, stroke) {
     if (!stroke || !stroke.points || stroke.points.length === 0) return "none";
     const threshold = Constants.selectionHandleSize + 4;
+    const thresholdSq = threshold * threshold;
+
+    function isNearPoint(pt) {
+        const dx = mx - pt.x;
+        const dy = my - pt.y;
+        return dx * dx + dy * dy <= thresholdSq;
+    }
 
     if (stroke.tool === "rect" || stroke.tool === "ellipse" || stroke.tool === "redact" ||
         stroke.tool === "pixelate" || stroke.tool === "spotlight") {
@@ -704,8 +711,8 @@ function getStrokeHandleAt(mx, my, stroke) {
         if (stroke.points.length < 2) return "none";
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        if (Math.abs(mx - p0.x) <= threshold && Math.abs(my - p0.y) <= threshold) return "start";
-        if (Math.abs(mx - p1.x) <= threshold && Math.abs(my - p1.y) <= threshold) return "end";
+        if (isNearPoint(p0)) return "start";
+        if (isNearPoint(p1)) return "end";
         return "none";
     }
 
@@ -721,8 +728,8 @@ function getStrokeHandleAt(mx, my, stroke) {
                 x: stampPt.x - stroke.width * Constants.stampRadiusMultiplier,
                 y: stampPt.y - stroke.width * Constants.stampRadiusMultiplier
             };
-            if (Math.abs(mx - anchorPt.x) <= threshold && Math.abs(my - anchorPt.y) <= threshold) return "anchor";
-            if (Math.abs(mx - stampHandlePt.x) <= threshold && Math.abs(my - stampHandlePt.y) <= threshold) return "stamp";
+            if (isNearPoint(anchorPt)) return "anchor";
+            if (isNearPoint(stampHandlePt)) return "stamp";
             if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stampBody";
 
             const lineDx = stampPt.x - anchorPt.x;
@@ -769,8 +776,8 @@ function getStrokeHandleAt(mx, my, stroke) {
     if (stroke.tool === "text" && stroke.isSpeechBubble && stroke.points.length >= 2) {
         const p0 = stroke.points[0];
         const p1 = stroke.points[1];
-        if (Math.abs(mx - p0.x) <= threshold && Math.abs(my - p0.y) <= threshold) return "start";
-        if (Math.abs(mx - p1.x) <= threshold && Math.abs(my - p1.y) <= threshold) return "end";
+        if (isNearPoint(p0)) return "start";
+        if (isNearPoint(p1)) return "end";
         return "none";
     }
 

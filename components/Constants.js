@@ -53,7 +53,7 @@ function getToolMeta(tool) {
 const defaultRadialTools = ["pen", "arrow", "rect", "highlighter", "ellipse", "stamp", "redact", "pixelate"];
 
 // Selection resize handles
-const selectionHandleSize = 10;
+const selectionHandleSize = 12;
 
 // Text speech bubble configuration
 const textBubblePaddingMultiplierX = 0.5;

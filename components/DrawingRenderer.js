@@ -45,6 +45,26 @@ function configureTextContext(ctx, stroke, Theme) {
     ctx.textBaseline = "middle";
 }
 
+function handleColors(Theme) {
+    const primary = Theme && Theme.primary ? Theme.primary : null;
+    const accent = primary || "#3b82f6";
+    if (!primary || primary.r === undefined || primary.g === undefined || primary.b === undefined) {
+        return {
+            fill: "#ffffff",
+            halo: "#000000",
+            accent: accent
+        };
+    }
+    const luminance = 0.2126 * primary.r + 0.7152 * primary.g + 0.0722 * primary.b;
+    const fill = luminance < 0.5 ? "#ffffff" : "#000000";
+    const halo = luminance < 0.5 ? "#000000" : "#ffffff";
+    return {
+        fill: fill,
+        halo: halo,
+        accent: accent
+    };
+}
+
 /**
  * Measures the same multiline text layout used by drawStroke(). Width comes
  * from Canvas and vertical bounds come from the renderer's line boxes.
@@ -251,12 +271,36 @@ function drawHighContrastDashedRect(ctx, x, y, w, h) {
  * @param {object} Theme - The Theme object.
  */
 function drawHandlePoints(ctx, points, hh, hs, Theme) {
-    ctx.fillStyle = "#ffffff";
-    ctx.strokeStyle = Theme.primary;
-    ctx.lineWidth = 1.5;
+    const colors = handleColors(Theme);
     for (let p of points) {
+        ctx.fillStyle = colors.fill;
+        ctx.strokeStyle = colors.halo;
+        ctx.lineWidth = 3;
         ctx.fillRect(p.x - hh, p.y - hh, hs, hs);
         ctx.strokeRect(p.x - hh, p.y - hh, hs, hs);
+        ctx.strokeStyle = colors.accent;
+        ctx.lineWidth = 1.5;
+        ctx.fillRect(p.x - hh, p.y - hh, hs, hs);
+        ctx.strokeRect(p.x - hh, p.y - hh, hs, hs);
+    }
+}
+
+function drawControlPoints(ctx, points, hh, Theme) {
+    const colors = handleColors(Theme);
+    for (let p of points) {
+        ctx.fillStyle = colors.fill;
+        ctx.strokeStyle = colors.halo;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, hh, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
+        ctx.strokeStyle = colors.accent;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, hh, 0, 2 * Math.PI);
+        ctx.fill();
+        ctx.stroke();
     }
 }
 
@@ -1208,13 +1252,7 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
             ctx.restore();
         }
 
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = Theme.primary;
-        ctx.lineWidth = 1.5;
-        ctx.fillRect(p0.x - hh, p0.y - hh, hs, hs);
-        ctx.strokeRect(p0.x - hh, p0.y - hh, hs, hs);
-        ctx.fillRect(p1.x - hh, p1.y - hh, hs, hs);
-        ctx.strokeRect(p1.x - hh, p1.y - hh, hs, hs);
+        drawControlPoints(ctx, [p0, p1], hh, Theme);
         return;
     }
 
@@ -1271,20 +1309,13 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
         ctx.stroke();
         ctx.restore();
 
-        ctx.fillStyle = "#ffffff";
-        ctx.strokeStyle = Theme.primary;
-        ctx.lineWidth = 1.5;
-
         if (hasLeader) {
             const anchorPt = stroke.points[0];
             const stampHandlePt = {
                 x: stampPt.x - radius,
                 y: stampPt.y - radius
             };
-            ctx.fillRect(anchorPt.x - hh, anchorPt.y - hh, hs, hs);
-            ctx.strokeRect(anchorPt.x - hh, anchorPt.y - hh, hs, hs);
-            ctx.fillRect(stampHandlePt.x - hh, stampHandlePt.y - hh, hs, hs);
-            ctx.strokeRect(stampHandlePt.x - hh, stampHandlePt.y - hh, hs, hs);
+            drawControlPoints(ctx, [anchorPt, stampHandlePt], hh, Theme);
         }
 
         return;
@@ -1305,13 +1336,7 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
             ctx.stroke();
             ctx.restore();
 
-            ctx.fillStyle = "#ffffff";
-            ctx.strokeStyle = Theme.primary;
-            ctx.lineWidth = 1.5;
-            ctx.fillRect(p0.x - hh, p0.y - hh, hs, hs);
-            ctx.strokeRect(p0.x - hh, p0.y - hh, hs, hs);
-            ctx.fillRect(p1.x - hh, p1.y - hh, hs, hs);
-            ctx.strokeRect(p1.x - hh, p1.y - hh, hs, hs);
+            drawControlPoints(ctx, [p0, p1], hh, Theme);
             return;
         }
 
