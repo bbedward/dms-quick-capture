@@ -465,29 +465,11 @@ Rectangle {
             
             ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
             
-            // Presets Control (Bookmarks)
-            Item {
+            BackgroundPresetsControl {
                 id: presetsControl
-                width: Constants.btnSize
-                height: Constants.btnSize
                 anchors.verticalCenter: parent.verticalCenter
-
-                DankActionButton {
-                    iconName: "bookmarks"
-                    buttonSize: Constants.btnSize
-                    iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("Background Presets")
-                    anchors.centerIn: parent
-                    onClicked: root.backgroundControlHovered("presets", presetsControl)
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: root.backgroundControlHovered("presets", presetsControl)
-                    onExited: root.backgroundControlExited("presets")
-                }
+                onHovered: (controlItem) => root.backgroundControlHovered("presets", controlItem)
+                onExited: root.backgroundControlExited("presets")
             }
 
             ToolbarSeparator { vertical: true; anchors.verticalCenter: parent.verticalCenter }
@@ -645,29 +627,11 @@ Rectangle {
             
             ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
             
-            // Presets Control (Bookmarks)
-            Item {
+            BackgroundPresetsControl {
                 id: presetsControlVert
-                width: Constants.btnSize
-                height: Constants.btnSize
                 anchors.horizontalCenter: parent.horizontalCenter
-
-                DankActionButton {
-                    iconName: "bookmarks"
-                    buttonSize: Constants.btnSize
-                    iconSize: Constants.iconSize
-                    tooltipText: I18n.tr("Background Presets")
-                    anchors.centerIn: parent
-                    onClicked: root.backgroundControlHovered("presets", presetsControlVert)
-                }
-
-                MouseArea {
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onEntered: root.backgroundControlHovered("presets", presetsControlVert)
-                    onExited: root.backgroundControlExited("presets")
-                }
+                onHovered: (controlItem) => root.backgroundControlHovered("presets", controlItem)
+                onExited: root.backgroundControlExited("presets")
             }
 
             ToolbarSeparator { anchors.horizontalCenter: parent.horizontalCenter }
