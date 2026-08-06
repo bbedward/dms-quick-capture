@@ -319,6 +319,10 @@ MouseArea {
                                 }
                             }
                             newPoints[idx] = newPt;
+                        } else if (window.activeHandle === "stampBody") {
+                            for (let i = 0; i < orig.length; i++) {
+                                newPoints[i] = Qt.point(orig[i].x + dx, orig[i].y + dy);
+                            }
                         }
                         window.selectedStroke.points = newPoints;
                     }
@@ -516,6 +520,7 @@ MouseArea {
         if (h === "tc" || h === "bc" || hs === "_tc" || hs === "_bc") return Qt.SplitVCursor;
         if (h === "lc" || h === "rc" || hs === "_lc" || hs === "_rc") return Qt.SplitHCursor;
         if (h === "stamp" && window.selectedStroke && window.selectedStroke.tool === "stamp" && window.selectedStroke.hasLeaderLine) return Qt.SizeAllCursor;
+        if (h === "stampBody") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
         if (h === "stamp") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
         if (h === "start" || h === "end" || h === "anchor") return Qt.SizeAllCursor;
         if (window.currentTool === "colorpicker") {

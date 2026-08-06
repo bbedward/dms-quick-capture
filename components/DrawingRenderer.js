@@ -1222,11 +1222,52 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
         const hasLeader = stroke.hasLeaderLine && stroke.points.length >= 2;
         const stampPt = hasLeader ? stroke.points[1] : stroke.points[0];
         const radius = stroke.width * Constants.stampRadiusMultiplier;
+        const tailBaseHalfWidth = Math.max(4, Math.min(radius * 0.28, stroke.width * 1.15));
 
         ctx.save();
         setDashedSelectionStyle(ctx, stroke, Helpers, Qt);
+        let circleGapAngle = null;
+        let circleGapHalfAngle = 0;
+        if (hasLeader) {
+            const anchorPt = stroke.points[0];
+            const dx = anchorPt.x - stampPt.x;
+            const dy = anchorPt.y - stampPt.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            if (distance > 0.001) {
+                const ux = dx / distance;
+                const uy = dy / distance;
+                const px = -uy;
+                const py = ux;
+                const overlap = Math.max(1.5, Math.min(radius * 0.18, tailBaseHalfWidth * 0.35));
+                const edge = {
+                    x: stampPt.x + ux * (radius - overlap),
+                    y: stampPt.y + uy * (radius - overlap)
+                };
+                const base1 = {
+                    x: edge.x + px * tailBaseHalfWidth,
+                    y: edge.y + py * tailBaseHalfWidth
+                };
+                const base2 = {
+                    x: edge.x - px * tailBaseHalfWidth,
+                    y: edge.y - py * tailBaseHalfWidth
+                };
+                circleGapAngle = Math.atan2(uy, ux);
+                circleGapHalfAngle = Math.asin(Math.min(0.92, (tailBaseHalfWidth + 2) / Math.max(1, radius)));
+                ctx.beginPath();
+                ctx.moveTo(base1.x, base1.y);
+                ctx.lineTo(anchorPt.x, anchorPt.y);
+                ctx.lineTo(base2.x, base2.y);
+                ctx.stroke();
+            }
+        }
         ctx.beginPath();
-        ctx.arc(stampPt.x, stampPt.y, radius, 0, 2 * Math.PI);
+        if (circleGapAngle !== null) {
+            ctx.arc(stampPt.x, stampPt.y, radius,
+                    circleGapAngle + circleGapHalfAngle,
+                    circleGapAngle - circleGapHalfAngle + 2 * Math.PI);
+        } else {
+            ctx.arc(stampPt.x, stampPt.y, radius, 0, 2 * Math.PI);
+        }
         ctx.stroke();
         ctx.restore();
 
@@ -1236,8 +1277,14 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
 
         if (hasLeader) {
             const anchorPt = stroke.points[0];
+            const stampHandlePt = {
+                x: stampPt.x - radius,
+                y: stampPt.y - radius
+            };
             ctx.fillRect(anchorPt.x - hh, anchorPt.y - hh, hs, hs);
             ctx.strokeRect(anchorPt.x - hh, anchorPt.y - hh, hs, hs);
+            ctx.fillRect(stampHandlePt.x - hh, stampHandlePt.y - hh, hs, hs);
+            ctx.strokeRect(stampHandlePt.x - hh, stampHandlePt.y - hh, hs, hs);
         }
 
         return;

@@ -715,10 +715,32 @@ function getStrokeHandleAt(mx, my, stroke) {
         const stampRadius = stroke.width * Constants.stampRadiusMultiplier + Constants.stampSelectThresholdOffset;
         const dx = mx - stampPt.x;
         const dy = my - stampPt.y;
-        if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stamp";
         if (hasLeader) {
             const anchorPt = stroke.points[0];
+            const stampHandlePt = {
+                x: stampPt.x - stroke.width * Constants.stampRadiusMultiplier,
+                y: stampPt.y - stroke.width * Constants.stampRadiusMultiplier
+            };
             if (Math.abs(mx - anchorPt.x) <= threshold && Math.abs(my - anchorPt.y) <= threshold) return "anchor";
+            if (Math.abs(mx - stampHandlePt.x) <= threshold && Math.abs(my - stampHandlePt.y) <= threshold) return "stamp";
+            if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stampBody";
+
+            const lineDx = stampPt.x - anchorPt.x;
+            const lineDy = stampPt.y - anchorPt.y;
+            const lenSq = lineDx * lineDx + lineDy * lineDy;
+            let distLineSq = Infinity;
+            if (lenSq === 0) {
+                distLineSq = (mx - anchorPt.x) * (mx - anchorPt.x) + (my - anchorPt.y) * (my - anchorPt.y);
+            } else {
+                let t = ((mx - anchorPt.x) * lineDx + (my - anchorPt.y) * lineDy) / lenSq;
+                t = Math.max(0, Math.min(1, t));
+                const px = anchorPt.x + t * lineDx;
+                const py = anchorPt.y + t * lineDy;
+                distLineSq = (mx - px) * (mx - px) + (my - py) * (my - py);
+            }
+            if (distLineSq < threshold * threshold) return "stampBody";
+        } else {
+            if (dx * dx + dy * dy <= stampRadius * stampRadius) return "stamp";
         }
         return "none";
     }
