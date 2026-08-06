@@ -310,6 +310,76 @@ MouseArea {
         }
     }
 
+    function handleDrawingPosition(mouse, absPt) {
+        if (!window.currentStroke) return;
+
+        if (window.currentTool === "pen") {
+            if (mouse.modifiers & Qt.ShiftModifier) {
+                if (window.currentStroke.points.length > 1) {
+                    window.currentStroke.points = [window.currentStroke.points[0], absPt];
+                } else {
+                    window.currentStroke.points.push(absPt);
+                }
+            } else {
+                const alpha = Math.min(1, Math.max(0, window.penSmoothingAlpha));
+                penSmoothX = alpha * absPt.x + (1 - alpha) * penSmoothX;
+                penSmoothY = alpha * absPt.y + (1 - alpha) * penSmoothY;
+                window.currentStroke.points.push(Qt.point(penSmoothX, penSmoothY));
+            }
+        } else if (window.currentTool === "redact") {
+            let finalPt = absPt;
+            if (mouse.modifiers & Qt.ShiftModifier && window.currentStroke.points[0]) {
+                finalPt = Helpers.constrainSquarePoint(window.currentStroke.points[0], absPt, Qt);
+            }
+            updateCurrentStrokeEndpoint(finalPt);
+        } else if (window.currentTool === "rect" || window.currentTool === "ellipse" || window.currentTool === "arrow" || window.currentTool === "line"
+                   || window.currentTool === "pixelate" || window.currentTool === "highlighter" || window.currentTool === "spotlight" || window.currentTool === "callout" || window.currentTool === "text") {
+            let finalPt = absPt;
+            if (mouse.modifiers & Qt.ShiftModifier && (window.currentTool === "line" || window.currentTool === "arrow" || window.currentTool === "highlighter")) {
+                const p0 = window.currentStroke.points[0];
+                if (p0) finalPt = snapPointToAngle(absPt, p0);
+            } else if (mouse.modifiers & Qt.ShiftModifier && (window.currentTool === "ellipse" || window.currentTool === "rect" || window.currentTool === "redact" || window.currentTool === "pixelate" || window.currentTool === "spotlight" || window.currentTool === "callout")) {
+                if (window.currentStroke.points[0]) {
+                    finalPt = Helpers.constrainSquarePoint(window.currentStroke.points[0], absPt, Qt);
+                }
+            }
+
+            updateCurrentStrokeEndpoint(finalPt);
+
+            if (window.currentTool === "text") {
+                const p0 = window.currentStroke.points[0];
+                const dist = Helpers.distance(p0, finalPt);
+                window.currentStroke.isSpeechBubble = dist > Constants.textBubbleDragThreshold / window.editScale;
+            }
+        } else if (window.currentTool === "stamp") {
+            const p0 = window.currentStroke.points[0];
+            if (p0) {
+                let finalPt = absPt;
+                const dist = Helpers.distance(p0, absPt);
+                if (dist > Constants.textBubbleDragThreshold / window.editScale) {
+                    window.currentStroke.hasLeaderLine = true;
+
+                    if (mouse.modifiers & Qt.ShiftModifier) {
+                        finalPt = snapPointToAngle(absPt, p0);
+                    }
+
+                    if (window.currentStroke.points.length > 1) {
+                        window.currentStroke.points[1] = finalPt;
+                    } else {
+                        window.currentStroke.points.push(finalPt);
+                    }
+                } else {
+                    window.currentStroke.hasLeaderLine = false;
+                    if (window.currentStroke.points.length > 1) {
+                        window.currentStroke.points = [p0];
+                    }
+                }
+            }
+        }
+
+        drawingCanvas.requestPaint();
+    }
+
     onPositionChanged: (mouse) => {
          const origX = mouse.x / window.editScale;
          const origY = mouse.y / window.editScale;
@@ -339,84 +409,7 @@ MouseArea {
             handleScanPosition(mouse);
             return;
         } else {
-            // Standard stroke drawing positions update
-            if (!window.currentStroke) return;
-
-            const absPt = getAbsolutePoint(mouse.x, mouse.y);
-            if (window.currentTool === "pen") {
-                if (mouse.modifiers & Qt.ShiftModifier) {
-                    if (window.currentStroke.points.length > 1) {
-                        window.currentStroke.points = [window.currentStroke.points[0], absPt];
-                    } else {
-                        window.currentStroke.points.push(absPt);
-                    }
-                } else {
-                    const alpha = Math.min(1, Math.max(0, window.penSmoothingAlpha));
-                    penSmoothX = alpha * absPt.x + (1 - alpha) * penSmoothX;
-                    penSmoothY = alpha * absPt.y + (1 - alpha) * penSmoothY;
-                    window.currentStroke.points.push(Qt.point(penSmoothX, penSmoothY));
-                }
-               } else if (window.currentTool === "redact") {
-                 let finalPt = absPt;
-                 if ((mouse.modifiers & Qt.ShiftModifier)) {
-                     if (window.currentStroke.points[0]) {
-                         finalPt = Helpers.constrainSquarePoint(window.currentStroke.points[0], absPt, Qt);
-                     }
-                 }
-                 updateCurrentStrokeEndpoint(finalPt);
-              } else if (window.currentTool === "rect" || window.currentTool === "ellipse" || window.currentTool === "arrow" || window.currentTool === "line"
-                       || window.currentTool === "pixelate" || window.currentTool === "highlighter" || window.currentTool === "spotlight" || window.currentTool === "callout" || window.currentTool === "text") {
-                  
-                 let finalPt = absPt;
-                 if ((mouse.modifiers & Qt.ShiftModifier) && (window.currentTool === "line" || window.currentTool === "arrow" || window.currentTool === "highlighter")) {
-                     // Snapping angle calculation (24 directions / 15 degrees)
-                     const p0 = window.currentStroke.points[0];
-                     if (p0) {
-                         finalPt = snapPointToAngle(absPt, p0);
-                     }
-                 } else if ((mouse.modifiers & Qt.ShiftModifier) && (window.currentTool === "ellipse" || window.currentTool === "rect" || window.currentTool === "redact" || window.currentTool === "pixelate" || window.currentTool === "spotlight" || window.currentTool === "callout")) {
-                     if (window.currentStroke.points[0]) {
-                         finalPt = Helpers.constrainSquarePoint(window.currentStroke.points[0], absPt, Qt);
-                     }
-                 }
-
-                 updateCurrentStrokeEndpoint(finalPt);
-
-                 if (window.currentTool === "text") {
-                     const p0 = window.currentStroke.points[0];
-                     const dist = Helpers.distance(p0, finalPt);
-                     if (dist > Constants.textBubbleDragThreshold / window.editScale) {
-                         window.currentStroke.isSpeechBubble = true;
-                     } else {
-                         window.currentStroke.isSpeechBubble = false;
-                     }
-                 }
-              } else if (window.currentTool === "stamp") {
-                   const p0 = window.currentStroke.points[0];
-                   if (p0) {
-                       let finalPt = absPt;
-                       const dist = Helpers.distance(p0, absPt);
-                       if (dist > Constants.textBubbleDragThreshold / window.editScale) {
-                           window.currentStroke.hasLeaderLine = true;
-                           
-                           if (mouse.modifiers & Qt.ShiftModifier) {
-                               finalPt = snapPointToAngle(absPt, p0);
-                           }
-
-                           if (window.currentStroke.points.length > 1) {
-                               window.currentStroke.points[1] = finalPt;
-                           } else {
-                               window.currentStroke.points.push(finalPt);
-                           }
-                       } else {
-                           window.currentStroke.hasLeaderLine = false;
-                           if (window.currentStroke.points.length > 1) {
-                               window.currentStroke.points = [p0];
-                           }
-                       }
-                   }
-               }
-            drawingCanvas.requestPaint();
+            handleDrawingPosition(mouse, absPt);
         }
     }
 
