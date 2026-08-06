@@ -473,6 +473,21 @@ function extractDominantColors(imgData, Qt) {
 
 // ─── 5. Stroke geometry & hit-testing ────────────────────────────────────────
 
+/**
+ * Returns normalized rectangular bounds for two points.
+ * @param {object} p0 - First point {x, y}.
+ * @param {object} p1 - Second point {x, y}.
+ * @returns {object} { x1, y1, x2, y2 } with minimum and maximum coordinates.
+ */
+function getRectBounds(p0, p1) {
+    return {
+        x1: Math.min(p0.x, p1.x),
+        y1: Math.min(p0.y, p1.y),
+        x2: Math.max(p0.x, p1.x),
+        y2: Math.max(p0.y, p1.y)
+    };
+}
+
 function getTextBBox(stroke, measureTextBoundsFn) {
     const txtPt = (stroke.isSpeechBubble && stroke.points.length >= 2) ? stroke.points[1] : stroke.points[0];
     const measured = measureTextBoundsFn ? measureTextBoundsFn(stroke) : null;
@@ -508,12 +523,11 @@ function getStrokeBBox(stroke, measureTextBoundsFn) {
     } else if (stroke.tool === "stamp") {
         const radius = stroke.width * Constants.stampRadiusMultiplier + Constants.stampSelectThresholdOffset;
         if (stroke.hasLeaderLine && len >= 2) {
-            const p0 = pts[0];
-            const p1 = pts[1];
-            minX = Math.min(p0.x, p1.x) - radius;
-            maxX = Math.max(p0.x, p1.x) + radius;
-            minY = Math.min(p0.y, p1.y) - radius;
-            maxY = Math.max(p0.y, p1.y) + radius;
+            const bounds = getRectBounds(pts[0], pts[1]);
+            minX = bounds.x1 - radius;
+            maxX = bounds.x2 + radius;
+            minY = bounds.y1 - radius;
+            maxY = bounds.y2 + radius;
         } else {
             const p0 = pts[0];
             minX = p0.x - radius;
@@ -592,10 +606,11 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
         } else if (stroke.tool === "rect") {
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            const x1 = Math.min(p0.x, p1.x);
-            const x2 = Math.max(p0.x, p1.x);
-            const y1 = Math.min(p0.y, p1.y);
-            const y2 = Math.max(p0.y, p1.y);
+            const bounds = getRectBounds(p0, p1);
+            const x1 = bounds.x1;
+            const x2 = bounds.x2;
+            const y1 = bounds.y1;
+            const y2 = bounds.y2;
             if (mx >= x1 - threshold && mx <= x2 + threshold && my >= y1 - threshold && my <= y2 + threshold) {
                 const dx = Math.min(Math.abs(mx - x1), Math.abs(mx - x2));
                 const dy = Math.min(Math.abs(my - y1), Math.abs(my - y2));
@@ -604,10 +619,11 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
         } else if (stroke.tool === "redact") {
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            const x1 = Math.min(p0.x, p1.x);
-            const x2 = Math.max(p0.x, p1.x);
-            const y1 = Math.min(p0.y, p1.y);
-            const y2 = Math.max(p0.y, p1.y);
+            const bounds = getRectBounds(p0, p1);
+            const x1 = bounds.x1;
+            const x2 = bounds.x2;
+            const y1 = bounds.y1;
+            const y2 = bounds.y2;
             const shape = stroke.redactShape || "rect";
             if (shape === "ellipse") {
                 const rx = Math.max((x2 - x1) / 2, 1);
@@ -624,20 +640,22 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
         } else if (stroke.tool === "pixelate" || stroke.tool === "spotlight") {
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            const x1 = Math.min(p0.x, p1.x);
-            const x2 = Math.max(p0.x, p1.x);
-            const y1 = Math.min(p0.y, p1.y);
-            const y2 = Math.max(p0.y, p1.y);
+            const bounds = getRectBounds(p0, p1);
+            const x1 = bounds.x1;
+            const x2 = bounds.x2;
+            const y1 = bounds.y1;
+            const y2 = bounds.y2;
             if (mx >= x1 - Constants.rectSelectionPadding && mx <= x2 + Constants.rectSelectionPadding && my >= y1 - Constants.rectSelectionPadding && my <= y2 + Constants.rectSelectionPadding) {
                 return i;
             }
         } else if (stroke.tool === "ellipse") {
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            const x1 = Math.min(p0.x, p1.x);
-            const x2 = Math.max(p0.x, p1.x);
-            const y1 = Math.min(p0.y, p1.y);
-            const y2 = Math.max(p0.y, p1.y);
+            const bounds = getRectBounds(p0, p1);
+            const x1 = bounds.x1;
+            const x2 = bounds.x2;
+            const y1 = bounds.y1;
+            const y2 = bounds.y2;
             const rx = Math.max((x2 - x1) / 2, 1);
             const ry = Math.max((y2 - y1) / 2, 1);
             const cx = x1 + rx;
@@ -793,10 +811,11 @@ function getStrokeHandleAt(mx, my, stroke) {
         if (stroke.points.length < 2) return "none";
         const p0 = stroke.points[0];
         const p1 = stroke.points[stroke.points.length - 1];
-        const x1 = Math.min(p0.x, p1.x);
-        const y1 = Math.min(p0.y, p1.y);
-        const x2 = Math.max(p0.x, p1.x);
-        const y2 = Math.max(p0.y, p1.y);
+        const bounds = getRectBounds(p0, p1);
+        const x1 = bounds.x1;
+        const y1 = bounds.y1;
+        const x2 = bounds.x2;
+        const y2 = bounds.y2;
         const cx = (x1 + x2) / 2;
         const cy = (y1 + y2) / 2;
 
@@ -847,10 +866,11 @@ function getStrokeHandleAt(mx, my, stroke) {
     if (stroke.tool === "callout" && stroke.points.length === 4) {
         const p0 = stroke.points[0];
         const p1 = stroke.points[1];
-        const x1 = Math.min(p0.x, p1.x);
-        const y1 = Math.min(p0.y, p1.y);
-        const x2 = Math.max(p0.x, p1.x);
-        const y2 = Math.max(p0.y, p1.y);
+        const bounds = getRectBounds(p0, p1);
+        const x1 = bounds.x1;
+        const y1 = bounds.y1;
+        const x2 = bounds.x2;
+        const y2 = bounds.y2;
         const cx = (x1 + x2) / 2;
         const cy = (y1 + y2) / 2;
 
