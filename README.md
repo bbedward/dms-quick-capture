@@ -12,51 +12,34 @@ Screenshot and vector annotation plugin for DankMaterialShell (DMS).
 
 ## Requirements
 
-- DankMaterialShell >= 1.5.2 (scroll capture)
+- DankMaterialShell >= **1.5.2** (scroll capture)
 - **ImageMagick** (provides `magick`/`mogrify`, required for WebP/JPEG exports, and OCR/QR crop)
 - **img2pdf** (required for PDF export)
 - **tesseract** (required for OCR text scanner)
 - **zbar** (provides `zbarimg`, required for QR scanner)
-- **Qt5Compat GraphicalEffects** (required for Pin-to-Desktop / Float; on Fedora install `qt6-qt5compat`)
+- **Qt5Compat GraphicalEffects** (provides `qt6-qt5compat`, required for Floating)
 
 ## Install
 
+Via DMS CLI
 ```bash
-# Via DMS CLI
 dms plugins install quickCapture
+```
 
-# Or manually
+Or manually
+```bash
 git clone https://github.com/hthienloc/dms-quick-capture ~/.config/DankMaterialShell/plugins/quickCapture
-```
-
-### Revert to a previous version
-
-```bash
-cd ~/.config/DankMaterialShell/plugins/quickCapture
-git checkout v3.1.0    # replace with the desired version tag
-```
-
-To go back to the latest release:
-
-```bash
-git checkout v3.2.0
-```
-
-To track the development branch again:
-
-```bash
-git checkout main && git pull
 ```
 
 ## Quick Start
 
 | Action                          | Result                                              |
 | ------------------------------- | --------------------------------------------------- |
-| **Left Click** (bar icon)       | Open widget popout                                  |
-| **Middle Click** (bar icon)     | Middle click action (configured in settings)        |
-| **Right Click** (bar icon)      | Right click action (configured in settings)         |
-| **Drop Image** (bar icon)       | Drag any image onto the icon to annotate            |
-| **<kbd>Print</kbd>** (keyboard) | Capture using default mode (requires keybind setup) |
+| **Left Click**      | Open widget popout                                  |
+| **Middle Click**     | Region capture (configured in settings)        |
+| **Right Click**     | Paste from clipboard (configured in settings)         |
+| **Drop Image**      | Drag any image onto the icon to annotate            |
+| **<kbd>Print</kbd>** | Capture using default mode (requires keybind setup) |
 
 **Typical workflow:**
 
@@ -125,7 +108,6 @@ git checkout main && git pull
 
 - **Magnifier Lens:** Hold **<kbd>G</kbd>** to activate a magnifying circular lens. Scroll **Mouse Wheel** while holding **<kbd>G</kbd>** to adjust zoom (1.5× – 4×).
 - **Area Zoom (Callout):** Press **<kbd>Z</kbd>** to draw a magnified callout box. Adjust zoom (100%–500%) with scroll wheel.
-- **Text Tool:** Supports Bold, Italic, Underline, and auto-contrast Background via the radial menu.
 
 ## Keyboard Shortcuts
 
@@ -170,7 +152,7 @@ dms ipc call quickCapture screenshot region float  # float directly
 
 | Command         | Arguments                                                              | Description                            |
 | --------------- | ---------------------------------------------------------------------- | -------------------------------------- |
-| `screenshot`    | `mode` (`region`, `full`, `all`, `output`, `window`, `last`, `scroll`) | Trigger capture                        |
+| `screenshot`    | `mode` (`region`, `full`, `all`, `output`, `window`, `last`, `scroll`), `action`  | Trigger capture                        |
 | `selectFile`    | `action`                                                               | Open file browser to pick an image     |
 | `fromClipboard` | `action`                                                               | Annotate image from clipboard          |
 | `openImage`     | `path`, `action`                                                       | Open a specific image in the annotator |
@@ -180,20 +162,6 @@ dms ipc call quickCapture screenshot region float  # float directly
 ### Keybinding Examples
 
 ![Setup Example](setup_example.png)
-
-## Roadmap
-
-- [x] OCR (Optical Character Recognition) text scanner
-- [x] QR Code Scanner
-- [x] Canvas Color Picker (Eyedropper tool)
-- [ ] Image Filters (Grayscale, negative, brightness/contrast)
-- [x] Image Background Mode: Support setting a custom image file as the screenshot background
-- [x] Expanded tool option popovers:
-    - **Arrow tool**: Double-headed arrows, line styles (dashed, dotted)
-    - **Line tool**: Line styles (dashed, dotted)
-    - **Rectangle tool**: Border styles (dashed, dotted)
-    - **Redact tool**: Clean text eraser (dominant color/gradient background matcher)
-    - **Callout tool**: Ellipse callout shape support
 
 ## Credits
 
