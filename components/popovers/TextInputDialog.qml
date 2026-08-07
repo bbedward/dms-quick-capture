@@ -44,7 +44,8 @@ Popup {
                 delete window.editingStroke._editTargetCoords;
             }
             window.editingStroke = null;
-            if (window.activeCanvas) window.activeCanvas.requestPaint();
+            if (window.requestAnnotationPaintAll) window.requestAnnotationPaintAll();
+            else if (window.activeCanvas) window.activeCanvas.requestPaint();
         }
         if (modalFocusScope) {
             modalFocusScope.forceActiveFocus();

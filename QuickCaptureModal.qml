@@ -2596,7 +2596,7 @@ DankModal {
         window.isTyping = false;
         window.currentTypingText = "";
         window.typingCursorIndex = 0;
-        window.repaintActiveCanvas();
+        window.requestAnnotationPaintAll();
     }
 
     function handleTypingKey(event) {
