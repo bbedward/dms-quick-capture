@@ -288,15 +288,20 @@ DankModal {
         window.applyToolIntensity(window.currentTool, window.sessionToolIntensity(window.currentTool));
     }
 
-    function finalizeCurrentStroke() {
-        const stroke = window.currentStroke;
-        if (!stroke || stroke.tool === "text") return false;
+    function shouldSkipCurrentStrokeCommit(stroke) {
+        if (!stroke || stroke.tool === "text") return true;
 
         const isStamp = stroke.tool === "stamp";
         if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) {
             window.currentStroke = null;
-            return false;
+            return true;
         }
+        return false;
+    }
+
+    function finalizeCurrentStroke() {
+        const stroke = window.currentStroke;
+        if (window.shouldSkipCurrentStrokeCommit(stroke)) return false;
 
         if (stroke.tool === "callout") {
             if (stroke.points.length < 2) {
@@ -351,13 +356,7 @@ DankModal {
 
     function commitStrokeBeforeToolChange() {
         const stroke = window.currentStroke;
-        if (!stroke || stroke.tool === "text") return null;
-
-        const isStamp = stroke.tool === "stamp";
-        if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) {
-            window.currentStroke = null;
-            return null;
-        }
+        if (window.shouldSkipCurrentStrokeCommit(stroke)) return null;
 
         const dragStart = stroke.points[stroke.points.length - 1];
         return window.finalizeCurrentStroke() ? dragStart : null;
