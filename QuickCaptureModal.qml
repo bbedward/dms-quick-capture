@@ -292,6 +292,12 @@ DankModal {
         const stroke = window.currentStroke;
         if (!stroke || stroke.tool === "text") return false;
 
+        const isStamp = stroke.tool === "stamp";
+        if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) {
+            window.currentStroke = null;
+            return false;
+        }
+
         if (stroke.tool === "callout") {
             if (stroke.points.length < 2) {
                 window.currentStroke = null;
@@ -348,7 +354,10 @@ DankModal {
         if (!stroke || stroke.tool === "text") return null;
 
         const isStamp = stroke.tool === "stamp";
-        if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) return null;
+        if ((!isStamp && stroke.points.length < 2) || (isStamp && stroke.points.length < 1)) {
+            window.currentStroke = null;
+            return null;
+        }
 
         const dragStart = stroke.points[stroke.points.length - 1];
         return window.finalizeCurrentStroke() ? dragStart : null;
