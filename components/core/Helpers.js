@@ -735,8 +735,10 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
                 dy = my - dstCy;
                 if (dstRx > 0 && dstRy > 0 && (dx * dx) / (dstRx * dstRx) + (dy * dy) / (dstRy * dstRy) <= 1) return i;
             } else {
-                if (mx >= srcP0.x - pad && mx <= srcP1.x + pad && my >= srcP0.y - pad && my <= srcP1.y + pad) return i;
-                if (mx >= dstP0.x - pad && mx <= dstP1.x + pad && my >= dstP0.y - pad && my <= dstP1.y + pad) return i;
+                const srcBounds = getRectBounds(srcP0, srcP1);
+                const dstBounds = getRectBounds(dstP0, dstP1);
+                if (mx >= srcBounds.x1 - pad && mx <= srcBounds.x2 + pad && my >= srcBounds.y1 - pad && my <= srcBounds.y2 + pad) return i;
+                if (mx >= dstBounds.x1 - pad && mx <= dstBounds.x2 + pad && my >= dstBounds.y1 - pad && my <= dstBounds.y2 + pad) return i;
             }
         }
     }

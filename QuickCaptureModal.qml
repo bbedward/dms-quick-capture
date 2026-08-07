@@ -1692,7 +1692,14 @@ DankModal {
             canvasMinX: window.hasActiveCropSelection ? window.cropRect.x : 0,
             canvasMinY: window.hasActiveCropSelection ? window.cropRect.y : 0,
             stampFontFamily: window.stampFontFamily,
-            stampOuterRing: window.stampOuterRing
+            stampOuterRing: window.stampOuterRing,
+            bgRotation: window.bgRotation,
+            bgFlipH: window.bgFlipH,
+            bgFlipV: window.bgFlipV,
+            screenshotXOffset: window.screenshotXOffset,
+            screenshotYOffset: window.screenshotYOffset,
+            cropOffsetX: window.hasActiveCropSelection ? window.cropRect.x : 0,
+            cropOffsetY: window.hasActiveCropSelection ? window.cropRect.y : 0
         });
     }
 

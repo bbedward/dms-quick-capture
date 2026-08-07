@@ -812,6 +812,15 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                 dstP0 = placement.destinationStart;
                 dstP1 = placement.destinationEnd;
             }
+
+            // Rotation and mirroring can reverse the point order. Normalize
+            // both rectangles before using their dimensions and corners.
+            const srcBounds = Helpers.getRectBounds(srcP0, srcP1);
+            const dstBounds = Helpers.getRectBounds(dstP0, dstP1);
+            srcP0 = { x: srcBounds.x1, y: srcBounds.y1 };
+            srcP1 = { x: srcBounds.x2, y: srcBounds.y2 };
+            dstP0 = { x: dstBounds.x1, y: dstBounds.y1 };
+            dstP1 = { x: dstBounds.x2, y: dstBounds.y2 };
             
             const sx = srcP0.x;
             const sy = srcP0.y;
@@ -905,29 +914,39 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
 
                 // 3. Draw destination image (foreground magnified pop-up view)
                 if (config.bgImageItem && config.bgImageItem.status === 1) {
-                    const imgW = config.bgImageItem.sourceSize
+                    const rawW = config.bgImageItem.sourceSize
                         ? config.bgImageItem.sourceSize.width
                         : (config.bgImageItem.width || 0);
-                    const imgH = config.bgImageItem.sourceSize
+                    const rawH = config.bgImageItem.sourceSize
                         ? config.bgImageItem.sourceSize.height
                         : (config.bgImageItem.height || 0);
-                    if (imgW > 0 && imgH > 0) {
-                        const clampSX = Math.max(0, Math.min(sx, imgW - 1));
-                        const clampSY = Math.max(0, Math.min(sy, imgH - 1));
-                        const clampSW = Math.min(sw, imgW - clampSX);
-                        const clampSH = Math.min(sh, imgH - clampSY);
-                        if (clampSW > 0 && clampSH > 0) {
-                            ctx.save();
-                            ctx.beginPath();
-                            if (isEllipse) {
-                                drawEllipsePath(ctx, dstCx, dstCy, dw / 2, dh / 2);
-                            } else {
-                                ctx.rect(dx, dy, dw, dh);
-                            }
-                            ctx.clip();
-                            ctx.drawImage(config.bgImageItem, clampSX, clampSY, clampSW, clampSH, dx, dy, dw, dh);
-                            ctx.restore();
+                    if (rawW > 0 && rawH > 0) {
+                        const rotation = config.bgRotation || 0;
+                        const isRotated90 = rotation === 90 || rotation === 270;
+                        const imageW = isRotated90 ? rawH : rawW;
+                        const imageH = isRotated90 ? rawW : rawH;
+                        const sourceX = sx - (config.screenshotXOffset || 0) + (config.cropOffsetX || 0);
+                        const sourceY = sy - (config.screenshotYOffset || 0) + (config.cropOffsetY || 0);
+
+                        ctx.save();
+                        ctx.beginPath();
+                        if (isEllipse) {
+                            drawEllipsePath(ctx, dstCx, dstCy, dw / 2, dh / 2);
+                        } else {
+                            ctx.rect(dx, dy, dw, dh);
                         }
+                        ctx.clip();
+
+                        // Map the transformed source rectangle to the destination
+                        // while applying the same image transform as the background.
+                        ctx.translate(dx, dy);
+                        ctx.scale(dw / sw, dh / sh);
+                        ctx.translate(-sourceX, -sourceY);
+                        ctx.translate(imageW / 2, imageH / 2);
+                        if (rotation !== 0) ctx.rotate(rotation * Math.PI / 180);
+                        ctx.scale(config.bgFlipH ? -1 : 1, config.bgFlipV ? -1 : 1);
+                        ctx.drawImage(config.bgImageItem, -rawW / 2, -rawH / 2, rawW, rawH);
+                        ctx.restore();
                     }
                 }
 
