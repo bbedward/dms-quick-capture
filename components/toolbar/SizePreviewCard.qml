@@ -5,6 +5,7 @@ import qs.Modals.Common
 import qs.Services
 import "../../dms-common"
 import "../core/Constants.js" as Constants
+import "../core/Helpers.js" as Helpers
 
 Rectangle {
     id: sizePreviewItem
@@ -37,7 +38,7 @@ Rectangle {
             base = window.activeIntensity * meta.previewMultiplier;
         }
         if (meta.previewClampMin !== undefined) {
-            base = Math.max(meta.previewClampMin, Math.min(meta.previewClampMax, base));
+            base = Helpers.clamp(base, meta.previewClampMin, meta.previewClampMax);
         }
 
         if (tool === "callout") {

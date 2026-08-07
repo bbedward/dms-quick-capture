@@ -299,8 +299,9 @@ DankModal {
 
             const p0 = stroke.points[0];
             const p1 = stroke.points[stroke.points.length - 1];
-            const rw = Math.abs(p1.x - p0.x);
-            const rh = Math.abs(p1.y - p0.y);
+            const bounds = Helpers.getRectBounds(p0, p1);
+            const rw = bounds.x2 - bounds.x1;
+            const rh = bounds.y2 - bounds.y1;
             if (rw <= 5 || rh <= 5) {
                 window.currentStroke = null;
                 return false;
@@ -1448,6 +1449,66 @@ DankModal {
         }
     }
 
+    /**
+     * Crops the selected region and runs the configured external scanner.
+     * @param {string} type - Scan type: "ocr" or "qr".
+     * @param {object} crop - Source image crop with x, y, width and height.
+     */
+    function runRegionScan(type, crop) {
+        const isQr = type === "qr";
+        const scanConfig = isQr ? {
+            cropCommandId: "crop-qr-temp",
+            scanCommandId: "run-qr-scan",
+            cleanupCommandId: "cleanup-qr-temp",
+            scanArgs: (path) => ["zbarimg", "--raw", "-q", path],
+            noResultMessage: "QR Scan: No QR code detected",
+            scanErrorMessage: "QR Scan failed or command execution error",
+            cropErrorMessage: "QR Scan failed: Could not crop image"
+        } : {
+            cropCommandId: "crop-ocr-temp",
+            scanCommandId: "run-ocr",
+            cleanupCommandId: "cleanup-ocr-temp",
+            scanArgs: (path) => ["tesseract", path, "-", "-l", "eng"],
+            noResultMessage: "OCR: No text detected",
+            scanErrorMessage: "OCR failed during text extraction",
+            cropErrorMessage: "OCR failed: Could not crop image"
+        };
+
+        const bgPath = window.getBackgroundImagePath();
+        const tempCropPath = window.makeTempCropPath(type);
+        const cropArgs = ["magick", bgPath, "-crop", `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, tempCropPath];
+
+        Proc.runCommand(scanConfig.cropCommandId, cropArgs, (stdout1, exitCode1) => {
+            if (exitCode1 !== 0) {
+                if (typeof ToastService !== "undefined" && ToastService) {
+                    ToastService.showError(I18n.tr(scanConfig.cropErrorMessage));
+                }
+                window.finishRegionScanTool();
+                return;
+            }
+
+            Proc.runCommand(scanConfig.scanCommandId, scanConfig.scanArgs(tempCropPath), (stdout2, exitCode2) => {
+                Proc.runCommand(scanConfig.cleanupCommandId, ["rm", "-f", tempCropPath]);
+
+                if (exitCode2 === 0) {
+                    const result = stdout2.trim();
+                    if (result) {
+                        window.showScanResult(type, result);
+                    } else if (typeof ToastService !== "undefined" && ToastService) {
+                        ToastService.showInfo(I18n.tr(scanConfig.noResultMessage));
+                    }
+                } else if (isQr && exitCode2 === 4) {
+                    if (typeof ToastService !== "undefined" && ToastService) {
+                        ToastService.showInfo(I18n.tr(scanConfig.noResultMessage));
+                    }
+                } else if (typeof ToastService !== "undefined" && ToastService) {
+                    ToastService.showError(I18n.tr(scanConfig.scanErrorMessage));
+                }
+                window.finishRegionScanTool();
+            });
+        });
+    }
+
     function executeOcr() {
         const crop = window.getRegionScanCrop();
         if (!crop) {
@@ -1455,39 +1516,7 @@ DankModal {
             window.requestActiveCanvasPaint();
             return;
         }
-
-        const bgPath = window.getBackgroundImagePath();
-        let ocrLang = "eng";
-
-        const tempCropPath = window.makeTempCropPath("ocr");
-        Proc.runCommand("crop-ocr-temp", ["magick", bgPath, "-crop", `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, tempCropPath], (stdout1, exitCode1) => {
-            if (exitCode1 === 0) {
-                Proc.runCommand("run-ocr", ["tesseract", tempCropPath, "-", "-l", ocrLang], (stdout2, exitCode2) => {
-                    Proc.runCommand("cleanup-ocr-temp", ["rm", "-f", tempCropPath]);
-
-                    if (exitCode2 === 0) {
-                        const result = stdout2.trim();
-                        if (result) {
-                            window.showScanResult("ocr", result);
-                        } else {
-                            if (typeof ToastService !== "undefined" && ToastService) {
-                                ToastService.showInfo(I18n.tr("OCR: No text detected"));
-                            }
-                        }
-                    } else {
-                        if (typeof ToastService !== "undefined" && ToastService) {
-                            ToastService.showError(I18n.tr("OCR failed during text extraction"));
-                        }
-                    }
-                    window.finishRegionScanTool();
-                });
-            } else {
-                if (typeof ToastService !== "undefined" && ToastService) {
-                    ToastService.showError(I18n.tr("OCR failed: Could not crop image"));
-                }
-                window.finishRegionScanTool();
-            }
-        });
+        window.runRegionScan("ocr", crop);
     }
 
     function runQrScan() {
@@ -1501,42 +1530,7 @@ DankModal {
             window.requestActiveCanvasPaint();
             return;
         }
-
-        const bgPath = window.getBackgroundImagePath();
-
-        const tempCropPath = window.makeTempCropPath("qr");
-        Proc.runCommand("crop-qr-temp", ["magick", bgPath, "-crop", `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, tempCropPath], (stdout1, exitCode1) => {
-            if (exitCode1 === 0) {
-                Proc.runCommand("run-qr-scan", ["zbarimg", "--raw", "-q", tempCropPath], (stdout2, exitCode2) => {
-                    Proc.runCommand("cleanup-qr-temp", ["rm", "-f", tempCropPath]);
-
-                    if (exitCode2 === 0) {
-                        const result = stdout2.trim();
-                        if (result) {
-                            window.showScanResult("qr", result);
-                        } else {
-                            if (typeof ToastService !== "undefined" && ToastService) {
-                                ToastService.showInfo(I18n.tr("QR Scan: No QR code detected"));
-                            }
-                        }
-                    } else if (exitCode2 === 4) {
-                        if (typeof ToastService !== "undefined" && ToastService) {
-                            ToastService.showInfo(I18n.tr("QR Scan: No QR code detected"));
-                        }
-                    } else {
-                        if (typeof ToastService !== "undefined" && ToastService) {
-                            ToastService.showError(I18n.tr("QR Scan failed or command execution error"));
-                        }
-                    }
-                    window.finishRegionScanTool();
-                });
-            } else {
-                if (typeof ToastService !== "undefined" && ToastService) {
-                    ToastService.showError(I18n.tr("QR Scan failed: Could not crop image"));
-                }
-                window.finishRegionScanTool();
-            }
-        });
+        window.runRegionScan("qr", crop);
     }
 
     shouldBeVisible: false
@@ -1560,8 +1554,8 @@ DankModal {
     // Compositor scale (not Screen.devicePixelRatio, which reports the integer buffer scale)
     readonly property real _outputScale: (window.targetScreen && CompositorService.getScreenScale(window.targetScreen)) || 1
     readonly property bool _shouldScale: !!(window.parentWidget && window.parentWidget.pluginData && window.parentWidget.pluginData.modalScaleToContent)
-    modalWidth: _shouldScale && _bgSizeKnown ? Math.round(Math.min(_maxModalW, Math.max(_minModalW, window.bgImageItem.sourceSize.width / _outputScale + _chromeW))) : _maxModalW
-    modalHeight: _shouldScale && _bgSizeKnown ? Math.round(Math.min(_maxModalH, Math.max(_minModalH, window.bgImageItem.sourceSize.height / _outputScale + _chromeH))) : _maxModalH
+    modalWidth: _shouldScale && _bgSizeKnown ? Math.round(Helpers.clamp(window.bgImageItem.sourceSize.width / _outputScale + _chromeW, _minModalW, _maxModalW)) : _maxModalW
+    modalHeight: _shouldScale && _bgSizeKnown ? Math.round(Helpers.clamp(window.bgImageItem.sourceSize.height / _outputScale + _chromeH, _minModalH, _maxModalH)) : _maxModalH
     enableShadow: true
     positioning: "center"
 
@@ -1737,11 +1731,9 @@ DankModal {
             if (window.currentStroke && (window.currentStroke.tool === "spotlight" || window.currentStroke.tool === "pixelate") && window.currentStroke.points.length >= 2) {
                 const p0 = window.currentStroke.points[0];
                 const p1 = window.currentStroke.points[window.currentStroke.points.length - 1];
-                const rx = Math.min(p0.x, p1.x);
-                const ry = Math.min(p0.y, p1.y);
-                const rw = Math.abs(p1.x - p0.x);
-                const rh = Math.abs(p1.y - p0.y);
-                DrawingRenderer.drawHighContrastDashedRect(ctx, rx, ry, rw, rh);
+                const bounds = Helpers.getRectBounds(p0, p1);
+                DrawingRenderer.drawHighContrastDashedRect(ctx, bounds.x1, bounds.y1,
+                    bounds.x2 - bounds.x1, bounds.y2 - bounds.y1);
             }
         }
 
@@ -1866,7 +1858,7 @@ DankModal {
             let cursorLine = 0;
             let charAcc = 0;
             let cursorCol = 0;
-            const targetIdx = Math.max(0, Math.min(rawText.length, window.typingCursorIndex));
+            const targetIdx = Helpers.clamp(window.typingCursorIndex, 0, rawText.length);
 
             for (let i = 0; i < previewLines.length; i++) {
                 const lineLen = previewLines[i].length;
@@ -2309,10 +2301,10 @@ DankModal {
         const bw = window.screenshotWidth;
         const bh = window.screenshotHeight;
         const minSize = 10;
-        const cx = Math.max(0, Math.min(x, Math.max(0, bw - minSize)));
-        const cy = Math.max(0, Math.min(y, Math.max(0, bh - minSize)));
-        const cw = Math.max(minSize, Math.min(w, bw - cx));
-        const ch = Math.max(minSize, Math.min(h, bh - cy));
+        const cx = Helpers.clamp(x, 0, Math.max(0, bw - minSize));
+        const cy = Helpers.clamp(y, 0, Math.max(0, bh - minSize));
+        const cw = Helpers.clamp(w, minSize, bw - cx);
+        const ch = Helpers.clamp(h, minSize, bh - cy);
         return Qt.rect(cx, cy, cw, ch);
     }
 
@@ -3407,10 +3399,10 @@ DankModal {
                 menu.x = pt.x + buttonItem.width + Theme.spacingS;
             }
             const targetY = pt.y + (buttonItem.height - menu.height) / 2;
-            menu.y = Math.max(Theme.spacingS, Math.min(targetY, contentItem.height - menu.height - Theme.spacingS));
+            menu.y = Helpers.clamp(targetY, Theme.spacingS, contentItem.height - menu.height - Theme.spacingS);
         } else {
             const targetX = pt.x + (buttonItem.width - menu.width) / 2;
-            menu.x = Math.max(Theme.spacingS, Math.min(targetX, contentItem.width - menu.width - Theme.spacingS));
+            menu.x = Helpers.clamp(targetX, Theme.spacingS, contentItem.width - menu.width - Theme.spacingS);
             if (window.toolbarPosition === "bottom") {
                 menu.y = pt.y - menu.height - Theme.spacingS;
             } else {
@@ -3498,8 +3490,8 @@ DankModal {
         }
         window.loadBackgroundImages();
         window.positionBackgroundPopover(popover, controlItem, toolbar, contentItem);
-        popover.x = Math.max(Theme.spacingS, Math.min(popover.x, contentItem.width - popover.width - Theme.spacingS));
-        popover.y = Math.max(Theme.spacingS, Math.min(popover.y, contentItem.height - popover.height - Theme.spacingS));
+        popover.x = Helpers.clamp(popover.x, Theme.spacingS, contentItem.width - popover.width - Theme.spacingS);
+        popover.y = Helpers.clamp(popover.y, Theme.spacingS, contentItem.height - popover.height - Theme.spacingS);
         popover.open();
     }
 

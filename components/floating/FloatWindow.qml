@@ -7,6 +7,7 @@ import Quickshell.Wayland
 import qs.Common
 import qs.Services
 import qs.Widgets
+import "../core/Helpers.js" as Helpers
 
 PanelWindow {
     id: window
@@ -295,8 +296,8 @@ PanelWindow {
             if (centerY > window.screen.height / 2) newY += (targetHeight - minimizedSize);
         }
 
-        newX = Math.max(workArea.x + edgeSpacing, Math.min(workArea.x + workArea.width - targetWidth - edgeSpacing, newX));
-        newY = Math.max(workArea.y + edgeSpacing, Math.min(workArea.y + workArea.height - targetHeight - edgeSpacing, newY));
+        newX = Helpers.clamp(newX, workArea.x + edgeSpacing, workArea.x + workArea.width - targetWidth - edgeSpacing);
+        newY = Helpers.clamp(newY, workArea.y + edgeSpacing, workArea.y + workArea.height - targetHeight - edgeSpacing);
 
         xPos = newX;
         yPos = newY;
@@ -426,7 +427,7 @@ PanelWindow {
                 if (img.implicitWidth <= 0 || img.implicitHeight <= 0) return;
                 let b = window.borderWidth;
                 let ratio = img.implicitWidth / img.implicitHeight;
-                let newWidth = Math.max(window.resizeMin, Math.min(window.resizeMax, startWidth * scale));
+                let newWidth = Helpers.clamp(startWidth * scale, window.resizeMin, window.resizeMax);
                 let newHeight = ((newWidth - 2 * b) / ratio) + 2 * b;
 
                 window.targetWidth = Math.round(newWidth);
@@ -488,7 +489,7 @@ PanelWindow {
                 let oldHeight = window.targetHeight;
                 let b = window.borderWidth;
                 let ratio = img.implicitWidth / img.implicitHeight;
-                let newWidth = Math.round(Math.max(window.resizeMin, Math.min(window.resizeMax, oldWidth * scaleFactor)));
+                let newWidth = Math.round(Helpers.clamp(oldWidth * scaleFactor, window.resizeMin, window.resizeMax));
                 let newHeight = Math.round(((newWidth - 2 * b) / ratio) + 2 * b);
 
                 // Directional resize logic:

@@ -2,6 +2,7 @@ import QtQuick
 import qs.Common
 import qs.Widgets
 import "../core/Constants.js" as Constants
+import "../core/Helpers.js" as Helpers
 
 PopoverSurface {
     id: popoverRoot
@@ -20,7 +21,7 @@ PopoverSurface {
     function valueFromRatio(ratio) {
         let rawVal = minimum + ratio * (maximum - minimum);
         let newVal = stepSize > 1 ? Math.round(rawVal / stepSize) * stepSize : Math.round(rawVal);
-        return Math.max(minimum, Math.min(maximum, newVal));
+        return Helpers.clamp(newVal, minimum, maximum);
     }
 
     MouseArea {
@@ -32,7 +33,7 @@ PopoverSurface {
         
         onWheel: (wheel) => {
             let step = wheel.angleDelta.y > 0 ? popoverRoot.stepSize : -popoverRoot.stepSize;
-            let newVal = Math.max(popoverRoot.minimum, Math.min(popoverRoot.maximum, popoverRoot.value + step));
+            let newVal = Helpers.clamp(popoverRoot.value + step, popoverRoot.minimum, popoverRoot.maximum);
             popoverRoot.userValueChanged(newVal);
         }
 
@@ -72,7 +73,7 @@ PopoverSurface {
                     height: {
                         const range = popoverRoot.maximum - popoverRoot.minimum;
                         const ratio = range === 0 ? 0 : (popoverRoot.value - popoverRoot.minimum) / range;
-                        return Math.max(0, Math.min(verticalTrack.height, verticalTrack.height * ratio));
+                        return Helpers.clamp(verticalTrack.height * ratio, 0, verticalTrack.height);
                     }
                     color: Theme.primary
                 }
@@ -87,7 +88,7 @@ PopoverSurface {
                         const range = popoverRoot.maximum - popoverRoot.minimum;
                         const ratio = range === 0 ? 0 : (popoverRoot.value - popoverRoot.minimum) / range;
                         const travel = verticalTrack.height - height;
-                        return Math.max(0, Math.min(travel, travel * (1 - ratio)));
+                        return Helpers.clamp(travel * (1 - ratio), 0, travel);
                     }
                     color: Theme.primary
                 }
@@ -102,7 +103,7 @@ PopoverSurface {
                 
                 function updateValue(mouseY) {
                     if (verticalSliderContainer.height <= 0) return;
-                    let ratio = 1 - Math.max(0, Math.min(1, mouseY / verticalSliderContainer.height));
+                    let ratio = 1 - Helpers.clamp(mouseY / verticalSliderContainer.height, 0, 1);
                     let newVal = popoverRoot.valueFromRatio(ratio);
                     if (newVal !== popoverRoot.value) {
                         popoverRoot.userValueChanged(newVal);

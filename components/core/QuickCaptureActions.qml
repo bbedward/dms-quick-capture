@@ -169,12 +169,10 @@ QtObject {
         let cmd = "";
         let args = [];
 
-        if (format === "webp") {
-            const quality = String(data.webpQuality ?? 80);
-            cmd = "magick";
-            args = ["convert", pngPath, "-quality", quality, finalOut];
-        } else if (format === "jpg") {
-            const quality = String(data.jpegQuality ?? 90);
+        if (format === "webp" || format === "jpg") {
+            const quality = format === "webp"
+                ? String(data.webpQuality ?? 80)
+                : String(data.jpegQuality ?? 90);
             cmd = "magick";
             args = ["convert", pngPath, "-quality", quality, finalOut];
         } else if (format === "pdf") {
@@ -194,6 +192,16 @@ QtObject {
         } else {
             callback(pngPath, "");
         }
+    }
+
+    /**
+     * Exports the current capture and converts it to the configured format.
+     * @param {function} callback - Receives the final path and optional original PNG path.
+     */
+    function withConvertedExport(callback) {
+        withExport((pngPath) => {
+            convertIfNeeded(pngPath, callback);
+        });
     }
 
     function copyFileToClipboard(tempOut, callback) {
@@ -217,6 +225,22 @@ QtObject {
         }, 0, 2000);
     }
 
+    /**
+     * Copies an exported image and normalizes clipboard failure details.
+     * @param {string} sourceFile - File to copy to the clipboard.
+     * @param {function} onSuccess - Called after a successful copy.
+     * @param {function} onFailure - Called with a readable detail and exit code.
+     */
+    function copyExportedFile(sourceFile, onSuccess, onFailure) {
+        copyFileToClipboard(sourceFile, (output, exitCode) => {
+            if (exitCode === 0) {
+                onSuccess();
+                return;
+            }
+            onFailure(commandOutputOrFallback(output, "Clipboard exit code " + exitCode), exitCode);
+        });
+    }
+
     function saveFile(tempOut, callback) {
         const saveDir = saveDirectory();
         const filename = screenshotFilename();
@@ -231,41 +255,35 @@ QtObject {
     }
 
     function performSaveOnly() {
-        withExport((pngPath) => {
-            convertIfNeeded(pngPath, (finalPath, originalPng) => {
-                saveFile(finalPath, (stdout, exitCode, saveDir, filename, targetPath) => {
-                    if (exitCode === 0) {
-                        const notifyPath = targetPath.replace(/^~/, Quickshell.env("HOME"));
-                        const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
-                        root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot saved to %1/%2").arg(saveDir).arg(filename), iconPath, notifyPath);
-                        root.closeRequested();
-                    } else {
-                        const errDetail = commandOutputOrFallback(stdout, "Save command failed with exit code " + exitCode);
-                        console.error("[QuickCapture] Save failed:", errDetail);
-                        notifyError(I18n.tr("Failed to save screenshot file."), errDetail);
-                    }
-                    cleanupConvertedFiles(finalPath, originalPng);
-                });
+        withConvertedExport((finalPath, originalPng) => {
+            saveFile(finalPath, (stdout, exitCode, saveDir, filename, targetPath) => {
+                if (exitCode === 0) {
+                    const notifyPath = targetPath.replace(/^~/, Quickshell.env("HOME"));
+                    const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
+                    root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot saved to %1/%2").arg(saveDir).arg(filename), iconPath, notifyPath);
+                    root.closeRequested();
+                } else {
+                    const errDetail = commandOutputOrFallback(stdout, "Save command failed with exit code " + exitCode);
+                    console.error("[QuickCapture] Save failed:", errDetail);
+                    notifyError(I18n.tr("Failed to save screenshot file."), errDetail);
+                }
+                cleanupConvertedFiles(finalPath, originalPng);
             });
         });
     }
 
     function performCopyOnly() {
-        withExport((pngPath) => {
-            convertIfNeeded(pngPath, (finalPath, originalPng) => {
-                const clipSource = originalPng || finalPath;
-                copyFileToClipboard(clipSource, (stdout, exitCode) => {
-                    if (exitCode === 0) {
-                        root.sendNotification(I18n.tr("Screenshot Copied"), I18n.tr("Screenshot copied to clipboard."), clipSource);
-                        root.closeRequested();
-                    } else {
-                        const errDetail = commandOutputOrFallback(stdout, "Clipboard exit code " + exitCode);
-                        console.error("[QuickCapture] Copy failed:", errDetail);
-                        notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
-                        root.closeRequested();
-                    }
-                    cleanupConvertedFiles(finalPath, originalPng);
-                });
+        withConvertedExport((finalPath, originalPng) => {
+            const clipSource = originalPng || finalPath;
+            copyExportedFile(clipSource, () => {
+                root.sendNotification(I18n.tr("Screenshot Copied"), I18n.tr("Screenshot copied to clipboard."), clipSource);
+                root.closeRequested();
+                cleanupConvertedFiles(finalPath, originalPng);
+            }, (errDetail) => {
+                console.error("[QuickCapture] Copy failed:", errDetail);
+                notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
+                root.closeRequested();
+                cleanupConvertedFiles(finalPath, originalPng);
             });
         });
     }
@@ -288,18 +306,17 @@ QtObject {
             Proc.runCommand("anon-copy-strip", ["sh", "-c", stripCmd], (stdout, exitCode) => {
                 const stripSuccess = (exitCode === 0);
                 const doCopy = (sourceFile, isStripped) => {
-                    copyFileToClipboard(sourceFile, (clipOut, clipExit) => {
-                        if (clipExit === 0) {
-                            const msg = isStripped 
-                                ? I18n.tr("Screenshot copied anonymously with randomized name and stripped metadata.")
-                                : I18n.tr("Screenshot copied with randomized name.");
-                            root.sendNotification(I18n.tr("Copied Anonymously"), msg, sourceFile);
-                            root.closeRequested();
-                        } else {
-                            const errDetail = commandOutputOrFallback(clipOut, "Clipboard exit code " + clipExit);
-                            notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
-                            root.closeRequested();
-                        }
+                    copyExportedFile(sourceFile, () => {
+                        const msg = isStripped
+                            ? I18n.tr("Screenshot copied anonymously with randomized name and stripped metadata.")
+                            : I18n.tr("Screenshot copied with randomized name.");
+                        root.sendNotification(I18n.tr("Copied Anonymously"), msg, sourceFile);
+                        root.closeRequested();
+                        cleanupTemp(pngPath);
+                        if (sourceFile !== pngPath) cleanupTemp(sourceFile);
+                    }, (errDetail) => {
+                        notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
+                        root.closeRequested();
                         cleanupTemp(pngPath);
                         if (sourceFile !== pngPath) cleanupTemp(sourceFile);
                     });
@@ -319,31 +336,26 @@ QtObject {
     }
 
     function performCopyAndSave() {
-        withExport((pngPath) => {
-            convertIfNeeded(pngPath, (finalPath, originalPng) => {
-                const clipSource = originalPng || finalPath;
-                copyFileToClipboard(clipSource, (stdout, exitCode) => {
-                    if (exitCode === 0) {
-                        saveFile(finalPath, (saveOut, saveCode, saveDir, filename, targetPath) => {
-                            if (saveCode === 0) {
-                                const notifyPath = targetPath.replace(/^~/, Quickshell.env("HOME"));
-                                const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
-                                root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot copied to clipboard and saved to %1").arg(saveDir), iconPath, notifyPath);
-                            } else {
-                                const errDetail = commandOutputOrFallback(saveOut, "Save exit code " + saveCode);
-                                notifyWarning(I18n.tr("Screenshot copied to clipboard but failed to save file: %1").arg(errDetail));
-                            }
-                            root.closeRequested();
-                            cleanupConvertedFiles(finalPath, originalPng);
-                        });
+        withConvertedExport((finalPath, originalPng) => {
+            const clipSource = originalPng || finalPath;
+            copyExportedFile(clipSource, () => {
+                saveFile(finalPath, (saveOut, saveCode, saveDir, filename, targetPath) => {
+                    if (saveCode === 0) {
+                        const notifyPath = targetPath.replace(/^~/, Quickshell.env("HOME"));
+                        const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
+                        root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot copied to clipboard and saved to %1").arg(saveDir), iconPath, notifyPath);
                     } else {
-                        const errDetail = commandOutputOrFallback(stdout, "Clipboard exit code " + exitCode);
-                        console.error("[QuickCapture] Copy&Save failed on copy step:", errDetail);
-                        notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
-                        root.closeRequested();
-                        cleanupConvertedFiles(finalPath, originalPng);
+                        const errDetail = commandOutputOrFallback(saveOut, "Save exit code " + saveCode);
+                        notifyWarning(I18n.tr("Screenshot copied to clipboard but failed to save file: %1").arg(errDetail));
                     }
+                    root.closeRequested();
+                    cleanupConvertedFiles(finalPath, originalPng);
                 });
+            }, (errDetail) => {
+                console.error("[QuickCapture] Copy&Save failed on copy step:", errDetail);
+                notifyError(I18n.tr("Failed to copy screenshot to clipboard."), errDetail);
+                root.closeRequested();
+                cleanupConvertedFiles(finalPath, originalPng);
             });
         });
     }
@@ -426,16 +438,14 @@ QtObject {
             autoBackgroundSolidColor: root.modal.autoBackgroundSolidColor
         };
 
-        withExport((pngPath) => {
-            convertIfNeeded(pngPath, (finalPath, originalPng) => {
-                var pluginData = root.getPluginData();
+        withConvertedExport((finalPath, originalPng) => {
+            var pluginData = root.getPluginData();
 
-                var tempPaths = [finalPath];
-                if (originalPng) tempPaths.push(originalPng);
+            var tempPaths = [finalPath];
+            if (originalPng) tempPaths.push(originalPng);
 
-                root.floatService.spawnWindow("file://" + finalPath, pluginData, annotationState, tempPaths);
-                root.closeRequested();
-            });
+            root.floatService.spawnWindow("file://" + finalPath, pluginData, annotationState, tempPaths);
+            root.closeRequested();
         });
     }
 }

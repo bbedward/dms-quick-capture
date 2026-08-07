@@ -53,6 +53,23 @@ function stampTailGeometry(stampPt, leaderPt, radius, baseHalfWidth) {
 }
 
 /**
+ * Clamps a bubble leader's center to the usable portion of one edge.
+ * @param {number} target - Projected target coordinate on the edge.
+ * @param {number} edgeStart - Edge start coordinate.
+ * @param {number} edgeEnd - Edge end coordinate.
+ * @param {number} tailBaseSize - Half-width of the leader base.
+ * @param {number} radius - Bubble corner radius.
+ * @returns {number} Usable leader center coordinate.
+ */
+function getBubbleTailCenter(target, edgeStart, edgeEnd, tailBaseSize, radius) {
+    const edgePadding = Math.max(tailBaseSize, radius * 0.35);
+    const minAllowed = edgeStart + edgePadding;
+    const maxAllowed = edgeEnd - edgePadding;
+    if (maxAllowed < minAllowed) return (edgeStart + edgeEnd) / 2;
+    return Math.max(minAllowed, Math.min(target, maxAllowed));
+}
+
+/**
  * Converts a user/theme font family into a safe Canvas font-family token.
  * Generic families are returned as-is; custom names are quoted and escaped.
  * @param {string} family - Requested font family.
@@ -1003,53 +1020,25 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                 const tailBaseSize = Math.max(8, stroke.width * 0.3);
 
                 if (activeEdge === "top") {
-                    let closestX = Math.max(rx, Math.min(tx, rx + rw));
-                    const minAllowedX = rx + Math.max(tailBaseSize, radius * 0.35);
-                    const maxAllowedX = rx + rw - Math.max(tailBaseSize, radius * 0.35);
-                    if (maxAllowedX >= minAllowedX) {
-                        closestX = Math.max(minAllowedX, Math.min(closestX, maxAllowedX));
-                    } else {
-                        closestX = rx + rw / 2;
-                    }
+                    const closestX = getBubbleTailCenter(tx, rx, rx + rw, tailBaseSize, radius);
                     base1X = closestX - tailBaseSize;
                     base1Y = ry;
                     base2X = closestX + tailBaseSize;
                     base2Y = ry;
                 } else if (activeEdge === "bottom") {
-                    let closestX = Math.max(rx, Math.min(tx, rx + rw));
-                    const minAllowedX = rx + Math.max(tailBaseSize, radius * 0.35);
-                    const maxAllowedX = rx + rw - Math.max(tailBaseSize, radius * 0.35);
-                    if (maxAllowedX >= minAllowedX) {
-                        closestX = Math.max(minAllowedX, Math.min(closestX, maxAllowedX));
-                    } else {
-                        closestX = rx + rw / 2;
-                    }
+                    const closestX = getBubbleTailCenter(tx, rx, rx + rw, tailBaseSize, radius);
                     base1X = closestX - tailBaseSize;
                     base1Y = ry + rh;
                     base2X = closestX + tailBaseSize;
                     base2Y = ry + rh;
                 } else if (activeEdge === "left") {
-                    let closestY = Math.max(ry, Math.min(ty, ry + rh));
-                    const minAllowedY = ry + Math.max(tailBaseSize, radius * 0.35);
-                    const maxAllowedY = ry + rh - Math.max(tailBaseSize, radius * 0.35);
-                    if (maxAllowedY >= minAllowedY) {
-                        closestY = Math.max(minAllowedY, Math.min(closestY, maxAllowedY));
-                    } else {
-                        closestY = ry + rh / 2;
-                    }
+                    const closestY = getBubbleTailCenter(ty, ry, ry + rh, tailBaseSize, radius);
                     base1X = rx;
                     base1Y = closestY - tailBaseSize;
                     base2X = rx;
                     base2Y = closestY + tailBaseSize;
                 } else if (activeEdge === "right") {
-                    let closestY = Math.max(ry, Math.min(ty, ry + rh));
-                    const minAllowedY = ry + Math.max(tailBaseSize, radius * 0.35);
-                    const maxAllowedY = ry + rh - Math.max(tailBaseSize, radius * 0.35);
-                    if (maxAllowedY >= minAllowedY) {
-                        closestY = Math.max(minAllowedY, Math.min(closestY, maxAllowedY));
-                    } else {
-                        closestY = ry + rh / 2;
-                    }
+                    const closestY = getBubbleTailCenter(ty, ry, ry + rh, tailBaseSize, radius);
                     base1X = rx + rw;
                     base1Y = closestY - tailBaseSize;
                     base2X = rx + rw;
