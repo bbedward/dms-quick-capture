@@ -72,6 +72,7 @@ DankModal {
     property var toolbarItem: null
     property int activeColorSlotIndex: 0
     property var scanResultPopoverRef: null
+    property int editorSessionGeneration: 0
     property color pendingColorToSave: "transparent"
     property int pendingSlotToSave: -1
     property string currentTool: "crop" // crop, select, pen, line, arrow, rect, ellipse, text, pixelate, redact, stamp, highlighter, eraser, spotlight, background
@@ -505,8 +506,10 @@ DankModal {
 
     function loadBackgroundImages() {
         const folder = window.localFolderPath(window.backgroundImageFolder);
+        const generation = window.editorSessionGeneration;
         window.backgroundImagesLoading = true;
         Proc.runCommand("scan-background-images", ["find", folder, "-maxdepth", "1", "-type", "f", "-printf", "%T@|%p\n"], (stdout, exitCode) => {
+            if (generation !== window.editorSessionGeneration) return;
             const images = [];
             if (exitCode === 0 && stdout) {
                 const lines = stdout.trim().split("\n");
@@ -1455,6 +1458,7 @@ DankModal {
      * @param {object} crop - Source image crop with x, y, width and height.
      */
     function runRegionScan(type, crop) {
+        const generation = window.editorSessionGeneration;
         const isQr = type === "qr";
         const scanConfig = isQr ? {
             cropCommandId: "crop-qr-temp",
@@ -1479,6 +1483,10 @@ DankModal {
         const cropArgs = ["magick", bgPath, "-crop", `${crop.width}x${crop.height}+${crop.x}+${crop.y}`, tempCropPath];
 
         Proc.runCommand(scanConfig.cropCommandId, cropArgs, (stdout1, exitCode1) => {
+            if (generation !== window.editorSessionGeneration) {
+                Proc.runCommand(scanConfig.cleanupCommandId, ["rm", "-f", tempCropPath]);
+                return;
+            }
             if (exitCode1 !== 0) {
                 if (typeof ToastService !== "undefined" && ToastService) {
                     ToastService.showError(I18n.tr(scanConfig.cropErrorMessage));
@@ -1488,6 +1496,10 @@ DankModal {
             }
 
             Proc.runCommand(scanConfig.scanCommandId, scanConfig.scanArgs(tempCropPath), (stdout2, exitCode2) => {
+                if (generation !== window.editorSessionGeneration) {
+                    Proc.runCommand(scanConfig.cleanupCommandId, ["rm", "-f", tempCropPath]);
+                    return;
+                }
                 Proc.runCommand(scanConfig.cleanupCommandId, ["rm", "-f", tempCropPath]);
 
                 if (exitCode2 === 0) {
@@ -2970,6 +2982,9 @@ DankModal {
     }
 
     function resetEditorSessionState() {
+        window.editorSessionGeneration++;
+        if (typeof drawMouseArea !== "undefined" && drawMouseArea) drawMouseArea.resetInteractionState();
+
         window.strokes = [];
         window.undoneStrokes = [];
         window.currentStroke = null;
@@ -2997,10 +3012,14 @@ DankModal {
         window.previewY = 0;
         window.cropRect = Qt.rect(0, 0, 0, 0);
         window.hasSelection = false;
+        window.selectStart = Qt.point(0, 0);
         window.ocrRect = Qt.rect(0, 0, 0, 0);
         window.isZoomPressed = false;
         window.cursorX = 0;
         window.cursorY = 0;
+        window._lastSampledX = -1;
+        window._lastSampledY = -1;
+        window._lastSampledColor = "transparent";
         window.hoveredColor = "transparent";
         window.colorPickerMode = "draw";
         window.backgroundColorPickingSlot = "none";

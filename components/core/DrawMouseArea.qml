@@ -33,6 +33,15 @@ MouseArea {
     property real penSmoothX: 0
     property real penSmoothY: 0
 
+    function resetInteractionState() {
+        activeHandle = "none";
+        hoveredHandle = "none";
+        hoveredStrokeIdx = -1;
+        shiftLockAxis = "none";
+        penSmoothX = 0;
+        penSmoothY = 0;
+    }
+
     function getAbsolutePoint(mx, my) {
         let rx = mx / window.editScale;
         let ry = my / window.editScale;
