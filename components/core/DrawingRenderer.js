@@ -925,9 +925,6 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                         const isRotated90 = rotation === 90 || rotation === 270;
                         const imageW = isRotated90 ? rawH : rawW;
                         const imageH = isRotated90 ? rawW : rawH;
-                        const sourceX = sx - (config.screenshotXOffset || 0) + (config.cropOffsetX || 0);
-                        const sourceY = sy - (config.screenshotYOffset || 0) + (config.cropOffsetY || 0);
-
                         ctx.save();
                         ctx.beginPath();
                         if (isEllipse) {
@@ -941,7 +938,7 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                         // while applying the same image transform as the background.
                         ctx.translate(dx, dy);
                         ctx.scale(dw / sw, dh / sh);
-                        ctx.translate(-sourceX, -sourceY);
+                        ctx.translate(-sx, -sy);
                         ctx.translate(imageW / 2, imageH / 2);
                         if (rotation !== 0) ctx.rotate(rotation * Math.PI / 180);
                         ctx.scale(config.bgFlipH ? -1 : 1, config.bgFlipV ? -1 : 1);
