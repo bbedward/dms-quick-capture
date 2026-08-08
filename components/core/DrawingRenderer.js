@@ -237,27 +237,37 @@ function drawSpotlightOverlay(ctx, spotlights, config) {
     const cropX = config.hasActiveCropSelection ? config.cropRect.x : 0;
     const cropY = config.hasActiveCropSelection ? config.cropRect.y : 0;
 
+    function appendRectPath(x, y, w, h, radius) {
+        if (radius <= 0) {
+            ctx.rect(x, y, w, h);
+            return;
+        }
+
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + w - radius, y);
+        ctx.arcTo(x + w, y, x + w, y + radius, radius);
+        ctx.lineTo(x + w, y + h - radius);
+        ctx.arcTo(x + w, y + h, x + w - radius, y + h, radius);
+        ctx.lineTo(x + radius, y + h);
+        ctx.arcTo(x, y + h, x, y + h - radius, radius);
+        ctx.lineTo(x, y + radius);
+        ctx.arcTo(x, y, x + radius, y, radius);
+        ctx.closePath();
+    }
+
     ctx.save();
     ctx.beginPath();
 
     // Outer rectangle covering the whole view (rounded if background active)
     if (config.effectiveBackgroundMode !== "none" && config.backgroundCornerRadius > 0) {
         const r = Math.min(config.backgroundCornerRadius, sw / 2, sh / 2);
-        ctx.moveTo(cropX + r, cropY);
-        ctx.lineTo(cropX + sw - r, cropY);
-        ctx.arcTo(cropX + sw, cropY, cropX + sw, cropY + r, r);
-        ctx.lineTo(cropX + sw, cropY + sh - r);
-        ctx.arcTo(cropX + sw, cropY + sh, cropX + sw - r, cropY + sh, r);
-        ctx.lineTo(cropX + r, cropY + sh);
-        ctx.arcTo(cropX, cropY + sh, cropX, cropY + sh - r, r);
-        ctx.lineTo(cropX, cropY + r);
-        ctx.arcTo(cropX, cropY, cropX + r, cropY, r);
-        ctx.closePath();
+        appendRectPath(cropX, cropY, sw, sh, r);
     } else {
-        ctx.rect(cropX, cropY, sw, sh);
+        appendRectPath(cropX, cropY, sw, sh, 0);
     }
 
-    // Add spotlight rectangles to the path
+    // Decompose the spotlight union into non-overlapping vertical bands.
+    const rawRects = [];
     for (let i = 0; i < spotlights.length; i++) {
         const s = spotlights[i];
         if (s.points.length >= 2) {
@@ -270,26 +280,67 @@ function drawSpotlightOverlay(ctx, spotlights, config) {
             const rh = bounds.y2 - bounds.y1;
 
             if (rw > 0 && rh > 0) {
-                const radius = config.roundRect ? Math.min(config.cornerRadius, Math.min(rw, rh) / 2) : 0;
-                if (radius > 0) {
-                    ctx.moveTo(rx + radius, ry);
-                    ctx.lineTo(rx + rw - radius, ry);
-                    ctx.arcTo(rx + rw, ry, rx + rw, ry + radius, radius);
-                    ctx.lineTo(rx + rw, ry + rh - radius);
-                    ctx.arcTo(rx + rw, ry + rh, rx + rw - radius, ry + rh, radius);
-                    ctx.lineTo(rx + radius, ry + rh);
-                    ctx.arcTo(rx, ry + rh, rx, ry + rh - radius, radius);
-                    ctx.lineTo(rx, ry + radius);
-                    ctx.arcTo(rx, ry, rx + radius, ry, radius);
-                    ctx.closePath();
-                } else {
-                    ctx.rect(rx, ry, rw, rh);
-                }
+                rawRects.push({ x1: rx, y1: ry, x2: bounds.x2, y2: bounds.y2 });
             }
         }
     }
 
-    // Clip and fill with dimming overlay
+    let hasOverlap = false;
+    for (let i = 0; i < rawRects.length && !hasOverlap; i++) {
+        for (let j = i + 1; j < rawRects.length; j++) {
+            const a = rawRects[i];
+            const b = rawRects[j];
+            if (a.x1 < b.x2 && a.x2 > b.x1 && a.y1 < b.y2 && a.y2 > b.y1) {
+                hasOverlap = true;
+                break;
+            }
+        }
+    }
+
+    if (!hasOverlap) {
+        for (let i = 0; i < rawRects.length; i++) {
+            const rect = rawRects[i];
+            const radius = config.roundRect ? Math.min(config.cornerRadius,
+                (rect.x2 - rect.x1) / 2, (rect.y2 - rect.y1) / 2) : 0;
+            appendRectPath(rect.x1, rect.y1, rect.x2 - rect.x1, rect.y2 - rect.y1, radius);
+        }
+    } else {
+        const xEdges = [];
+        for (let i = 0; i < rawRects.length; i++) {
+            xEdges.push(rawRects[i].x1, rawRects[i].x2);
+        }
+        xEdges.sort((a, b) => a - b);
+
+        const uniqueXEdges = xEdges.filter((x, i) => i === 0 || x !== xEdges[i - 1]);
+        for (let i = 0; i < uniqueXEdges.length - 1; i++) {
+            const bandX = uniqueXEdges[i];
+            const bandWidth = uniqueXEdges[i + 1] - bandX;
+            if (bandWidth <= 0) continue;
+
+            const intervals = rawRects
+                .filter(rect => rect.x1 < uniqueXEdges[i + 1] && rect.x2 > bandX)
+                .map(rect => ({ y1: rect.y1, y2: rect.y2 }))
+                .sort((a, b) => a.y1 - b.y1);
+
+            let merged = [];
+            for (let j = 0; j < intervals.length; j++) {
+                const interval = intervals[j];
+                const last = merged[merged.length - 1];
+                if (last && interval.y1 <= last.y2) {
+                    last.y2 = Math.max(last.y2, interval.y2);
+                } else {
+                    merged.push({ y1: interval.y1, y2: interval.y2 });
+                }
+            }
+
+            for (let j = 0; j < merged.length; j++) {
+                const interval = merged[j];
+                ctx.rect(bandX, interval.y1, bandWidth, interval.y2 - interval.y1);
+            }
+        }
+    }
+
+    // The union bands do not overlap, so even-odd clipping is stable here.
     ctx.clip("evenodd");
     ctx.fillStyle = `rgba(0, 0, 0, ${spotlightOpacity})`;
     ctx.fillRect(cropX, cropY, sw, sh);
