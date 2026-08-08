@@ -370,6 +370,7 @@ PluginComponent {
         shouldBeVisible: false
         positioning: "center"
         enableShadow: true
+        useOverlayLayer: true
         keepContentLoaded: true
         closeOnEscapeKey: true
         closeOnBackgroundClick: true
