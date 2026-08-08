@@ -258,7 +258,7 @@ QtObject {
         withConvertedExport((finalPath, originalPng) => {
             saveFile(finalPath, (stdout, exitCode, saveDir, filename, targetPath) => {
                 if (exitCode === 0) {
-                    const notifyPath = targetPath.replace(/^~/, Quickshell.env("HOME"));
+                    const notifyPath = Paths.expandTilde(targetPath);
                     const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
                     root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot saved to %1/%2").arg(saveDir).arg(filename), iconPath, notifyPath);
                     root.closeRequested();
@@ -341,7 +341,7 @@ QtObject {
             copyExportedFile(clipSource, () => {
                 saveFile(finalPath, (saveOut, saveCode, saveDir, filename, targetPath) => {
                     if (saveCode === 0) {
-                        const notifyPath = targetPath.replace(/^~/, Quickshell.env("HOME"));
+                        const notifyPath = Paths.expandTilde(targetPath);
                         const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
                         root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot copied to clipboard and saved to %1").arg(saveDir), iconPath, notifyPath);
                     } else {

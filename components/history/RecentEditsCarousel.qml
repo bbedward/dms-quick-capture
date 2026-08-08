@@ -31,7 +31,7 @@ Item {
     function refresh() {
         if (!root.daemon || !root.daemon.pluginData) return
         var dir = root.daemon.pluginData.saveDirectory || "~/Pictures/Screenshots"
-        dir = String(dir).replace(/^~/, Quickshell.env("HOME") || "")
+        dir = Paths.expandTilde(String(dir))
         var exts = ["png", "jpg", "jpeg", "webp"]
         var cmd = "d=\"$1\"; shift; for e in \"$@\"; do for f in \"$d\"/*.\"$e\"; do [ -f \"$f\" ] && echo \"$(stat -c '%Y' \"$f\" 2>/dev/null)|$f\"; done; done | sort -rn | head -50"
         Proc.runCommand("scan-history", ["sh", "-c", cmd, "sh", dir].concat(exts), function(stdout) {

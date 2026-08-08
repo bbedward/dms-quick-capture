@@ -34,13 +34,9 @@ DankModal {
         source: {
             const rawPath = (window.parentWidget && window.parentWidget.pluginData && window.parentWidget.pluginData.watermarkImage) ? window.parentWidget.pluginData.watermarkImage : "";
             if (rawPath) {
-                let p = rawPath.trim();
-                if (p.indexOf("~/") === 0) {
-                    const home = Quickshell.env("HOME") || "";
-                    p = home + p.substring(1);
-                }
+                let p = Paths.expandTilde(rawPath.trim());
                 if (p.indexOf("/") === 0) {
-                    p = `file://${p}`;
+                    p = Paths.toFileUrl(p);
                 }
                 return p;
             }
@@ -492,23 +488,16 @@ DankModal {
 
     function localImageSource(rawPath) {
         if (!rawPath) return "";
-        let path = String(rawPath).trim();
-        if (path.indexOf("~/") === 0) {
-            const home = Quickshell.env("HOME") || "";
-            path = home + path.substring(1);
-        }
-        if (path.indexOf("/") === 0) return `file://${path}`;
+        let path = Paths.expandTilde(String(rawPath).trim());
+        if (path.indexOf("/") === 0) return Paths.toFileUrl(path);
         return path;
     }
 
     function localFolderPath(rawPath) {
         if (!rawPath) return "";
-        let path = String(rawPath).trim();
-        if (path.indexOf("file://") === 0) path = decodeURIComponent(path.substring(7));
-        if (path.indexOf("~/") === 0) {
-            const home = Quickshell.env("HOME") || "";
-            path = home + path.substring(1);
-        }
+        let path = Paths.strip(String(rawPath).trim());
+        if (path.indexOf("~/") === 0)
+            path = Paths.expandTilde(path);
         return path;
     }
 
@@ -1438,8 +1427,7 @@ DankModal {
     }
 
     function getBackgroundImagePath() {
-        let bgPath = decodeURIComponent(window.bgImageSource.toString());
-        if (bgPath.startsWith("file://")) bgPath = bgPath.substring(7);
+        let bgPath = Paths.strip(window.bgImageSource);
         const qIdx = bgPath.indexOf("?");
         if (qIdx !== -1) bgPath = bgPath.substring(0, qIdx);
         return bgPath;

@@ -2161,13 +2161,9 @@ PluginSettings {
                     source: {
                         const rawPath = watermarkImage.value || "";
                         if (rawPath) {
-                            let p = rawPath.trim();
-                            if (p.indexOf("~/") === 0) {
-                                const home = Quickshell.env("HOME") || "";
-                                p = home + p.substring(1);
-                            }
+                            let p = Paths.expandTilde(rawPath.trim());
                             if (p.indexOf("/") === 0) {
-                                p = "file://" + p;
+                                p = Paths.toFileUrl(p);
                             }
                             return p;
                         }
@@ -2188,7 +2184,7 @@ PluginSettings {
                     
                     Component.onCompleted: {
                         const username = Quickshell.env("USER") || Quickshell.env("USERNAME") || "";
-                        const home = Quickshell.env("HOME") || "";
+                        const home = Paths.strip(Paths.home);
                         const list = [];
                         if (home) {
                             list.push("file://" + home + "/.face");
