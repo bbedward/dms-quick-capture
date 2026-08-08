@@ -1450,69 +1450,14 @@ function drawSelectionOverlay(ctx, options, Theme) {
         ctx.setLineDash([]);
 
         if (!options.isOcrMode) {
-            const refW = options.canvasWidth || Constants.fallbackCanvasWidth;
-            const arm = Math.max(10, Math.min(24, refW * 0.025));
-            const edgeLen = Math.max(14, Math.min(30, refW * 0.03));
-            const sw = Math.max(1.5, Math.min(3, refW * 0.0035));
-
             const x1 = cr.x;
             const y1 = cr.y;
             const x2 = cr.x + cr.width;
             const y2 = cr.y + cr.height;
-            const cx = (x1 + x2) / 2;
-            const cy = (y1 + y2) / 2;
-
-            // Helper: draw a path twice for contrast (white outline + primary fill)
-            function drawHandlePath(drawFn) {
-                ctx.save();
-                ctx.strokeStyle = "#ffffff";
-                ctx.lineWidth = sw + 2;
-                drawFn();
-                ctx.stroke();
-                ctx.strokeStyle = Theme.primary;
-                ctx.lineWidth = sw;
-                drawFn();
-                ctx.stroke();
-                ctx.restore();
-            }
-
-            // 4 Corners — L-shape brackets
-            drawHandlePath(() => {
-                // Top-left
-                ctx.beginPath();
-                ctx.moveTo(x1, y1 + arm);
-                ctx.lineTo(x1, y1);
-                ctx.lineTo(x1 + arm, y1);
-                // Top-right
-                ctx.moveTo(x2 - arm, y1);
-                ctx.lineTo(x2, y1);
-                ctx.lineTo(x2, y1 + arm);
-                // Bottom-left
-                ctx.moveTo(x1, y2 - arm);
-                ctx.lineTo(x1, y2);
-                ctx.lineTo(x1 + arm, y2);
-                // Bottom-right
-                ctx.moveTo(x2 - arm, y2);
-                ctx.lineTo(x2, y2);
-                ctx.lineTo(x2, y2 - arm);
-            });
-
-            // 4 Edge centers — short line segments
-            drawHandlePath(() => {
-                // Top
-                ctx.beginPath();
-                ctx.moveTo(cx - edgeLen / 2, y1);
-                ctx.lineTo(cx + edgeLen / 2, y1);
-                // Bottom
-                ctx.moveTo(cx - edgeLen / 2, y2);
-                ctx.lineTo(cx + edgeLen / 2, y2);
-                // Left
-                ctx.moveTo(x1, cy - edgeLen / 2);
-                ctx.lineTo(x1, cy + edgeLen / 2);
-                // Right
-                ctx.moveTo(x2, cy - edgeLen / 2);
-                ctx.lineTo(x2, cy + edgeLen / 2);
-            });
+            const hs = Constants.selectionHandleSize;
+            drawHandlePoints(ctx, [
+                {x: x1, y: y1}, {x: x2, y: y1}, {x: x1, y: y2}, {x: x2, y: y2}
+            ], hs / 2, hs, Theme);
         }
     } else {
         // Dim full canvas slightly before selection
