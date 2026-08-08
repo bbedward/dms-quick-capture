@@ -89,7 +89,7 @@ PluginSettings {
         property var overrideColor: null
 
         property bool isInitialized: false
-        readonly property bool isDirty: value.toString() !== defaultValue.toString()
+        readonly property bool isDirty: value.toString() !== defaultValue.toString() || colorModeSetting.isDirty
 
         readonly property color resolvedColor: {
             if (overrideColor !== null) return Qt.color(overrideColor);
@@ -99,6 +99,7 @@ PluginSettings {
 
         function resetToDefault() {
             value = defaultValue;
+            colorModeSetting.resetToDefault();
         }
 
         function loadValue() {
@@ -297,26 +298,37 @@ PluginSettings {
         width: parent.width
         spacing: Theme.spacingS
 
-        StyledText {
-            text: bcsRoot.label
-            font.pixelSize: Theme.fontSizeLarge
-            font.weight: Font.Medium
-            color: Theme.surfaceText
+        ButtonGroupSettingPlus {
+            id: colorModeSetting
+            settingKey: bcsRoot.settingKey + "Mode"
+            label: bcsRoot.label
+            options: [
+                { label: I18n.tr("Custom"), value: "custom" },
+                { label: I18n.tr("Adaptive"), value: "adaptive" }
+            ]
+            defaultValue: "custom"
         }
 
-        ColorPalettePicker {
-            slotColors: [toolbar_primary.resolvedColor, c0.resolvedColor, c1.resolvedColor,
-                c2.resolvedColor, c3.resolvedColor, c4.resolvedColor, c5.resolvedColor, c6.resolvedColor]
-            value: bcsRoot.value
-            customColor: captureConfig.resolveColor(bcsRoot.value)
-            customLabel: bcsRoot.value === "primary" ? I18n.tr("PRIMARY") : bcsRoot.value.toString().toUpperCase()
-            onValueSelected: selectedValue => bcsRoot.value = selectedValue
-            onCustomRequested: {
-                if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
-                    PopoutService.colorPickerModal.selectedColor = captureConfig.resolveColor(bcsRoot.value);
-                    PopoutService.colorPickerModal.pickerTitle = bcsRoot.label;
-                    PopoutService.colorPickerModal.onColorSelectedCallback = selectedColor => bcsRoot.value = selectedColor.toString();
-                    PopoutService.colorPickerModal.show();
+        Column {
+            width: parent.width
+            spacing: Theme.spacingS
+            visible: colorModeSetting.value === "custom"
+
+            ColorPalettePicker {
+                id: colorPicker
+                slotColors: [toolbar_primary.resolvedColor, c0.resolvedColor, c1.resolvedColor,
+                    c2.resolvedColor, c3.resolvedColor, c4.resolvedColor, c5.resolvedColor, c6.resolvedColor]
+                value: bcsRoot.value
+                customColor: captureConfig.resolveColor(bcsRoot.value)
+                customLabel: bcsRoot.value === "primary" ? I18n.tr("PRIMARY") : bcsRoot.value.toString().toUpperCase()
+                onValueSelected: selectedValue => bcsRoot.value = selectedValue
+                onCustomRequested: {
+                    if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
+                        PopoutService.colorPickerModal.selectedColor = captureConfig.resolveColor(bcsRoot.value);
+                        PopoutService.colorPickerModal.pickerTitle = bcsRoot.label;
+                        PopoutService.colorPickerModal.onColorSelectedCallback = selectedColor => bcsRoot.value = selectedColor.toString();
+                        PopoutService.colorPickerModal.show();
+                    }
                 }
             }
         }

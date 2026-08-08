@@ -2341,6 +2341,24 @@ DankModal {
         return config.resolveColor(val);
     }
 
+    function backgroundUsesAdaptiveColor(key) {
+        const pd = config && config.pluginData;
+        return !!(pd && (pd[key + "Mode"] === "adaptive" || pd[key] === "adaptive"));
+    }
+
+    function applyAdaptiveBackgroundColors() {
+        if (backgroundUsesAdaptiveColor("backgroundDefaultSolidColor")) {
+            window.backgroundSolidColor = window.autoBackgroundSolidColor;
+        }
+        if (backgroundUsesAdaptiveColor("backgroundDefaultGradientStart")) {
+            window.backgroundGradientStart = window.autoBackgroundGradientStart;
+        }
+        if (backgroundUsesAdaptiveColor("backgroundDefaultGradientEnd")) {
+            window.backgroundGradientEnd = window.autoBackgroundGradientEnd;
+        }
+        window.requestActiveCanvasPaint();
+    }
+
     function measureTextBounds(stroke) {
         if (!window.activeCanvas) return null;
         const ctx = window.activeCanvas.getContext("2d");
@@ -3108,9 +3126,15 @@ DankModal {
         }
         window.isScreenshotDark = false;
         window.hasSampledContrast = false;
-        window.backgroundSolidColor = backgroundConfigColor("backgroundDefaultSolidColor", config.resolveColor("slot_1"));
-        window.backgroundGradientStart = backgroundConfigColor("backgroundDefaultGradientStart", config.resolveColor("slot_1"));
-        window.backgroundGradientEnd = backgroundConfigColor("backgroundDefaultGradientEnd", config.resolveColor("slot_2"));
+        window.backgroundSolidColor = backgroundUsesAdaptiveColor("backgroundDefaultSolidColor")
+            ? window.autoBackgroundSolidColor
+            : backgroundConfigColor("backgroundDefaultSolidColor", config.resolveColor("slot_1"));
+        window.backgroundGradientStart = backgroundUsesAdaptiveColor("backgroundDefaultGradientStart")
+            ? window.autoBackgroundGradientStart
+            : backgroundConfigColor("backgroundDefaultGradientStart", config.resolveColor("slot_1"));
+        window.backgroundGradientEnd = backgroundUsesAdaptiveColor("backgroundDefaultGradientEnd")
+            ? window.autoBackgroundGradientEnd
+            : backgroundConfigColor("backgroundDefaultGradientEnd", config.resolveColor("slot_2"));
         window.backgroundImagePath = backgroundConfigValue("backgroundDefaultImagePath", "", false);
         window.backgroundImageFolder = backgroundConfigValue("backgroundImageFolder", "~/Pictures/Wallpaper", false);
         window.backgroundImageBlur = backgroundConfigValue("backgroundImageBlur", false, false) === true;
@@ -4328,6 +4352,7 @@ DankModal {
                             window.autoBackgroundGradientStart = colors.start;
                             window.autoBackgroundGradientEnd = colors.end;
                             window.autoBackgroundSolidColor = colors.start;
+                            window.applyAdaptiveBackgroundColors();
                         }
                     }
                 }
