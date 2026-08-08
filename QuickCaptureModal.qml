@@ -4306,17 +4306,19 @@ DankModal {
                 Canvas {
                     id: contrastSampler
                     visible: false
-                    width: 4
-                    height: 4
+                    width: 8
+                    height: 8
                     onPaint: {
                         var ctx = contrastSampler.getContext("2d");
-                        ctx.drawImage(bgImage, 0, 0, 4, 4, 0, 0, 4, 4);
-                        var imgData = ctx.getImageData(0, 0, 4, 4);
+                        ctx.drawImage(bgImage, 0, 0, 8, 8, 0, 0, 8, 8);
+                        var imgData = ctx.getImageData(0, 0, 8, 8);
                         if (imgData && imgData.data) {
-                            // Sample center pixel (index 5) for luminance
-                            var r = imgData.data[5 * 4];
-                            var g = imgData.data[5 * 4 + 1];
-                            var b = imgData.data[5 * 4 + 2];
+                            var centerX = Math.floor(imgData.width / 2);
+                            var centerY = Math.floor(imgData.height / 2);
+                            var centerIndex = (centerY * imgData.width + centerX) * 4;
+                            var r = imgData.data[centerIndex];
+                            var g = imgData.data[centerIndex + 1];
+                            var b = imgData.data[centerIndex + 2];
                             var brightness = Helpers.getLuminance({ r: r/255, g: g/255, b: b/255 });
                             window.isScreenshotDark = (brightness < 0.35);
                             window.hasSampledContrast = true;

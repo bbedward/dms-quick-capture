@@ -312,8 +312,8 @@ function formatWatermarkText(pattern, Quickshell) {
 // ─── 4. Color analysis ────────────────────────────────────────────────────────
 
 /**
- * Downsamples screenshot pixels to extract a matching background gradient.
- * @param {object} imgData - Canvas getImageData object of size 4x4.
+ * Chooses a muted, image-related backdrop using edge colors and simple adjustments.
+ * @param {object} imgData - Canvas image data sampled from the image.
  * @param {object} Qt - The Qt object.
  * @returns {object} { start, end } QML color values.
  */
@@ -322,152 +322,70 @@ function extractDominantColors(imgData, Qt) {
         start: Qt.rgba(0.2, 0.33, 0.47, 1),
         end: Qt.rgba(0.07, 0.13, 0.2, 1)
     };
-    if (!imgData || !imgData.data || imgData.data.length < 64) {
-        return fallback;
+    if (!imgData || !imgData.data || !imgData.width || !imgData.height) return fallback;
+
+    const sampleWidth = imgData.width;
+    const sampleHeight = imgData.height;
+    const edgePixels = [];
+    for (let y = 0; y < sampleHeight; y++) {
+        for (let x = 0; x < sampleWidth; x++) {
+            const index = (y * sampleWidth + x) * 4;
+            const pixel = {
+                r: imgData.data[index] / 255,
+                g: imgData.data[index + 1] / 255,
+                b: imgData.data[index + 2] / 255
+            };
+            if (x === 0 || x === sampleWidth - 1 || y === 0 || y === sampleHeight - 1) edgePixels.push(pixel);
+        }
     }
 
-    const pixels = [];
-    for (let i = 0; i < 16; i++) {
-        const r = imgData.data[i * 4];
-        const g = imgData.data[i * 4 + 1];
-        const b = imgData.data[i * 4 + 2];
-        
-        // Calculate saturation: max(r,g,b) - min(r,g,b)
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const sat = max - min;
-        
-        pixels.push({ r: r, g: g, b: b, sat: sat, max: max });
+    let edgeColor = { r: 0, g: 0, b: 0 };
+    for (let i = 0; i < edgePixels.length; i++) {
+        edgeColor.r += edgePixels[i].r;
+        edgeColor.g += edgePixels[i].g;
+        edgeColor.b += edgePixels[i].b;
     }
-    
-    // Sort by saturation descending to prefer vibrant colors
-    pixels.sort((a, b) => b.sat - a.sat);
-    
-    let colorStart, colorEnd;
-    
-    // If the image is extremely grey/monochromatic (saturation < 15)
-    if (pixels[0].sat < 15) {
-        let avg = 0;
-        for (let i = 0; i < 16; i++) {
-            avg += (pixels[i].r + pixels[i].g + pixels[i].b) / 3;
-        }
-        avg = Math.round(avg / 16);
-        // Fallback: use a nice muted grey-blue gradient based on the average brightness
-        colorStart = Qt.rgba(Math.max(0, avg - 20)/255, Math.max(0, avg - 10)/255, Math.min(255, avg + 10)/255, 1);
-        colorEnd = Qt.rgba(Math.min(255, avg + 20)/255, Math.min(255, avg + 10)/255, Math.max(0, avg - 10)/255, 1);
-    } else {
-        // Start color: the most vibrant color
-        const pStart = pixels[0];
-        colorStart = Qt.rgba(pStart.r/255, pStart.g/255, pStart.b/255, 1);
-        
-        // End color: find a pixel that is sufficiently different from start color in RGB space
-        let pEnd = null;
-        let maxDist = -1;
-        for (let j = 1; j < pixels.length; j++) {
-            const pj = pixels[j];
-            const dist = Math.hypot(pj.r - pStart.r, pj.g - pStart.g, pj.b - pStart.b);
-            if (dist > maxDist) {
-                maxDist = dist;
-                pEnd = pj;
-            }
-        }
-        
-        if (pEnd && maxDist > 40) {
-            colorEnd = Qt.rgba(pEnd.r/255, pEnd.g/255, pEnd.b/255, 1);
-        } else {
-            // Generate a complementary/analogous color if no distinct color is found
-            colorEnd = Qt.rgba(
-                Math.min(255, Math.round(pStart.r * 0.7 + 50))/255,
-                Math.min(255, Math.round(pStart.g * 0.7 + 30))/255,
-                Math.min(255, Math.round(pStart.b * 1.2))/255,
-                1
-            );
-        }
-    }
-    
-    // Calculate average image luminance
-    let imgLuminance = 0;
-    for (let i = 0; i < 16; i++) {
-        const pr = imgData.data[i * 4] / 255;
-        const pg = imgData.data[i * 4 + 1] / 255;
-        const pb = imgData.data[i * 4 + 2] / 255;
-        imgLuminance += getLuminance({ r: pr, g: pg, b: pb });
-    }
-    imgLuminance /= 16;
+    edgeColor.r /= edgePixels.length;
+    edgeColor.g /= edgePixels.length;
+    edgeColor.b /= edgePixels.length;
 
-    // Helper to adjust color to a specific target luminance
-    const adjustToLuminance = (c, targetL) => {
-        const l = getLuminance(c);
-        if (Math.abs(l - targetL) < 0.01) return c;
-        
-        if (targetL < l) {
-            // Make darker
-            const scale = targetL / Math.max(0.01, l);
-            return Qt.rgba(Math.min(1.0, c.r * scale), Math.min(1.0, c.g * scale), Math.min(1.0, c.b * scale), 1);
-        } else {
-            // Make lighter
-            if (l >= 0.99) return Qt.rgba(targetL, targetL, targetL, 1);
-            const t = (targetL - l) / (1.0 - l);
-            return Qt.rgba(c.r + (1.0 - c.r) * t, c.g + (1.0 - c.g) * t, c.b + (1.0 - c.b) * t, 1);
-        }
+    const edgeLuminance = edgePixels.reduce((sum, pixel) => sum + getLuminance(pixel), 0) / edgePixels.length;
+    const maxChannel = Math.max(edgeColor.r, edgeColor.g, edgeColor.b);
+    const minChannel = Math.min(edgeColor.r, edgeColor.g, edgeColor.b);
+    const saturation = maxChannel - minChannel;
+    const muteAmount = Math.max(0, Math.min(0.72, (saturation - 0.16) * 1.8));
+    const gray = getLuminance(edgeColor);
+    const muted = {
+        r: edgeColor.r * (1 - muteAmount) + gray * muteAmount,
+        g: edgeColor.g * (1 - muteAmount) + gray * muteAmount,
+        b: edgeColor.b * (1 - muteAmount) + gray * muteAmount
     };
 
-    const lStart = getLuminance(colorStart);
-    const ratioStart = (Math.max(lStart, imgLuminance) + 0.05) / (Math.min(lStart, imgLuminance) + 0.05);
-    
-    let finalStart = colorStart;
-    let finalEnd = colorEnd;
-    
-    if (ratioStart < 4.5) {
-        let targetLStart;
-        let targetLEnd;
-        if (imgLuminance > 0.5) {
-            // Image is light -> Make background darker
-            targetLStart = Math.max(0.05, (imgLuminance + 0.05) / 4.5 - 0.05);
-            targetLEnd = Math.max(0.02, targetLStart * 0.65); // Make end color even darker
-        } else {
-            // Image is dark -> Make background lighter
-            targetLStart = Math.min(0.95, 4.5 * (imgLuminance + 0.05) - 0.05);
-            targetLEnd = Math.min(0.98, targetLStart + (1.0 - targetLStart) * 0.35); // Make end color even lighter
+    function adjustLightness(rgb, target) {
+        const luminance = getLuminance(rgb);
+        if (luminance < target) {
+            const amount = (target - luminance) / Math.max(0.01, 1 - luminance);
+            return {
+                r: rgb.r + (1 - rgb.r) * amount,
+                g: rgb.g + (1 - rgb.g) * amount,
+                b: rgb.b + (1 - rgb.b) * amount
+            };
         }
-        finalStart = adjustToLuminance(colorStart, targetLStart);
-        finalEnd = adjustToLuminance(colorEnd, targetLEnd);
-    } else {
-        // Start color already has good contrast. Ensure End color also has contrast,
-        // and keep a healthy luminance gap between them to ensure gradient visibility.
-        const lEnd = getLuminance(colorEnd);
-        const ratioEnd = (Math.max(lEnd, imgLuminance) + 0.05) / (Math.min(lEnd, imgLuminance) + 0.05);
-        
-        if (ratioEnd < 4.5) {
-            let targetLEnd;
-            if (imgLuminance > 0.5) {
-                targetLEnd = Math.max(0.02, (imgLuminance + 0.05) / 4.5 - 0.05);
-                if (Math.abs(lStart - targetLEnd) < 0.1) {
-                    targetLEnd = Math.max(0.02, targetLEnd * 0.65);
-                }
-            } else {
-                targetLEnd = Math.min(0.98, 4.5 * (imgLuminance + 0.05) - 0.05);
-                if (Math.abs(lStart - targetLEnd) < 0.1) {
-                    targetLEnd = Math.min(0.98, targetLEnd + (1.0 - targetLEnd) * 0.35);
-                }
-            }
-            finalStart = colorStart;
-            finalEnd = adjustToLuminance(colorEnd, targetLEnd);
-        } else {
-            // Both already have good contrast. Ensure they are not too close in luminance
-            if (Math.abs(lStart - lEnd) < 0.08) {
-                if (imgLuminance > 0.5) {
-                    finalEnd = adjustToLuminance(colorEnd, Math.max(0.02, lEnd * 0.75));
-                } else {
-                    finalEnd = adjustToLuminance(colorEnd, Math.min(0.98, lEnd + (1.0 - lEnd) * 0.25));
-                }
-            }
-        }
+        const scale = target / Math.max(0.01, luminance);
+        return { r: rgb.r * scale, g: rgb.g * scale, b: rgb.b * scale };
     }
 
-    return { 
-        start: finalStart, 
-        end: finalEnd 
+    const imageIsLight = edgeLuminance > 0.5;
+    const startRgb = adjustLightness(muted, imageIsLight ? 0.24 : 0.70);
+    const endRgb = adjustLightness({
+        r: muted.r * 0.9,
+        g: muted.g * 0.9,
+        b: muted.b * 0.9
+    }, imageIsLight ? 0.14 : 0.80);
+
+    return {
+        start: Qt.rgba(startRgb.r, startRgb.g, startRgb.b, 1),
+        end: Qt.rgba(endRgb.r, endRgb.g, endRgb.b, 1)
     };
 }
 
