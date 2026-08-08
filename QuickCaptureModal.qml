@@ -1735,12 +1735,19 @@ DankModal {
             window.drawStroke(ctx, selectedStroke);
         }
 
+        let pastePreview = null;
+        if (window.pastePreviewActive) {
+            pastePreview = window.getPastePreviewStroke();
+        }
+
         const isDrawingSpotlight = window.currentStroke && window.currentStroke.tool === "spotlight";
         const isEditingSpotlight = selectedStroke && selectedStroke.tool === "spotlight";
-        if (isDrawingSpotlight || isEditingSpotlight) {
+        const isPastingSpotlight = pastePreview && pastePreview.tool === "spotlight";
+        if (isDrawingSpotlight || isEditingSpotlight || isPastingSpotlight) {
             const activeSpotlights = strokes.filter(s => s.tool === "spotlight" && s !== selectedStroke);
             if (isDrawingSpotlight) activeSpotlights.push(window.currentStroke);
             if (isEditingSpotlight) activeSpotlights.push(selectedStroke);
+            if (isPastingSpotlight) activeSpotlights.push(pastePreview);
 
             DrawingRenderer.drawSpotlightOverlay(ctx, activeSpotlights, window.getSpotlightRenderConfig());
 
@@ -1755,7 +1762,7 @@ DankModal {
 
         // Spotlight is a background effect: keep regular annotations above it
         // while its active overlay is being drawn or edited.
-        if (isDrawingSpotlight || isEditingSpotlight) {
+        if (isDrawingSpotlight || isEditingSpotlight || isPastingSpotlight) {
             for (let i = 0; i < strokes.length; i++) {
                 if (strokes[i].tool !== "spotlight" && strokes[i].tool !== "pixelate" && (!window.isTyping || strokes[i] !== window.editingStroke)) {
                     window.drawStroke(ctx, strokes[i]);
@@ -1772,11 +1779,7 @@ DankModal {
             window.drawStroke(ctx, selectedStroke);
         }
 
-        let pastePreview = null;
-        if (window.pastePreviewActive) {
-            pastePreview = window.getPastePreviewStroke();
-            if (pastePreview) window.drawStroke(ctx, pastePreview);
-        }
+        if (pastePreview) window.drawStroke(ctx, pastePreview);
 
         const handleStroke = pastePreview || selectedStroke;
         if (handleStroke && window.currentTool === "select") {
