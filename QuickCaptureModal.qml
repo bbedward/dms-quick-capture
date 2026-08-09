@@ -484,6 +484,7 @@ DankModal {
     property color autoBackgroundGradientStart: Theme.primary
     property color autoBackgroundGradientEnd: Theme.secondary
     property color autoBackgroundSolidColor: Theme.primary
+    property bool preservingRestoredBackground: false
     property var customBackgroundPresets: []
     property var hiddenPresetIds: []
 
@@ -2347,6 +2348,7 @@ DankModal {
     }
 
     function applyAdaptiveBackgroundColors() {
+        if (window.preservingRestoredBackground) return;
         if (backgroundUsesAdaptiveColor("backgroundDefaultSolidColor")) {
             window.backgroundSolidColor = window.autoBackgroundSolidColor;
         }
@@ -3075,6 +3077,7 @@ DankModal {
         if (window.floatService) {
             window.floatService.hideAllWindows();
         }
+        window.preservingRestoredBackground = false;
         window.updateRadialPresets();
         window.watermarkEnabled = config.pluginData.enableWatermark === true;
 
@@ -3195,6 +3198,7 @@ DankModal {
                 window.hasSelection = (data.cropRect.width > 0 && data.cropRect.height > 0);
             }
             if (data.backgroundMode !== undefined) {
+                window.preservingRestoredBackground = true;
                 window.backgroundMode = data.backgroundMode;
                 window.backgroundImagePath = data.backgroundImagePath || "";
                 window.backgroundImageBlur = data.backgroundImageBlur === true;
