@@ -1175,7 +1175,6 @@ DankModal {
 
     function setWatermarkEnabled(enabled) {
         window.watermarkEnabled = enabled;
-        window.savePluginData("enableWatermark", enabled);
         window.requestPaintAll();
     }
     property var copiedStroke: null
@@ -3103,7 +3102,7 @@ DankModal {
         }
         window.preservingRestoredBackground = false;
         window.updateRadialPresets();
-        window.watermarkEnabled = config.pluginData.enableWatermark === true;
+        window.watermarkEnabled = config.pluginData.defaultWatermark === true;
 
         let startTool = "pen";
         let startThickness = Constants.getToolMeta("pen").defaultValue;
@@ -3204,6 +3203,9 @@ DankModal {
             }
             if (data.originalImageSource) {
                 window.bgImageSource = data.originalImageSource;
+            }
+            if (data.watermarkEnabled !== undefined) {
+                window.watermarkEnabled = data.watermarkEnabled === true;
             }
             if (data.stampCounter !== undefined) {
                 window.stampCounter = data.stampCounter;

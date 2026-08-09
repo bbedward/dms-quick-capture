@@ -1948,9 +1948,9 @@ PluginSettings {
         SectionTitle {
             text: I18n.tr("Watermark")
             icon: "branding_watermark"
-            showReset: enableWatermark.isDirty || watermarkType.isDirty || watermarkText.isDirty || watermarkImage.isDirty || watermarkPosition.isDirty || watermarkOpacity.isDirty || watermarkSize.isDirty || watermarkTextSize.isDirty
+            showReset: defaultWatermark.isDirty || watermarkType.isDirty || watermarkText.isDirty || watermarkImage.isDirty || watermarkPosition.isDirty || watermarkOpacity.isDirty || watermarkSize.isDirty || watermarkTextSize.isDirty
             onResetClicked: {
-                enableWatermark.resetToDefault();
+                defaultWatermark.resetToDefault();
                 watermarkType.resetToDefault();
                 watermarkText.resetToDefault();
                 watermarkImage.resetToDefault();
@@ -1962,14 +1962,14 @@ PluginSettings {
         }
 
         ToggleSettingPlus {
-            id: enableWatermark
-            settingKey: "enableWatermark"
-            label: I18n.tr("Enable Watermark")
+            id: defaultWatermark
+            settingKey: "defaultWatermark"
+            label: I18n.tr("Default Watermark")
             defaultValue: false
         }
 
         Separator {
-            visible: enableWatermark.value
+            visible: true
             height: visible ? 1 : 0
         }
 
@@ -1983,12 +1983,12 @@ PluginSettings {
                 { label: I18n.tr("Image + Text"), value: "hybrid" }
             ]
             defaultValue: "text"
-            visible: enableWatermark.value
+            visible: true
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value
+            visible: true
             height: visible ? 1 : 0
         }
 
@@ -2008,12 +2008,12 @@ PluginSettings {
                 { label: I18n.tr("Right"), value: "right" }
             ]
             defaultValue: "bottom_right"
-            visible: enableWatermark.value
+            visible: true
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value
+            visible: true
             height: visible ? 1 : 0
         }
 
@@ -2027,12 +2027,12 @@ PluginSettings {
             unit: "%"
             leftLabel: "5"
             rightLabel: "100"
-            visible: enableWatermark.value
+            visible: true
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value
+            visible: true
             height: visible ? 1 : 0
         }
 
@@ -2042,19 +2042,19 @@ PluginSettings {
             label: I18n.tr("Watermark Text")
             placeholder: "© {user}"
             defaultValue: "© {user}"
-            visible: enableWatermark.value && (watermarkType.value === "text" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "text" || watermarkType.value === "hybrid"
             height: visible ? implicitHeight : 0
         }
 
         InfoText {
             text: I18n.tr("Format tokens: {user} (Username), \\n (New Line), %Y (Year), %y (2-digit year), %m (Month), %d (Day), %H (Hour), %M (Minute), %S (Second)")
             opacity: 0.85
-            visible: enableWatermark.value && (watermarkType.value === "text" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "text" || watermarkType.value === "hybrid"
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value && (watermarkType.value === "text" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "text" || watermarkType.value === "hybrid"
             height: visible ? 1 : 0
         }
 
@@ -2068,12 +2068,12 @@ PluginSettings {
             unit: "%"
             leftLabel: "1"
             rightLabel: "50"
-            visible: enableWatermark.value && (watermarkType.value === "text" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "text" || watermarkType.value === "hybrid"
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value && (watermarkType.value === "hybrid")
+            visible: watermarkType.value === "hybrid"
             height: visible ? 1 : 0
         }
 
@@ -2085,12 +2085,12 @@ PluginSettings {
             defaultValue: ""
             isFile: true
             fileExtensions: ["Image files (*.png *.jpg *.jpeg *.svg *.webp)", "All files (*)"]
-            visible: enableWatermark.value && (watermarkType.value === "image" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "image" || watermarkType.value === "hybrid"
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value && (watermarkType.value === "image" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "image" || watermarkType.value === "hybrid"
             height: visible ? 1 : 0
         }
 
@@ -2104,12 +2104,12 @@ PluginSettings {
             unit: "%"
             leftLabel: "5"
             rightLabel: "50"
-            visible: enableWatermark.value && (watermarkType.value === "image" || watermarkType.value === "hybrid")
+            visible: watermarkType.value === "image" || watermarkType.value === "hybrid"
             height: visible ? implicitHeight : 0
         }
 
         Separator {
-            visible: enableWatermark.value
+            visible: true
             height: visible ? 1 : 0
         }
 
@@ -2117,7 +2117,7 @@ PluginSettings {
         Column {
             width: parent.width
             spacing: Theme.spacingS
-            visible: enableWatermark.value
+            visible: true
             height: visible ? implicitHeight : 0
 
             StyledText {

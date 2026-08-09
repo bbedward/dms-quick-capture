@@ -422,6 +422,7 @@ QtObject {
             backgroundImageBlur: root.modal.backgroundImageBlur,
             backgroundImageDim: root.modal.backgroundImageDim,
             backgroundImageDimStrength: root.modal.backgroundImageDimStrength,
+            watermarkEnabled: root.modal.watermarkEnabled,
             backgroundSolidColor: root.modal.backgroundSolidColor,
             backgroundGradientStart: root.modal.backgroundGradientStart,
             backgroundGradientEnd: root.modal.backgroundGradientEnd,
