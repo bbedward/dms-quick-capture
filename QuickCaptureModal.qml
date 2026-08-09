@@ -2285,6 +2285,14 @@ DankModal {
         }
     }
 
+    Connections {
+        target: (typeof PopoutService !== "undefined") ? PopoutService.colorPickerModal : null
+        ignoreUnknownSignals: true
+        function onDialogClosed() {
+            if (target) target.useOverlayLayer = false;
+        }
+    }
+
     QuickCaptureActions {
         id: captureActions
         parentWidget: window.parentWidget
@@ -2463,12 +2471,14 @@ DankModal {
 
     function openColorPickerModal() {
         if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
-            PopoutService.colorPickerModal.selectedColor = window.currentColor;
-            PopoutService.colorPickerModal.pickerTitle = I18n.tr("Choose Color");
-            PopoutService.colorPickerModal.onColorSelectedCallback = function (selectedColor) {
+            const picker = PopoutService.colorPickerModal;
+            picker.useOverlayLayer = true;
+            picker.selectedColor = window.currentColor;
+            picker.pickerTitle = I18n.tr("Choose Color");
+            picker.onColorSelectedCallback = function (selectedColor) {
                 window.updateColorSlot(window.activeColorSlotIndex, selectedColor);
             };
-            PopoutService.colorPickerModal.show();
+            picker.show();
             return true;
         }
         return false;
@@ -3681,9 +3691,11 @@ DankModal {
                     onBackgroundColorPickerRequested: (currentColor) => {
                         moreToolsMenu.close();
                         if (typeof PopoutService !== "undefined" && PopoutService && PopoutService.colorPickerModal) {
-                            PopoutService.colorPickerModal.selectedColor = currentColor;
-                            PopoutService.colorPickerModal.pickerTitle = I18n.tr("Choose Color");
-                            PopoutService.colorPickerModal.onColorSelectedCallback = function (selectedColor) {
+                            const picker = PopoutService.colorPickerModal;
+                            picker.useOverlayLayer = true;
+                            picker.selectedColor = currentColor;
+                            picker.pickerTitle = I18n.tr("Choose Color");
+                            picker.onColorSelectedCallback = function (selectedColor) {
                                 if (window.backgroundMode === "solid") {
                                     window.backgroundSolidColor = selectedColor;
                                 } else {
@@ -3696,7 +3708,7 @@ DankModal {
                                 }
                                 window.hasUserCustomizedBackground = true;
                             };
-                            PopoutService.colorPickerModal.show();
+                            picker.show();
                         }
                     }
                     onBackgroundEyedropperRequested: (slot) => {
