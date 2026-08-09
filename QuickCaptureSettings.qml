@@ -1148,23 +1148,21 @@ PluginSettings {
 
         Separator {}
 
-        SelectionSettingPlus {
+        ButtonGroupSettingPlus {
             id: editQuality
             settingKey: "editQuality"
-            label: I18n.tr("Editor Resolution Limit")
+            label: I18n.tr("Editor Preview Quality")
             options: [
-                { label: I18n.tr("480px"), value: "480" },
-                { label: I18n.tr("720px"), value: "720" },
-                { label: I18n.tr("1080px"), value: "1080" },
-                { label: I18n.tr("1440px"), value: "1440" },
-                { label: I18n.tr("2160px (4K)"), value: "2160" },
-                { label: I18n.tr("Original (Unscaled)"), value: "original" }
+                { label: I18n.tr("Low"), value: "150000" },
+                { label: I18n.tr("Balanced"), value: "300000" },
+                { label: I18n.tr("High"), value: "450000" },
+                { label: I18n.tr("Very High"), value: "600000" }
             ]
-            defaultValue: "720"
+            defaultValue: "300000"
         }
 
         InfoText {
-            text: I18n.tr("Lower the resolution limit if you experience lag while editing. Does not affect the final saved image quality.")
+            text: I18n.tr("Controls the preview pixel budget while editing. Lower it if you experience lag. Does not affect the final saved image quality.")
             opacity: 0.8
         }
 

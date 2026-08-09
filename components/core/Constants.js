@@ -1,7 +1,7 @@
 .pragma library
 
 // Configuration defaults
-const defaultEditQuality = 720;
+const defaultEditPixelBudget = 300000;
 const defaultBackgroundPadding = 40;
 const defaultBackgroundCornerRadius = 12;
 const defaultBackgroundShadowStrength = 0;

@@ -826,11 +826,11 @@ DankModal {
 
 
     // --- Proxy Editing Optimization ---
-    readonly property real maxEditDimension: {
-        const q = (window.parentWidget && window.parentWidget.pluginData && window.parentWidget.pluginData.editQuality) || String(Constants.defaultEditQuality);
-        if (q === "original") return Infinity;
-        const val = parseInt(q);
-        return (isNaN(val) || val <= 0) ? Constants.defaultEditQuality : val;
+    readonly property real maxEditPixels: {
+        const q = (window.parentWidget && window.parentWidget.pluginData && window.parentWidget.pluginData.editQuality) || String(Constants.defaultEditPixelBudget);
+        const val = parseInt(q, 10);
+        const supportedBudgets = [150000, 300000, 450000, 600000];
+        return supportedBudgets.indexOf(val) !== -1 ? val : Constants.defaultEditPixelBudget;
     }
     readonly property real editScale: {
         if (!window.bgImageItem) return 1.0;
@@ -840,10 +840,10 @@ DankModal {
         // Keep the editor backing canvas bounded while preserving logical/export size.
         const logicalW = window.effectiveBackgroundMode !== "none" ? window.canvasWidth : w;
         const logicalH = window.effectiveBackgroundMode !== "none" ? window.canvasHeight : h;
-        const max = Math.max(logicalW, logicalH);
         let baseScale = 1.0;
-        if (!(isNaN(max) || max <= 0 || max <= maxEditDimension)) {
-            baseScale = maxEditDimension / max;
+        const area = logicalW * logicalH;
+        if (!(isNaN(area) || area <= 0 || area <= maxEditPixels)) {
+            baseScale = Math.sqrt(maxEditPixels / area);
         }
         // Cap the editScale to fitScale so that the canvas resolution
         // never exceeds the actual display size on the screen.
