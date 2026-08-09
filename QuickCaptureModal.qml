@@ -2680,6 +2680,16 @@ DankModal {
         return true;
     }
 
+    function closeColorPickerIfOpen() {
+        if (typeof PopoutService === "undefined" || !PopoutService || !PopoutService.colorPickerModal) {
+            return false;
+        }
+        const picker = PopoutService.colorPickerModal;
+        if (!picker.shouldBeVisible) return false;
+        picker.hide();
+        return true;
+    }
+
     function repaintActiveCanvas() {
         if (window.activeCanvas) window.activeCanvas.requestPaint();
     }
@@ -3004,6 +3014,10 @@ DankModal {
     }
 
     function handleModalKeyPressed(event) {
+        if (event.key === Qt.Key_Escape && window.closeColorPickerIfOpen()) {
+            window.acceptKeyEvent(event);
+            return;
+        }
         if (window.handleTabShortcut(event)) return;
         if (window.handleZoomKeyPressed(event)) return;
         if (window.handleTypingKeyPressed(event)) return;
