@@ -439,6 +439,69 @@ function getTextBBox(stroke, measureTextBoundsFn) {
     return measured || { minX: txtPt.x, minY: txtPt.y, maxX: txtPt.x, maxY: txtPt.y };
 }
 
+/** Rotates a point around a center by an angle in radians. */
+function rotatePoint(point, center, angle) {
+    const cos = Math.cos(angle);
+    const sin = Math.sin(angle);
+    const dx = point.x - center.x;
+    const dy = point.y - center.y;
+    return {
+        x: center.x + dx * cos - dy * sin,
+        y: center.y + dx * sin + dy * cos
+    };
+}
+
+/** Returns the shared local frame and rotated bounds for a text stroke. */
+function getTextTransformFrame(stroke, textBounds) {
+    if (!textBounds) {
+        const point = stroke && stroke.points && stroke.points.length > 0
+            ? stroke.points[stroke.isSpeechBubble && stroke.points.length >= 2 ? 1 : 0]
+            : { x: 0, y: 0 };
+        textBounds = { minX: point.x, minY: point.y, maxX: point.x, maxY: point.y };
+    }
+    const bounds = {
+        minX: textBounds.minX,
+        minY: textBounds.minY,
+        maxX: textBounds.maxX,
+        maxY: textBounds.maxY
+    };
+    if (stroke.isSpeechBubble && stroke.points.length >= 2) {
+        const target = stroke.points[0];
+        bounds.minX = Math.min(bounds.minX, target.x);
+        bounds.minY = Math.min(bounds.minY, target.y);
+        bounds.maxX = Math.max(bounds.maxX, target.x);
+        bounds.maxY = Math.max(bounds.maxY, target.y);
+    }
+
+    const center = {
+        x: (textBounds.minX + textBounds.maxX) / 2,
+        y: (textBounds.minY + textBounds.maxY) / 2
+    };
+    const angle = ((Number(stroke.rotation) || 0) * Math.PI) / 180;
+    const corners = [
+        { x: bounds.minX, y: bounds.minY },
+        { x: bounds.maxX, y: bounds.minY },
+        { x: bounds.minX, y: bounds.maxY },
+        { x: bounds.maxX, y: bounds.maxY }
+    ].map(point => rotatePoint(point, center, angle));
+
+    return {
+        center: center,
+        angle: angle,
+        bounds: {
+            minX: Math.min(...corners.map(point => point.x)),
+            minY: Math.min(...corners.map(point => point.y)),
+            maxX: Math.max(...corners.map(point => point.x)),
+            maxY: Math.max(...corners.map(point => point.y))
+        }
+    };
+}
+
+/** Maps a screen point back into a text stroke's unrotated coordinate space. */
+function inverseRotatePoint(point, center, angle) {
+    return rotatePoint(point, center, -angle);
+}
+
 /**
  * Calculates the bounding box of a stroke.
  * @param {object} stroke - The stroke object.
@@ -453,18 +516,11 @@ function getStrokeBBox(stroke, measureTextBoundsFn) {
 
     if (stroke.tool === "text") {
         const textBounds = getTextBBox(stroke, measureTextBoundsFn);
-        minX = textBounds.minX;
-        minY = textBounds.minY;
-        maxX = textBounds.maxX;
-        maxY = textBounds.maxY;
-
-        if (stroke.isSpeechBubble && len >= 2) {
-            const pTarget = pts[0];
-            minX = Math.min(minX, pTarget.x);
-            maxX = Math.max(maxX, pTarget.x);
-            minY = Math.min(minY, pTarget.y);
-            maxY = Math.max(maxY, pTarget.y);
-        }
+        const frame = getTextTransformFrame(stroke, textBounds);
+        minX = frame.bounds.minX;
+        minY = frame.bounds.minY;
+        maxX = frame.bounds.maxX;
+        maxY = frame.bounds.maxY;
     } else if (stroke.tool === "stamp") {
         const radius = stroke.width * Constants.stampRadiusMultiplier + Constants.stampSelectThresholdOffset;
         if (stroke.hasLeaderLine && len >= 2) {
@@ -619,8 +675,10 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
             }
         } else if (stroke.tool === "text") {
             const textBounds = getTextBBox(stroke, measureTextBoundsFn);
-            if (mx >= textBounds.minX - Constants.ocrSelectionPadding && mx <= textBounds.maxX + Constants.ocrSelectionPadding &&
-                my >= textBounds.minY - Constants.ocrSelectionPadding && my <= textBounds.maxY + Constants.ocrSelectionPadding) {
+            const frame = getTextTransformFrame(stroke, textBounds);
+            const local = inverseRotatePoint({ x: mx, y: my }, frame.center, frame.angle);
+            if (local.x >= textBounds.minX - Constants.ocrSelectionPadding && local.x <= textBounds.maxX + Constants.ocrSelectionPadding &&
+                local.y >= textBounds.minY - Constants.ocrSelectionPadding && local.y <= textBounds.maxY + Constants.ocrSelectionPadding) {
                 return i;
             }
 
@@ -628,7 +686,8 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
                 const txtPt = stroke.points[1];
                 if (stroke.points.length >= 2) {
                     const pTarget = stroke.points[0];
-                    if (isPointNearSegment(mx, my, txtPt, pTarget, thresholdSq)) return i;
+                    const localTarget = inverseRotatePoint(pTarget, frame.center, frame.angle);
+                    if (isPointNearSegment(local.x, local.y, txtPt, localTarget, thresholdSq)) return i;
                 }
             }
         } else if (stroke.tool === "callout" && stroke.points.length === 4) {
@@ -667,9 +726,10 @@ function findStrokeAt(mx, my, strokes, measureTextBoundsFn) {
  * Checks if a point (mx, my) is hovering over a resize handle of the given stroke.
  * Returns the handle identifier or "none".
  * Shapes: tl, tr, bl, br, tc, bc, lc, rc
- * Lines: start, end
+ * Lines: start, end; text: rotate, start, end
+ * @param {function} measureTextBoundsFn - Optional callback used for text bounds.
  */
-function getStrokeHandleAt(mx, my, stroke) {
+function getStrokeHandleAt(mx, my, stroke, measureTextBoundsFn) {
     if (!stroke || !stroke.points || stroke.points.length === 0) return "none";
     const threshold = Constants.selectionHandleSize + 4;
     const thresholdSq = threshold * threshold;
@@ -765,11 +825,21 @@ function getStrokeHandleAt(mx, my, stroke) {
         ]);
     }
 
-    if (stroke.tool === "text" && stroke.isSpeechBubble && stroke.points.length >= 2) {
-        const p0 = stroke.points[0];
-        const p1 = stroke.points[1];
-        if (isNearSquarePoint(p0)) return "start";
-        if (isNearSquarePoint(p1)) return "end";
+    if (stroke.tool === "text") {
+        const textBounds = getTextBBox(stroke, measureTextBoundsFn);
+        const frame = getTextTransformFrame(stroke, textBounds);
+        const local = inverseRotatePoint({ x: mx, y: my }, frame.center, frame.angle);
+        const rotationPoint = {
+            x: (textBounds.minX + textBounds.maxX) / 2,
+            y: textBounds.minY - 24
+        };
+        if (Math.abs(local.x - rotationPoint.x) <= threshold && Math.abs(local.y - rotationPoint.y) <= threshold) {
+            return "rotate";
+        }
+        if (stroke.isSpeechBubble && stroke.points.length >= 2) {
+            if (Math.abs(local.x - stroke.points[0].x) <= threshold && Math.abs(local.y - stroke.points[0].y) <= threshold) return "start";
+            if (Math.abs(local.x - stroke.points[1].x) <= threshold && Math.abs(local.y - stroke.points[1].y) <= threshold) return "end";
+        }
         return "none";
     }
 
@@ -967,6 +1037,7 @@ function copyStrokeProperties(source, target) {
     if (source.id !== undefined) target.id = source.id;
     if (source.randomize !== undefined) target.randomize = source.randomize;
     if (source.randomSeed !== undefined) target.randomSeed = source.randomSeed;
+    if (source.rotation !== undefined) target.rotation = source.rotation;
 }
 
 /**

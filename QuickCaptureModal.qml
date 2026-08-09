@@ -163,6 +163,7 @@ DankModal {
         }
         window.selectedStroke = stroke;
         window.originalPoints = window.copyStrokePoints(stroke.points);
+        window.originalRotation = Number(stroke.rotation) || 0;
         window.syncStyleFromStroke(stroke);
         if (stroke.tool !== "spotlight") {
             window.bringStrokeToFront(stroke);
@@ -172,6 +173,7 @@ DankModal {
     function deselectStrokeForEditing(restoreStyle) {
         window.selectedStroke = null;
         window.originalPoints = [];
+        window.originalRotation = 0;
         window.activeHandle = "none";
         window.calloutDestDragging = false;
         if (restoreStyle) {
@@ -1235,6 +1237,7 @@ DankModal {
     }
     property point pressCoords: Qt.point(0, 0)
     property var originalPoints: []
+    property real originalRotation: 0
 
     // Text Input Management
     property bool isTyping: false
@@ -2380,7 +2383,7 @@ DankModal {
 
     function getSelectedStrokeHandleAt(mx, my) {
         if (!window.selectedStroke) return "none";
-        return Helpers.getStrokeHandleAt(mx, my, window.selectedStroke);
+        return Helpers.getStrokeHandleAt(mx, my, window.selectedStroke, window.measureTextBounds);
     }
 
     function exportAndExecute(callback) {
@@ -2752,6 +2755,7 @@ DankModal {
             if (window.currentTool === "select" && window.originalPoints && window.originalPoints.length > 0) {
                 if (window.selectedStroke) {
                     window.selectedStroke.points = window.originalPoints.map(p => Qt.point(p.x, p.y));
+                    if (window.originalRotation !== undefined) window.selectedStroke.rotation = window.originalRotation;
                 }
                 window.activeHandle = "none";
                 window.originalPoints = [];
@@ -3040,6 +3044,7 @@ DankModal {
         window.currentStroke = null;
         window.selectedStroke = null;
         window.originalPoints = [];
+        window.originalRotation = 0;
         window.activeHandle = "none";
         window.calloutDestDragging = false;
         window.copiedStroke = null;

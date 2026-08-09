@@ -28,6 +28,9 @@ MouseArea {
     property string hoveredHandle: "none"
     property int hoveredStrokeIdx: -1
     property string shiftLockAxis: "none"
+    property real originalRotation: 0
+    property point rotationCenter: Qt.point(0, 0)
+    property real rotationStartAngle: 0
 
     // Pen real-time smoothing state (exponential moving average)
     property real penSmoothX: 0
@@ -38,6 +41,9 @@ MouseArea {
         hoveredHandle = "none";
         hoveredStrokeIdx = -1;
         shiftLockAxis = "none";
+        originalRotation = 0;
+        rotationCenter = Qt.point(0, 0);
+        rotationStartAngle = 0;
         penSmoothX = 0;
         penSmoothY = 0;
     }
@@ -263,7 +269,14 @@ MouseArea {
                 const orig = window.originalPoints;
                 const tool = window.selectedStroke.tool;
 
-                if (tool === "rect" || tool === "ellipse" || tool === "redact" ||
+                if (window.activeHandle === "rotate" && tool === "text") {
+                    const currentAngle = Math.atan2(absPt.y - rotationCenter.y, absPt.x - rotationCenter.x);
+                    let angle = currentAngle - rotationStartAngle;
+                    if (mouse.modifiers & Qt.ShiftModifier) {
+                        angle = Math.round(angle / (Math.PI / 12)) * (Math.PI / 12);
+                    }
+                    window.selectedStroke.rotation = window.originalRotation + angle * 180 / Math.PI;
+                } else if (tool === "rect" || tool === "ellipse" || tool === "redact" ||
                     tool === "pixelate" || tool === "spotlight") {
                     const resized = resizeRectEndpoints(orig[0], orig[orig.length - 1], window.activeHandle, dx, dy, mouse.modifiers & Qt.ShiftModifier);
                     const newPoints = [...window.selectedStroke.points];
@@ -455,6 +468,7 @@ MouseArea {
         if (h === "tr" || h === "bl" || hs === "_tr" || hs === "_bl") return Qt.SizeBDiagCursor;
         if (h === "tc" || h === "bc" || hs === "_tc" || hs === "_bc") return Qt.SplitVCursor;
         if (h === "lc" || h === "rc" || hs === "_lc" || hs === "_rc") return Qt.SplitHCursor;
+        if (h === "rotate") return Qt.SizeAllCursor;
         if (h === "stamp" && window.selectedStroke && window.selectedStroke.tool === "stamp" && window.selectedStroke.hasLeaderLine) return Qt.SizeAllCursor;
         if (h === "stampBody") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
         if (h === "stamp") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
@@ -551,6 +565,13 @@ MouseArea {
                     window.activeHandle = sh;
                     window.pressCoords = absPt;
                     window.originalPoints = window.copyStrokePoints(window.selectedStroke.points);
+                    window.originalRotation = Number(window.selectedStroke.rotation) || 0;
+                    if (sh === "rotate") {
+                        const bounds = window.measureTextBounds(window.selectedStroke);
+                        const frame = Helpers.getTextTransformFrame(window.selectedStroke, bounds);
+                        rotationCenter = Qt.point(frame.center.x, frame.center.y);
+                        rotationStartAngle = Math.atan2(absPt.y - frame.center.y, absPt.x - frame.center.x);
+                    }
                     drawingCanvas.requestPaint();
                     return;
                 }
@@ -658,7 +679,8 @@ MouseArea {
                 isUnderline: window.textUnderline,
                 hasBackground: window.textBackground,
                 cornerRadius: window.textCornerRadius,
-                fontFamily: window.textFontFamily
+                fontFamily: window.textFontFamily,
+                rotation: 0
             };
             if (window.activeCanvas) window.activeCanvas.requestPaint();
             return;
@@ -751,6 +773,7 @@ MouseArea {
              window.activeHandle = "none";
              window.calloutDestDragging = false;
              window.originalPoints = [];
+             window.originalRotation = 0;
              drawingCanvas.requestPaint();
              return;
         }

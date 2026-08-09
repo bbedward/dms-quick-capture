@@ -1031,6 +1031,12 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
         const lineHeight = stroke.width * Constants.textLineHeightMultiplier;
 
         const isBubble = stroke.isSpeechBubble && stroke.points.length >= 2;
+        const textBounds = measureTextLayout(ctx, stroke, Theme);
+        const textFrame = Helpers.getTextTransformFrame(stroke, textBounds);
+        ctx.save();
+        ctx.translate(textFrame.center.x, textFrame.center.y);
+        ctx.rotate(textFrame.angle);
+        ctx.translate(-textFrame.center.x, -textFrame.center.y);
 
         if (isBubble || stroke.hasBackground) {
             let maxWidth = 0;
@@ -1239,6 +1245,7 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
                 ctx.stroke();
             }
         }
+        ctx.restore();
     }
 }
 
@@ -1387,10 +1394,21 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
     }
 
     if (stroke.tool === "text") {
+        const bounds = measureTextLayout(ctx, stroke, Theme);
+        if (!bounds) return;
+        const frame = Helpers.getTextTransformFrame(stroke, bounds);
+        const rotationPoint = {
+            x: (bounds.minX + bounds.maxX) / 2,
+            y: bounds.minY - 24
+        };
+        ctx.save();
+        ctx.translate(frame.center.x, frame.center.y);
+        ctx.rotate(frame.angle);
+        ctx.translate(-frame.center.x, -frame.center.y);
+
         if (stroke.isSpeechBubble && stroke.points.length >= 2) {
             const p0 = stroke.points[0];
             const p1 = stroke.points[1];
-
             ctx.save();
             ctx.strokeStyle = Theme.primary;
             ctx.lineWidth = 1;
@@ -1400,17 +1418,17 @@ function drawSelectionHandles(ctx, stroke, Theme, Qt, Helpers) {
             ctx.lineTo(p1.x, p1.y);
             ctx.stroke();
             ctx.restore();
-
-            drawHandlePoints(ctx, [p0, p1], hh, hs, Theme);
+            drawHandlePoints(ctx, [p0, p1, rotationPoint], hh, hs, Theme);
+            ctx.restore();
             return;
         }
 
-        const bounds = measureTextLayout(ctx, stroke, Theme);
-        if (!bounds) return;
         const sp = 6;
         drawHighContrastDashedRect(ctx, bounds.minX - sp, bounds.minY - sp,
                                    bounds.maxX - bounds.minX + sp * 2,
                                    bounds.maxY - bounds.minY + sp * 2);
+        drawHandlePoints(ctx, [rotationPoint], hh, hs, Theme);
+        ctx.restore();
         return;
     }
 
