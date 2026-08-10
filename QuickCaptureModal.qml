@@ -2880,14 +2880,13 @@ DankModal {
 
     function handleColorShortcut(event, token) {
         const colorShortcut = Helpers.findByKey(config.colorShortcuts, token);
-        if (colorShortcut) {
-            let idx = config.colorShortcuts.indexOf(colorShortcut);
-            if (idx !== -1) {
-                window.activeColorSlotIndex = idx;
-            }
-            window.currentColor = colorShortcut.color === "primary" ? Theme.primary : colorShortcut.color;
-            event.accepted = true;
+        if (!colorShortcut) return false;
+        let idx = config.colorShortcuts.indexOf(colorShortcut);
+        if (idx !== -1) {
+            window.activeColorSlotIndex = idx;
         }
+        window.currentColor = colorShortcut.color === "primary" ? Theme.primary : colorShortcut.color;
+        return window.acceptKeyEvent(event);
     }
 
     function handleOcrShortcut(event, token, hasCtrl) {
@@ -3008,6 +3007,10 @@ DankModal {
 
     function handleTypingKeyPressed(event) {
         if (!window.isTyping) return false;
+        if (event.modifiers & Qt.ControlModifier) {
+            const token = Helpers.shortcutToken(event.key, Qt);
+            if (window.handleColorShortcut(event, token)) return true;
+        }
         if (window.textInputMode === "inline") {
             window.handleTypingKey(event);
         } else if (event.key !== Qt.Key_Escape) {
