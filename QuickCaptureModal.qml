@@ -6,6 +6,7 @@ import Quickshell
 import qs.Common
 import qs.Widgets
 import qs.Modals.Common
+import qs.Modals.FileBrowser
 import qs.Services
 import "./dms-common"
 import "components/core"
@@ -2304,6 +2305,16 @@ DankModal {
         onCloseRequested: window.discardAndClose()
     }
 
+    FileBrowserSurfaceModal {
+        id: saveAsDialog
+        browserTitle: I18n.tr("Save Screenshot As")
+        browserIcon: "save"
+        browserType: "quick_capture_save"
+        saveMode: true
+        allowStacking: true
+        onFileSelected: path => captureActions.performSaveAs(path)
+    }
+
     function getHoveredHandle(mx, my) {
         if (!hasSelection || currentTool !== "crop") return "none";
         const threshold = 15;
@@ -2788,6 +2799,19 @@ DankModal {
         return false;
     }
 
+    function saveAsFileExtensions() {
+        const format = (config.pluginData.outputFormat || "png").toLowerCase();
+        return ["*." + format];
+    }
+
+    function openSaveAsDialog() {
+        if (saveAsDialog.shouldBeVisible) return;
+        saveAsDialog.useOverlayLayer = true;
+        saveAsDialog.defaultFileName = captureActions.screenshotFilename();
+        saveAsDialog.fileExtensions = window.saveAsFileExtensions();
+        saveAsDialog.open();
+    }
+
     function handleCaptureActionShortcut(event, token, hasCtrl) {
         if (hasCtrl && (token === "Y" || (event.modifiers & Qt.ShiftModifier && token === "Z"))) {
             window.performRedo();
@@ -2809,7 +2833,11 @@ DankModal {
             captureActions.performDoneAction();
             return window.acceptKeyEvent(event);
         }
-        if (hasCtrl && token === "S") {
+        if (hasCtrl && (event.modifiers & Qt.ShiftModifier) && token === "S") {
+            window.openSaveAsDialog();
+            return window.acceptKeyEvent(event);
+        }
+        if (hasCtrl && !(event.modifiers & Qt.ShiftModifier) && token === "S") {
             captureActions.performSaveOnly();
             return window.acceptKeyEvent(event);
         }
@@ -3010,6 +3038,10 @@ DankModal {
         if (event.modifiers & Qt.ControlModifier) {
             const token = Helpers.shortcutToken(event.key, Qt);
             if (window.handleColorShortcut(event, token)) return true;
+            if ((event.modifiers & Qt.ShiftModifier) && token === "S") {
+                window.openSaveAsDialog();
+                return window.acceptKeyEvent(event);
+            }
         }
         if (window.textInputMode === "inline") {
             window.handleTypingKey(event);
@@ -3020,6 +3052,11 @@ DankModal {
     }
 
     function handleModalKeyPressed(event) {
+        if (event.key === Qt.Key_Escape && saveAsDialog.shouldBeVisible) {
+            saveAsDialog.close();
+            window.acceptKeyEvent(event);
+            return;
+        }
         if (event.key === Qt.Key_Escape && window.closeColorPickerIfOpen()) {
             window.acceptKeyEvent(event);
             return;
@@ -3800,6 +3837,9 @@ DankModal {
                     }
                     onSaveRequested: {
                         window.runToolbarAction(captureActions.performSaveOnly, moreToolsMenu);
+                    }
+                    onSaveAsRequested: {
+                        window.runToolbarAction(window.openSaveAsDialog, moreToolsMenu);
                     }
 
                     onCopyRequested: {

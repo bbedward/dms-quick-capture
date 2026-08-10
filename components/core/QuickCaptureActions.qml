@@ -254,6 +254,38 @@ QtObject {
         }, 0, 5000);
     }
 
+    function normalizeSaveAsPath(path) {
+        let targetPath = String(path || "").trim();
+        if (!targetPath) return "";
+        if (targetPath.indexOf("file://") === 0) targetPath = targetPath.slice(7);
+        try {
+            targetPath = decodeURIComponent(targetPath);
+        } catch (error) {
+            // Keep the raw path when it is not URI-encoded.
+        }
+        targetPath = Paths.expandTilde(targetPath);
+
+        const format = root.getPluginData().outputFormat || "png";
+        const extension = "." + format.toLowerCase();
+        const slashIndex = targetPath.lastIndexOf("/");
+        const dotIndex = targetPath.lastIndexOf(".");
+        if (dotIndex <= slashIndex) return targetPath + extension;
+        return targetPath.slice(0, dotIndex) + extension;
+    }
+
+    function saveFileAs(tempOut, targetPath, callback) {
+        const slashIndex = targetPath.lastIndexOf("/");
+        const saveDir = slashIndex >= 0 ? targetPath.slice(0, slashIndex) : ".";
+        const filename = slashIndex >= 0 ? targetPath.slice(slashIndex + 1) : targetPath;
+        const saveCmd = "[ -s " + shellPathExpression(tempOut) + " ] || { echo 'ERROR: Exported screenshot file is empty or missing' >&2; exit 2; }; " +
+                        "mkdir -p -- " + shellPathExpression(saveDir) +
+                        " && cp -- " + shellPathExpression(tempOut) + " " + shellPathExpression(targetPath);
+
+        Proc.runCommand("save-capture-file-as", ["sh", "-c", saveCmd], (stdout, exitCode) => {
+            callback(stdout, exitCode, saveDir, filename, targetPath);
+        }, 0, 5000);
+    }
+
     function performSaveOnly() {
         withConvertedExport((finalPath, originalPng) => {
             saveFile(finalPath, (stdout, exitCode, saveDir, filename, targetPath) => {
@@ -265,6 +297,27 @@ QtObject {
                 } else {
                     const errDetail = commandOutputOrFallback(stdout, "Save command failed with exit code " + exitCode);
                     console.error("[QuickCapture] Save failed:", errDetail);
+                    notifyError(I18n.tr("Failed to save screenshot file."), errDetail);
+                }
+                cleanupConvertedFiles(finalPath, originalPng);
+            });
+        });
+    }
+
+    function performSaveAs(path) {
+        const targetPath = normalizeSaveAsPath(path);
+        if (!targetPath) return;
+
+        withConvertedExport((finalPath, originalPng) => {
+            saveFileAs(finalPath, targetPath, (stdout, exitCode, saveDir, filename, savedPath) => {
+                if (exitCode === 0) {
+                    const notifyPath = Paths.expandTilde(savedPath);
+                    const iconPath = (notifyPath.toLowerCase().endsWith(".pdf") && originalPng) ? originalPng : notifyPath;
+                    root.sendNotification(I18n.tr("Screenshot Saved"), I18n.tr("Screenshot saved to %1").arg(notifyPath), iconPath, notifyPath);
+                    root.closeRequested();
+                } else {
+                    const errDetail = commandOutputOrFallback(stdout, "Save As command failed with exit code " + exitCode);
+                    console.error("[QuickCapture] Save As failed:", errDetail);
                     notifyError(I18n.tr("Failed to save screenshot file."), errDetail);
                 }
                 cleanupConvertedFiles(finalPath, originalPng);

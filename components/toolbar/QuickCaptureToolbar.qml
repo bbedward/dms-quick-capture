@@ -87,6 +87,7 @@ Rectangle {
     signal redoRequested()
     signal floatRequested()
     signal saveRequested()
+    signal saveAsRequested()
     signal copyRequested()
     signal anonymousCopyRequested()
     signal copyAndSaveRequested()
@@ -251,7 +252,30 @@ Rectangle {
             Row {
                 spacing: Theme.spacingXS; anchors.verticalCenter: parent.verticalCenter
                 DankActionButton { iconName: "push_pin"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Float Window (Ctrl+F)"; onClicked: root.floatRequested() }
-                DankActionButton { iconName: "save"; buttonSize: Constants.btnSize; iconSize: Constants.iconSize; tooltipText: "Save (Ctrl+S)"; onClicked: root.saveRequested() }
+                Item {
+                    width: Constants.btnSize
+                    height: Constants.btnSize
+                    anchors.verticalCenter: parent.verticalCenter
+                    DankActionButton {
+                        anchors.fill: parent
+                        iconName: "save"
+                        buttonSize: Constants.btnSize
+                        iconSize: Constants.iconSize
+                        tooltipText: I18n.tr("Save (Ctrl+S) | Right-Click for Save As (Ctrl+Shift+S)")
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: mouse => {
+                            if (mouse.button === Qt.RightButton) {
+                                root.saveAsRequested();
+                            } else {
+                                root.saveRequested();
+                            }
+                        }
+                    }
+                }
                 Item {
                     width: Constants.btnSize
                     height: Constants.btnSize
