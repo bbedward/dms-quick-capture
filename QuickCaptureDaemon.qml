@@ -24,6 +24,7 @@ PluginComponent {
     property bool isDownloading: false
     property string currentCapturePath: ""
     property string captureOutputName: ""
+    property bool hideControlCenter: pluginData.defaultHideControlCenter !== false
     readonly property int captureTimeoutMs: 60000
     readonly property int scrollCaptureTimeoutMs: 120000
     readonly property bool isAnnotating: modal.shouldBeVisible
@@ -77,8 +78,17 @@ PluginComponent {
         root.isCapturing = true;
         root.pendingCaptureAction = finalAction;
         root.pendingCaptureMode = finalMode;
-        root.closeControlCenter();
-        captureDelayTimer.start();
+
+        if (root.hideControlCenter) {
+            root.closeControlCenter();
+            captureDelayTimer.start();
+        } else {
+            root.startActualCapture();
+        }
+    }
+
+    function toggleHideControlCenter() {
+        root.hideControlCenter = !root.hideControlCenter;
     }
 
     function closeControlCenter() {
@@ -221,6 +231,7 @@ PluginComponent {
                     root.toastError(I18n.tr("Failed to save screenshot"));
             });
         } else {
+            root.closeControlCenter();
             modal.currentCapturePath = path;
             modal.shouldBeVisible = true;
             modal.open();
