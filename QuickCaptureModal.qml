@@ -2293,6 +2293,7 @@ DankModal {
         ignoreUnknownSignals: true
         function onDialogClosed() {
             if (target) target.useOverlayLayer = false;
+            window.shouldHaveFocus = Qt.binding(() => window.shouldBeVisible);
         }
     }
 
@@ -2498,6 +2499,7 @@ DankModal {
             picker.onColorSelectedCallback = function (selectedColor) {
                 window.updateColorSlot(window.activeColorSlotIndex, selectedColor);
             };
+            window.shouldHaveFocus = false;
             picker.show();
             return true;
         }
@@ -3777,6 +3779,7 @@ DankModal {
                                 }
                                 window.hasUserCustomizedBackground = true;
                             };
+                            window.shouldHaveFocus = false;
                             picker.show();
                         }
                     }
