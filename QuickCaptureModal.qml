@@ -2315,6 +2315,13 @@ DankModal {
         onFileSelected: path => captureActions.performSaveAs(path)
     }
 
+    Connections {
+        target: saveAsDialog
+        function onDialogClosed() {
+            window.shouldHaveFocus = Qt.binding(() => window.shouldBeVisible);
+        }
+    }
+
     function getHoveredHandle(mx, my) {
         if (!hasSelection || currentTool !== "crop") return "none";
         const threshold = 15;
@@ -2809,6 +2816,7 @@ DankModal {
         saveAsDialog.useOverlayLayer = true;
         saveAsDialog.defaultFileName = captureActions.screenshotFilename();
         saveAsDialog.fileExtensions = window.saveAsFileExtensions();
+        window.shouldHaveFocus = false;
         saveAsDialog.open();
     }
 
