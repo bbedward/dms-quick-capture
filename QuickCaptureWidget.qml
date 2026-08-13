@@ -317,12 +317,12 @@ PluginComponent {
                             hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onPressed: mouse => subRipple.trigger(mouse.x, mouse.y)
                             onClicked: {
-                                root.runAfterPopoutClosed(() => {
-                                    if (root.daemon) {
-                                        root.daemon.captureOutputName = modelData.value;
-                                        root.daemon.triggerCaptureWithAction("output", "edit");
-                                    }
-                                });
+                                const outputName = modelData.value;
+                                if (root.daemon) {
+                                    root.daemon.captureOutputName = outputName;
+                                    root.daemon.triggerCaptureWithAction("output", "edit");
+                                }
+                                root.closePopout();
                                 root.outputExpanded = false;
                             }
                         }
@@ -335,12 +335,12 @@ PluginComponent {
                             hoverEnabled: true; cursorShape: Qt.PointingHandCursor
                             onPressed: mouse => subRipple.trigger(mouse.x + parent.width - 28, mouse.y)
                             onClicked: {
-                                root.runAfterPopoutClosed(() => {
-                                    if (root.daemon) {
-                                        root.daemon.captureOutputName = modelData.value;
-                                        root.daemon.triggerCaptureWithAction("output", "float");
-                                    }
-                                });
+                                const outputName = modelData.value;
+                                if (root.daemon) {
+                                    root.daemon.captureOutputName = outputName;
+                                    root.daemon.triggerCaptureWithAction("output", "float");
+                                }
+                                root.closePopout();
                                 root.outputExpanded = false;
                             }
                         }
