@@ -518,13 +518,13 @@ PluginSettings {
             }
         }
 
-        SelectionSettingPlus {
+        ButtonGroupSettingPlus {
             id: screenshotBackend
             settingKey: "screenshotBackend"
             label: I18n.tr("Screenshot Backend")
             options: [
-                { label: I18n.tr("Old Backend"), value: "dms" },
-                { label: I18n.tr("New Backend"), value: "rust" }
+                { label: I18n.tr("Old"), value: "dms" },
+                { label: I18n.tr("New"), value: "rust" }
             ]
             defaultValue: "dms"
         }
