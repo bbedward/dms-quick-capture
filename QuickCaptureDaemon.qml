@@ -47,8 +47,9 @@ PluginComponent {
         }
 
         if (mode === "output") {
-            const outName = root.captureOutputName || pluginData.outputTargetName || "DP-1";
-            flags.push("--output", outName);
+            const outName = root.captureOutputName || pluginData.outputTargetName || "";
+            if (outName || !root.usesNewScreenshotBackend(mode))
+                flags.push("--output", outName || "DP-1");
         }
 
         if (pluginData.resetLastRegion)

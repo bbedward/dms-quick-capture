@@ -175,11 +175,13 @@ fn capture_args(command: &Command) -> Option<(&CaptureArgs, CaptureTarget<'_>)> 
             },
         )),
         Command::Full(args) => Some((args, CaptureTarget::Focused)),
-        Command::Output(args) => args
-            .output
-            .as_deref()
-            .or(args.name.as_deref())
-            .map(|name| (&args.capture, CaptureTarget::Output(name))),
+        Command::Output(args) => Some((
+            &args.capture,
+            match args.output.as_deref().or(args.name.as_deref()) {
+                Some(name) => CaptureTarget::Output(name),
+                None => CaptureTarget::Focused,
+            },
+        )),
         Command::All(args) => Some((args, CaptureTarget::All)),
         Command::Window(args) => Some((args, CaptureTarget::Window)),
         Command::Last(args) => Some((args, CaptureTarget::Last)),

@@ -538,8 +538,8 @@ PluginSettings {
             id: outputTargetName
             settingKey: "outputTargetName"
             label: I18n.tr("Target Output Name")
-            placeholder: "e.g. DP-1"
-            defaultValue: "DP-1"
+            placeholder: "e.g. eDP-1"
+            defaultValue: ""
         }
 
         Separator {}
