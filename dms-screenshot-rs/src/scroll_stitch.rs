@@ -10,6 +10,8 @@ const SIGNATURE_COLUMNS: usize = 18;
 const SIGNATURE_ROWS: usize = 24;
 const SEAM_IGNORE_TOP: f32 = 0.10;
 const SEAM_IGNORE_BOTTOM: f32 = 0.08;
+const HEADER_MIN_ROWS: usize = 12;
+const HEADER_ROW_TOL: f32 = 4.0;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum StitchOutcome {
@@ -100,7 +102,9 @@ impl ScrollStitcher {
             return StitchOutcome::Duplicate;
         }
 
-        let Some((position, confidence)) = self.locate_frame(&features.rows, &features.active)
+        let stable_header_rows = self.stable_header_rows(&features.rows);
+        let Some((position, confidence)) =
+            self.locate_frame(&features.rows, &features.active, stable_header_rows)
         else {
             self.unmatched = true;
             return StitchOutcome::WaitingForOverlap;
@@ -145,13 +149,47 @@ impl ScrollStitcher {
         self.rows.len()
     }
 
-    fn locate_frame(&self, frame: &[RowSignature], active: &[bool]) -> Option<(i32, f32)> {
-        let predicted = self.anchor + self.adjacent_offset(frame, active);
-        self.scan_positions(frame, active, predicted, true)
-            .or_else(|| self.scan_positions(frame, active, predicted, false))
+    fn stable_header_rows(&self, frame: &[RowSignature]) -> usize {
+        let Some(previous) = self.last_frame.as_ref() else {
+            return 0;
+        };
+        if previous.len() != frame.len() {
+            return 0;
+        }
+
+        let max_rows = (frame.len() / 3).max(HEADER_MIN_ROWS);
+        let mut stable = 0;
+        for index in 0..max_rows.min(frame.len()) {
+            if row_diff(frame[index], previous[index]) > HEADER_ROW_TOL {
+                break;
+            }
+            stable += 1;
+        }
+        if stable >= HEADER_MIN_ROWS { stable } else { 0 }
     }
 
-    fn adjacent_offset(&self, frame: &[RowSignature], active: &[bool]) -> i32 {
+    fn locate_frame(
+        &self,
+        frame: &[RowSignature],
+        active: &[bool],
+        header_rows: usize,
+    ) -> Option<(i32, f32)> {
+        let predicted = self.anchor + self.adjacent_offset(frame, active, header_rows);
+        let header_match = self
+            .scan_positions(frame, active, predicted, true, header_rows)
+            .or_else(|| self.scan_positions(frame, active, predicted, false, header_rows));
+        if header_match.is_some() || header_rows == 0 {
+            return header_match;
+        }
+
+        // A changing or unusually large header can leave too little content to match.
+        // Preserve the original stitcher as a fallback instead of dropping the frame.
+        let predicted = self.anchor + self.adjacent_offset(frame, active, 0);
+        self.scan_positions(frame, active, predicted, true, 0)
+            .or_else(|| self.scan_positions(frame, active, predicted, false, 0))
+    }
+
+    fn adjacent_offset(&self, frame: &[RowSignature], active: &[bool], header_rows: usize) -> i32 {
         let Some(previous) = self.last_frame.as_ref() else {
             return 0;
         };
@@ -165,7 +203,8 @@ impl ScrollStitcher {
                 if offset < -limit || offset > limit {
                     continue;
                 }
-                let (diff, active_matches) = pair_diff(frame, previous, active, offset);
+                let (diff, active_matches) =
+                    pair_diff(frame, previous, active, offset, header_rows);
                 if active_matches >= MIN_ACTIVE && diff < best.1 {
                     best = (offset, diff);
                 }
@@ -183,6 +222,7 @@ impl ScrollStitcher {
         active: &[bool],
         predicted: i32,
         near_only: bool,
+        header_rows: usize,
     ) -> Option<(i32, f32)> {
         let height = frame.len() as i32;
         let canvas_len = self.rows.len() as i32;
@@ -197,7 +237,8 @@ impl ScrollStitcher {
             if position < min_position || position > max_position {
                 return;
             }
-            let (diff, count, active_matches) = self.canvas_diff(frame, active, position);
+            let (diff, count, active_matches) =
+                self.canvas_diff(frame, active, position, header_rows);
             if count < MIN_COMPARE || active_matches < MIN_ACTIVE || diff > ACCEPT_DIFF {
                 return;
             }
@@ -235,7 +276,8 @@ impl ScrollStitcher {
                     if position < min_position || position > max_position {
                         continue;
                     }
-                    let (diff, count, active_matches) = self.canvas_diff(frame, active, position);
+                    let (diff, count, active_matches) =
+                        self.canvas_diff(frame, active, position, header_rows);
                     if count >= MIN_COMPARE
                         && active_matches >= MIN_ACTIVE
                         && diff <= ACCEPT_DIFF
@@ -279,8 +321,9 @@ impl ScrollStitcher {
         frame: &[RowSignature],
         active: &[bool],
         position: i32,
+        header_rows: usize,
     ) -> (f32, usize, usize) {
-        let (top, bottom) = ignored_edges(frame.len());
+        let (top, bottom) = ignored_edges(frame.len(), header_rows);
         let start = top.max((-position).max(0) as usize);
         let end = (frame.len() - bottom).min((self.rows.len() as i32 - position) as usize);
         if end <= start {
@@ -456,8 +499,9 @@ fn pair_diff(
     previous: &[RowSignature],
     active: &[bool],
     offset: i32,
+    header_rows: usize,
 ) -> (f32, usize) {
-    let (top, bottom) = ignored_edges(frame.len());
+    let (top, bottom) = ignored_edges(frame.len(), header_rows);
     let start = top.max((-offset).max(0) as usize);
     let end = (frame.len() - bottom).min((frame.len() as i32 - offset) as usize);
     if end <= start {
@@ -475,12 +519,14 @@ fn pair_diff(
     (total / (end - start) as f32, active_matches)
 }
 
-fn ignored_edges(height: usize) -> (usize, usize) {
+fn ignored_edges(height: usize, header_rows: usize) -> (usize, usize) {
     if height < 80 {
-        return (0, 0);
+        return (header_rows.min(height), 0);
     }
     (
-        ((height as f32 * SEAM_IGNORE_TOP) as usize).clamp(16, height / 4),
+        ((height as f32 * SEAM_IGNORE_TOP) as usize)
+            .clamp(16, height / 4)
+            .max(header_rows.min(height / 3)),
         ((height as f32 * SEAM_IGNORE_BOTTOM) as usize).clamp(16, height / 4),
     )
 }
@@ -539,6 +585,22 @@ mod tests {
     fn page_frame(page: &[u8], top: usize) -> Vec<u8> {
         let stride = WIDTH * 4;
         page[top * stride..(top + HEIGHT) * stride].to_vec()
+    }
+
+    fn header_page_frame(page: &[u8], top: usize, header_rows: usize) -> Vec<u8> {
+        let stride = WIDTH * 4;
+        let content_height = HEIGHT - header_rows;
+        let mut data = vec![0; WIDTH * HEIGHT * 4];
+        for y in 0..header_rows {
+            for x in 0..WIDTH {
+                let value = ((y * 17 + x * 31) % 251) as u8;
+                let offset = (y * WIDTH + x) * 4;
+                data[offset..offset + 4].copy_from_slice(&[value, 180, 220, 255]);
+            }
+        }
+        let content = &page[top * stride..(top + content_height) * stride];
+        data[header_rows * stride..].copy_from_slice(content);
+        data
     }
 
     fn page() -> Vec<u8> {
@@ -667,6 +729,25 @@ mod tests {
         assert_eq!(
             &stitcher.canvas()[..220 * WIDTH * 4],
             &source[..220 * WIDTH * 4]
+        );
+    }
+
+    #[test]
+    fn keeps_a_sticky_header_only_once() {
+        const HEADER_ROWS: usize = 20;
+        let source = page();
+        let mut stitcher = ScrollStitcher::new(WIDTH, 10_000_000, 10_000);
+        for top in [0, 30, 60] {
+            let outcome = stitcher.observe(&header_page_frame(&source, top, HEADER_ROWS), HEIGHT);
+            assert!(!matches!(outcome, StitchOutcome::WaitingForOverlap));
+        }
+
+        let expected_rows = HEADER_ROWS + (HEIGHT - HEADER_ROWS) + 60;
+        assert_eq!(stitcher.rows(), expected_rows);
+        let stride = WIDTH * 4;
+        assert_eq!(
+            &stitcher.canvas()[HEADER_ROWS * stride..],
+            &source[..(expected_rows - HEADER_ROWS) * stride]
         );
     }
 
