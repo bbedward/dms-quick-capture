@@ -51,26 +51,27 @@ Quick Capture normally resolves the local `backend/dms-screenshot-rs` launcher. 
 
 ## Uninstall
 
-Remove a standalone development binary:
+Remove a standalone development binary installed with `cargo install`:
 
 ```sh
 rm -f "$HOME/.local/bin/dms-screenshot-rs"
 ```
 
-When the backend was installed with `cargo install`, the same command removes the installed binary.
-To also remove local build artifacts from this repository:
+To remove local build artifacts from this repository:
 
 ```sh
 rm -rf dms-screenshot-rs/target
 ```
 
-Remove the installed backend with:
+Remove a backend installed for the Quick Capture plugin with:
 
 ```sh
-rm -rf backend/x86_64 backend/aarch64 backend/installed-version
+rm -f backend/x86_64/dms-screenshot-rs \
+      backend/aarch64/dms-screenshot-rs \
+      backend/installed-version
 ```
 
-Select the Old Backend in Quick Capture settings if you no longer want to use it.
+This keeps the architecture-aware `backend/dms-screenshot-rs` launcher in place. Select the Old Backend in Quick Capture settings if you no longer want to use Rust.
 The backend does not create a separate persistent configuration directory.
 
 ## Commands
