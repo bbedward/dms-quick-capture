@@ -234,6 +234,7 @@ struct SeatEntry {
     button_state: WlButtonState,
     touch_id: i32,
     cursor_serial: u32,
+    cursor_over_scroll_preview: Option<bool>,
 }
 
 impl Default for SeatEntry {
@@ -249,6 +250,7 @@ impl Default for SeatEntry {
             button_state: WlButtonState::Released,
             touch_id: TOUCH_ID_EMPTY,
             cursor_serial: 0,
+            cursor_over_scroll_preview: None,
         }
     }
 }
@@ -2570,12 +2572,14 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
 
                 let over_scroll_preview =
                     state.scroll_active && pointer_is_over_scroll_preview(state, seat_idx);
+                state.seats[seat_idx].cursor_over_scroll_preview = Some(over_scroll_preview);
                 set_pointer_cursor(state, qh, seat_idx, output_idx, serial, over_scroll_preview);
                 repaint = true;
             }
             wayland_client::protocol::wl_pointer::Event::Leave { .. } => {
                 let seat = &mut state.seats[seat_idx];
                 seat.pointer_selection.current_output = None;
+                seat.cursor_over_scroll_preview = None;
                 repaint = true;
             }
             wayland_client::protocol::wl_pointer::Event::Motion {
@@ -2601,9 +2605,15 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                     _ => {}
                 }
                 let output_idx = seat.pointer_selection.current_output;
+                let dragging = seat.button_state == WlButtonState::Pressed;
                 let over_scroll_preview =
                     state.scroll_active && pointer_is_over_scroll_preview(state, seat_idx);
-                if let Some(output_idx) = output_idx {
+                let cursor_changed =
+                    state.seats[seat_idx].cursor_over_scroll_preview != Some(over_scroll_preview);
+                if cursor_changed {
+                    state.seats[seat_idx].cursor_over_scroll_preview = Some(over_scroll_preview);
+                }
+                if cursor_changed && let Some(output_idx) = output_idx {
                     let serial = state.seats[seat_idx].cursor_serial;
                     if serial != 0 {
                         set_pointer_cursor(
@@ -2616,7 +2626,7 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                         );
                     }
                 }
-                repaint = true;
+                repaint = dragging || state.config.crosshairs;
             }
             wayland_client::protocol::wl_pointer::Event::Button {
                 button,
