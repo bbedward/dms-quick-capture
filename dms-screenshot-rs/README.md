@@ -2,7 +2,7 @@
 
 Standalone Rust screenshot backend for DankMaterialShell and DMS Quick Capture. It owns Wayland capture, interactive region selection, image encoding, clipboard integration, and the JSON result contract in one binary.
 
-The backend lives in this repository so it can evolve together with Quick Capture, but it is built and installed independently as `dms-screenshot-rs`.
+The backend lives in this repository so it can evolve together with Quick Capture. Release binaries are built by GitHub Actions and published separately so users can verify and install the executable explicitly.
 
 ## Quick Start
 
@@ -14,18 +14,44 @@ cargo build --release --manifest-path dms-screenshot-rs/Cargo.toml
 ./dms-screenshot-rs/target/release/dms-screenshot-rs full --no-clipboard --json
 ```
 
-For a user-local installation:
+For a standalone development installation:
 
 ```sh
 cargo install --path dms-screenshot-rs --root "$HOME/.local"
 command -v dms-screenshot-rs
 ```
 
-Quick Capture resolves `dms-screenshot-rs` through `PATH` when the New Backend is selected in settings.
+To build and install a local development binary for the current architecture from the repository root:
+
+```sh
+./scripts/update-bundled-backend.sh
+```
+
+The script runs the equivalent of:
+
+```sh
+cargo build --release --manifest-path dms-screenshot-rs/Cargo.toml
+mkdir -p backend/$(uname -m)
+cp dms-screenshot-rs/target/release/dms-screenshot-rs backend/$(uname -m)/dms-screenshot-rs
+```
+
+The optimized binary is then used by the local plugin launcher. This is useful when testing backend changes before a GitHub Release is available.
+
+For a verified release installation, run this from the plugin root:
+
+```sh
+./scripts/install-backend.sh --version v5.0.0-beta.2
+```
+
+The installer downloads the architecture-specific release asset and `SHA256SUMS`, verifies the checksum, and writes the executable to `backend/<architecture>/dms-screenshot-rs`. The plugin launcher uses that local file; it does not download or execute a backend automatically.
+
+The current release workflow publishes an `x86_64` Linux asset. Additional architectures should only be enabled after their binaries are built and tested in CI.
+
+Quick Capture normally resolves the local `backend/dms-screenshot-rs` launcher. The launcher selects the installed binary for the current architecture. The standalone `PATH` installation remains useful when developing the backend outside the plugin.
 
 ## Uninstall
 
-Remove the user-local binary:
+Remove a standalone development binary:
 
 ```sh
 rm -f "$HOME/.local/bin/dms-screenshot-rs"
@@ -38,7 +64,13 @@ To also remove local build artifacts from this repository:
 rm -rf dms-screenshot-rs/target
 ```
 
-Finally, select the Old Backend in Quick Capture settings or remove the plugin if it is no longer needed.
+Remove the installed backend with:
+
+```sh
+rm -rf backend/x86_64 backend/aarch64 backend/installed-version
+```
+
+Select the Old Backend in Quick Capture settings if you no longer want to use it.
 The backend does not create a separate persistent configuration directory.
 
 ## Commands

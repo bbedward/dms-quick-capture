@@ -63,9 +63,18 @@ PluginComponent {
             ["region", "window", "full", "output", "all", "last", "scroll"].includes(mode);
     }
 
+    function newScreenshotBackendCommand() {
+        if (pluginService && pluginId) {
+            const pluginPath = pluginService.getPluginPath(pluginId);
+            if (pluginPath)
+                return pluginPath + "/backend/dms-screenshot-rs";
+        }
+        return "dms-screenshot-rs";
+    }
+
     function screenshotArgs(mode, filename) {
         const cursorVal = pluginData.includeCursor ? "on" : "off";
-        const command = usesNewScreenshotBackend(mode) ? "dms-screenshot-rs" : "dms";
+        const command = usesNewScreenshotBackend(mode) ? root.newScreenshotBackendCommand() : "dms";
         const args = usesNewScreenshotBackend(mode)
             ? [command, mode]
             : [command, "screenshot", mode];
@@ -158,7 +167,7 @@ PluginComponent {
                 }
             } catch (e) {
                 if (newBackend) {
-                    root.toastError(I18n.tr("dms-screenshot-rs was not found in PATH."));
+                    root.toastError(I18n.tr("The Rust screenshot backend is not installed or unavailable for this architecture."));
                 } else {
                     root.toastError((stdout && stdout.trim()) || I18n.tr("Screenshot failed (mode: %1).").arg(mode));
                 }

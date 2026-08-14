@@ -25,7 +25,8 @@ Screenshot annotation plugin for DankMaterialShell.
 | **tesseract** | OCR text scanner |
 | **zbar** (`zbarimg`) | QR scanner |
 | **Qt5Compat GraphicalEffects** (`qt6-qt5compat`) | Floating images |
-| **dms-screenshot-rs** | Required and available in `PATH` when the New Backend is selected |
+| **Rust screenshot backend** | Installed separately when the New Backend is selected |
+| **curl** and **sha256sum** | Verify and install the Rust backend release asset |
 
 ## Install
 
@@ -41,7 +42,20 @@ Or manually:
 git clone https://github.com/hthienloc/dms-quick-capture ~/.config/DankMaterialShell/plugins/quickCapture
 ```
 
-For New Backend installation and development, see the [`dms-screenshot-rs` README](dms-screenshot-rs/README.md).
+The New Backend is distributed as a GitHub Release asset and installed separately after verifying its checksum. For installation and backend development, see the [`dms-screenshot-rs` README](dms-screenshot-rs/README.md).
+
+### Build the Rust backend locally
+
+Users who prefer to build from source can install the required tools and dependencies, then run:
+
+```bash
+sudo dnf install rust cargo cairo-devel libXcursor-devel
+git clone https://github.com/hthienloc/dms-quick-capture
+cd dms-quick-capture
+./scripts/update-bundled-backend.sh
+```
+
+The script builds an optimized binary and installs it into `backend/<architecture>/` inside the plugin. Select **New Backend** in Quick Capture settings after the build completes.
 
 ## Credits
 

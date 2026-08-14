@@ -530,7 +530,7 @@ PluginSettings {
         }
 
         InfoText {
-            text: I18n.tr("The New Backend requires dms-screenshot-rs to be installed and available in PATH.")
+            text: I18n.tr("Install the Rust backend with the command documented in the plugin README before selecting New Backend.")
             opacity: 0.85
         }
 

@@ -18,9 +18,9 @@ Clone the `beta/rust-backend` branch into the DMS plugin directory:
 git clone -b beta/rust-backend https://github.com/hthienloc/dms-quick-capture "$HOME/.config/DankMaterialShell/plugins/quickCapture"
 ```
 
-Build and install the Rust backend as described in [`dms-screenshot-rs/README.md`](../dms-screenshot-rs/README.md).
+The Rust backend is distributed as a separately verified GitHub Release asset. Install it with the command documented in [`dms-screenshot-rs/README.md`](../dms-screenshot-rs/README.md).
 
-Select **New Backend** in Quick Capture settings after `dms-screenshot-rs` is available in `PATH`.
+Select **New Backend** in Quick Capture settings after installing the backend for your architecture.
 
 Select **Old Backend** to return to the stable screenshot path if the beta backend does not work correctly on your compositor.
 
