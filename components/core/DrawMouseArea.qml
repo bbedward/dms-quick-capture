@@ -31,6 +31,8 @@ MouseArea {
     property real originalRotation: 0
     property point rotationCenter: Qt.point(0, 0)
     property real rotationStartAngle: 0
+    property point cropMoveStart: Qt.point(0, 0)
+    property rect cropMoveOrigin: Qt.rect(0, 0, 0, 0)
 
     // Pen real-time smoothing state (exponential moving average)
     property real penSmoothX: 0
@@ -44,6 +46,8 @@ MouseArea {
         originalRotation = 0;
         rotationCenter = Qt.point(0, 0);
         rotationStartAngle = 0;
+        cropMoveStart = Qt.point(0, 0);
+        cropMoveOrigin = Qt.rect(0, 0, 0, 0);
         penSmoothX = 0;
         penSmoothY = 0;
     }
@@ -191,6 +195,18 @@ MouseArea {
                 : Qt.point(ox, oy);
             const rect = getDragRect(window.selectStart, end.x, end.y);
             window.cropRect = window.clampCropRect(rect.x, rect.y, rect.width, rect.height);
+            drawingCanvas.requestPaint();
+            return;
+        }
+
+        if (window.activeHandle === "move") {
+            const dx = ox - cropMoveStart.x;
+            const dy = oy - cropMoveStart.y;
+            window.cropRect = window.clampCropRect(
+                cropMoveOrigin.x + dx,
+                cropMoveOrigin.y + dy,
+                cropMoveOrigin.width,
+                cropMoveOrigin.height);
             drawingCanvas.requestPaint();
             return;
         }
@@ -492,6 +508,7 @@ MouseArea {
         if (h === "tc" || h === "bc" || hs === "_tc" || hs === "_bc") return Qt.SplitVCursor;
         if (h === "lc" || h === "rc" || hs === "_lc" || hs === "_rc") return Qt.SplitHCursor;
         if (h === "rotate") return Qt.SizeAllCursor;
+        if (h === "move") return Qt.SizeAllCursor;
         if (h === "stamp" && window.selectedStroke && window.selectedStroke.tool === "stamp" && window.selectedStroke.hasLeaderLine) return Qt.SizeAllCursor;
         if (h === "stampBody") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
         if (h === "stamp") return pressed ? Qt.ClosedHandCursor : Qt.OpenHandCursor;
@@ -667,6 +684,14 @@ MouseArea {
                 return;
             }
 
+            if ((mouse.modifiers & Qt.ControlModifier) && window.hasSelection) {
+                window.activeHandle = "move";
+                cropMoveStart = Qt.point(ox, oy);
+                cropMoveOrigin = window.cropRect;
+                drawingCanvas.requestPaint();
+                return;
+            }
+
             // Drag-to-select crop area
             window.activeHandle = "new";
             window.selectStart = Qt.point(Helpers.clamp(ox, 0, pw), Helpers.clamp(oy, 0, ph));
@@ -802,7 +827,7 @@ MouseArea {
         }
 
           if (window.currentTool === "crop") {
-              var resizeHandles = ["new", "tl", "tr", "bl", "br", "tc", "bc", "lc", "rc"];
+              var resizeHandles = ["new", "move", "tl", "tr", "bl", "br", "tc", "bc", "lc", "rc"];
               if (resizeHandles.indexOf(window.activeHandle) >= 0) {
                  // Ignore accidental clicks and tiny drags without closing the editor.
                  if (Math.min(window.cropRect.width, window.cropRect.height) <= 3) {
