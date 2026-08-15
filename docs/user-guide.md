@@ -58,6 +58,11 @@ Select a region, press <kbd>Space</kbd> or <kbd>Enter</kbd> to confirm, scroll t
 
 Hold <kbd>Shift</kbd> while drawing to constrain shapes: Pen draws straight lines; Line, Arrow, and Highlighter snap to 15-degree increments; Ellipse makes a circle; Rectangle, Redact, and Pixelate make a square.
 
+### Crop Controls
+
+- Hold <kbd>Shift</kbd> while creating a crop to constrain it to a 1:1 square. The same modifier works when resizing from a corner handle.
+- Hold <kbd>Ctrl</kbd> and drag to move the current crop without changing its size. The drag can start anywhere on the canvas; corner and edge handles still resize the crop.
+
 ### Popover Toolbars and Radial Menus
 
 | Interaction | Result |
