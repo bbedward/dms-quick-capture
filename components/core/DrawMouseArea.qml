@@ -165,7 +165,19 @@ MouseArea {
         };
     }
 
-    function handleCropPosition(origX, origY) {
+    function constrainCropSquarePoint(start, point) {
+        const dx = point.x - start.x;
+        const dy = point.y - start.y;
+        const sx = dx < 0 ? -1 : 1;
+        const sy = dy < 0 ? -1 : 1;
+        let side = Math.max(Math.abs(dx), Math.abs(dy));
+        const maxX = sx < 0 ? start.x : window.screenshotWidth - start.x;
+        const maxY = sy < 0 ? start.y : window.screenshotHeight - start.y;
+        side = Math.min(side, maxX, maxY);
+        return Qt.point(start.x + sx * side, start.y + sy * side);
+    }
+
+    function handleCropPosition(origX, origY, keepSquare) {
         const ox = Helpers.clamp(origX, 0, window.screenshotWidth);
         const oy = Helpers.clamp(origY, 0, window.screenshotHeight);
         const nextHoveredHandle = window.getHoveredHandle(ox, oy);
@@ -174,7 +186,10 @@ MouseArea {
             drawingCanvas.requestPaint();
         }
         if (window.activeHandle === "new") {
-            const rect = getDragRect(window.selectStart, ox, oy);
+            const end = keepSquare
+                ? constrainCropSquarePoint(window.selectStart, Qt.point(ox, oy))
+                : Qt.point(ox, oy);
+            const rect = getDragRect(window.selectStart, end.x, end.y);
             window.cropRect = window.clampCropRect(rect.x, rect.y, rect.width, rect.height);
             drawingCanvas.requestPaint();
             return;
@@ -186,22 +201,30 @@ MouseArea {
             let newY = cr.y;
             let newW = cr.width;
             let newH = cr.height;
-            if (window.activeHandle === "tl") {
-                newX = Math.min(ox, cr.x + cr.width - 10);
-                newY = Math.min(oy, cr.y + cr.height - 10);
-                newW = cr.x + cr.width - newX;
-                newH = cr.y + cr.height - newY;
-            } else if (window.activeHandle === "tr") {
-                newY = Math.min(oy, cr.y + cr.height - 10);
-                newW = Math.max(10, ox - cr.x);
-                newH = cr.y + cr.height - newY;
-            } else if (window.activeHandle === "bl") {
-                newX = Math.min(ox, cr.x + cr.width - 10);
-                newW = cr.x + cr.width - newX;
-                newH = Math.max(10, oy - cr.y);
-            } else if (window.activeHandle === "br") {
-                newW = Math.max(10, ox - cr.x);
-                newH = Math.max(10, oy - cr.y);
+            if (["tl", "tr", "bl", "br"].indexOf(window.activeHandle) !== -1) {
+                const point = keepSquare
+                    ? constrainCropSquarePoint(
+                        Qt.point(cr.x + (window.activeHandle.indexOf("l") !== -1 ? cr.width : 0),
+                            cr.y + (window.activeHandle.indexOf("t") !== -1 ? cr.height : 0)),
+                        Qt.point(ox, oy))
+                    : Qt.point(ox, oy);
+                if (window.activeHandle === "tl") {
+                    newX = Math.min(point.x, cr.x + cr.width - 10);
+                    newY = Math.min(point.y, cr.y + cr.height - 10);
+                    newW = cr.x + cr.width - newX;
+                    newH = cr.y + cr.height - newY;
+                } else if (window.activeHandle === "tr") {
+                    newY = Math.min(point.y, cr.y + cr.height - 10);
+                    newW = Math.max(10, point.x - cr.x);
+                    newH = cr.y + cr.height - newY;
+                } else if (window.activeHandle === "bl") {
+                    newX = Math.min(point.x, cr.x + cr.width - 10);
+                    newW = cr.x + cr.width - newX;
+                    newH = Math.max(10, point.y - cr.y);
+                } else {
+                    newW = Math.max(10, point.x - cr.x);
+                    newH = Math.max(10, point.y - cr.y);
+                }
             } else if (window.activeHandle === "tc") {
                 newY = Math.min(oy, cr.y + cr.height - 10);
                 newH = cr.y + cr.height - newY;
@@ -447,7 +470,7 @@ MouseArea {
         }
 
         if (window.currentTool === "crop") {
-            handleCropPosition(origX, origY);
+            handleCropPosition(origX, origY, !!(mouse.modifiers & Qt.ShiftModifier));
             return;
         } else if (window.currentTool === "ocr" || window.currentTool === "qr") {
             handleScanPosition(mouse);
