@@ -266,11 +266,34 @@ MouseArea {
         drawingCanvas.requestPaint();
     }
 
+    function moveSelectedStroke(dx, dy, moveCalloutDestination) {
+        if (!window.selectedStroke || window.originalPoints.length === 0) return;
+        const newPoints = [];
+        if (moveCalloutDestination && window.selectedStroke.tool === "callout" &&
+            window.calloutDestDragging && window.originalPoints.length === 4) {
+            for (let i = 0; i < window.originalPoints.length; i++) {
+                newPoints.push(Qt.point(window.originalPoints[i].x, window.originalPoints[i].y));
+            }
+            newPoints[2] = Qt.point(window.originalPoints[2].x + dx, window.originalPoints[2].y + dy);
+            newPoints[3] = Qt.point(window.originalPoints[3].x + dx, window.originalPoints[3].y + dy);
+        } else {
+            for (let i = 0; i < window.originalPoints.length; i++) {
+                newPoints.push(Qt.point(window.originalPoints[i].x + dx, window.originalPoints[i].y + dy));
+            }
+        }
+        window.selectedStroke.points = newPoints;
+        if (window.selectedStroke.tool === "redact") {
+            window.selectedStroke.cachedCleanColor = undefined;
+        }
+    }
+
     function handleSelectPosition(mouse, absPt) {
         if (window.selectedStroke) {
             hoveredHandle = window.getSelectedStrokeHandleAt(absPt.x, absPt.y);
 
-            if (window.activeHandle === "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
+            if (window.activeHandle === "move" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
+                moveSelectedStroke(absPt.x - window.pressCoords.x, absPt.y - window.pressCoords.y, false);
+            } else if (window.activeHandle === "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
                 let dx = absPt.x - window.pressCoords.x;
                 let dy = absPt.y - window.pressCoords.y;
 
@@ -287,21 +310,7 @@ MouseArea {
                     shiftLockAxis = "none";
                 }
 
-                if (window.selectedStroke.tool === "callout" && window.calloutDestDragging && window.originalPoints.length === 4) {
-                    const newPoints = [...window.selectedStroke.points];
-                    newPoints[2] = Qt.point(window.originalPoints[2].x + dx, window.originalPoints[2].y + dy);
-                    newPoints[3] = Qt.point(window.originalPoints[3].x + dx, window.originalPoints[3].y + dy);
-                    window.selectedStroke.points = newPoints;
-                } else {
-                    const newPoints = [];
-                    for (let i = 0; i < window.originalPoints.length; i++) {
-                        newPoints.push(Qt.point(window.originalPoints[i].x + dx, window.originalPoints[i].y + dy));
-                    }
-                    window.selectedStroke.points = newPoints;
-                }
-                if (window.selectedStroke.tool === "redact") {
-                    window.selectedStroke.cachedCleanColor = undefined;
-                }
+                moveSelectedStroke(dx, dy, true);
             } else if (window.activeHandle !== "none" && window.originalPoints.length > 0 && (mouse.buttons & Qt.LeftButton)) {
                 const dx = absPt.x - window.pressCoords.x;
                 const dy = absPt.y - window.pressCoords.y;
@@ -615,6 +624,14 @@ MouseArea {
                     drawingCanvas.requestPaint();
                     return;
                 }
+
+                if (mouse.modifiers & Qt.ControlModifier) {
+                    window.activeHandle = "move";
+                    window.pressCoords = absPt;
+                    window.originalPoints = window.copyStrokePoints(window.selectedStroke.points);
+                    drawingCanvas.requestPaint();
+                    return;
+                }
             }
 
             const strokeIdx = window.findStrokeAt(absPt.x, absPt.y);
@@ -638,6 +655,9 @@ MouseArea {
                 window.selectStrokeForEditing(stroke, !window.selectedStroke);
                 updateCalloutDestinationDrag(stroke, absPt);
                 window.pressCoords = absPt;
+                if (mouse.modifiers & Qt.ControlModifier) {
+                    window.activeHandle = "move";
+                }
                 if (window.activeCanvas) window.activeCanvas.requestPaint();
             }
             return;
