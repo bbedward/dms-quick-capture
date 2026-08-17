@@ -405,7 +405,7 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "padding"
                     valueText: root.backgroundPadding + "px"
-                    onHovered: root.backgroundControlHovered("padding", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("padding", controlItem)
                     onExited: root.backgroundControlExited("padding")
                     onWheeled: (delta) => root.backgroundControlWheel("padding", delta)
                 }
@@ -415,7 +415,7 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "rounded_corner"
                     valueText: root.backgroundCornerRadius + "px"
-                    onHovered: root.backgroundControlHovered("radius", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("radius", controlItem)
                     onExited: root.backgroundControlExited("radius")
                     onWheeled: (delta) => root.backgroundControlWheel("radius", delta)
                 }
@@ -425,7 +425,7 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "blur_on"
                     valueText: root.backgroundShadowStrength + "%"
-                    onHovered: root.backgroundControlHovered("shadow", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("shadow", controlItem)
                     onExited: root.backgroundControlExited("shadow")
                     onWheeled: (delta) => root.backgroundControlWheel("shadow", delta)
                 }
@@ -437,7 +437,7 @@ Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     iconName: "rotate_right"
                     valueText: root.backgroundGradientAngle + "°"
-                    onHovered: root.backgroundControlHovered("angle", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("angle", controlItem)
                     onExited: root.backgroundControlExited("angle")
                     onWheeled: (delta) => root.backgroundControlWheel("angle", delta)
                 }
@@ -571,7 +571,7 @@ Rectangle {
                     compact: true
                     iconName: "padding"
                     valueText: root.backgroundPadding
-                    onHovered: root.backgroundControlHovered("padding", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("padding", controlItem)
                     onExited: root.backgroundControlExited("padding")
                     onWheeled: (delta) => root.backgroundControlWheel("padding", delta)
                 }
@@ -582,7 +582,7 @@ Rectangle {
                     compact: true
                     iconName: "rounded_corner"
                     valueText: root.backgroundCornerRadius
-                    onHovered: root.backgroundControlHovered("radius", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("radius", controlItem)
                     onExited: root.backgroundControlExited("radius")
                     onWheeled: (delta) => root.backgroundControlWheel("radius", delta)
                 }
@@ -593,7 +593,7 @@ Rectangle {
                     compact: true
                     iconName: "blur_on"
                     valueText: root.backgroundShadowStrength
-                    onHovered: root.backgroundControlHovered("shadow", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("shadow", controlItem)
                     onExited: root.backgroundControlExited("shadow")
                     onWheeled: (delta) => root.backgroundControlWheel("shadow", delta)
                 }
@@ -606,7 +606,7 @@ Rectangle {
                     compact: true
                     iconName: "rotate_right"
                     valueText: root.backgroundGradientAngle
-                    onHovered: root.backgroundControlHovered("angle", controlItem)
+                    onHovered: (controlItem) => root.backgroundControlHovered("angle", controlItem)
                     onExited: root.backgroundControlExited("angle")
                     onWheeled: (delta) => root.backgroundControlWheel("angle", delta)
                 }
