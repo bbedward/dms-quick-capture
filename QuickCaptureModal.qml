@@ -47,7 +47,10 @@ Item {
         }
         window.shouldBeVisible = true;
         if (window.floatingMode) {
+            const wasVisible = floatingSurface.visible;
             floatingSurface.visible = true;
+            if (!wasVisible)
+                window.opened();
         } else {
             modalSurface.open();
         }
@@ -127,19 +130,23 @@ Item {
 
         onVisibleChanged: {
             if (visible) {
-                window.opened();
                 Qt.callLater(() => {
                     if (typeof floatingSurface.requestActivate === "function")
                         floatingSurface.requestActivate();
                     if (floatingEditorLoader.item)
                         floatingEditorLoader.item.forceActiveFocus();
                 });
-            } else if (window.shouldBeVisible && !window.presentationSwitching) {
+            }
+        }
+        onClosed: {
+            if (window.presentationSwitching)
+                return;
+            floatingSurface.visible = false;
+            if (window.shouldBeVisible) {
                 window.shouldBeVisible = false;
                 window.dialogClosed();
             }
         }
-        onClosed: floatingSurface.visible = false
 
         Item {
             anchors.fill: parent
