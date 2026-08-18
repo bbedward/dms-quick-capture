@@ -88,18 +88,12 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
             interface,
             version,
         } = event
+            && interface == "wl_output"
         {
-            if interface == "wl_output" {
-                let index = state.next_output;
-                state.next_output += 1;
-                state.outputs.insert(index, OutputState::default());
-                registry.bind::<wl_output::WlOutput, _, _>(
-                    name,
-                    version.min(4),
-                    queue_handle,
-                    index,
-                );
-            }
+            let index = state.next_output;
+            state.next_output += 1;
+            state.outputs.insert(index, OutputState::default());
+            registry.bind::<wl_output::WlOutput, _, _>(name, version.min(4), queue_handle, index);
         }
     }
 }
@@ -157,6 +151,11 @@ pub struct CapturedImage {
     pub origin_y: i64,
 }
 
+pub struct CapturedOutput {
+    pub name: String,
+    pub image: CapturedImage,
+}
+
 struct CaptureOutputState {
     proxy: wl_output::WlOutput,
     info: OutputState,
@@ -182,6 +181,33 @@ struct CaptureState {
 
 pub fn capture_output(name: Option<&str>, cursor: bool) -> Result<CapturedImage, String> {
     capture_output_with_region(name, None, false, cursor)
+}
+
+pub fn capture_outputs(cursor: bool) -> Result<Vec<CapturedOutput>, String> {
+    list_outputs()?
+        .into_iter()
+        .map(|output| {
+            let name = output.name;
+            let image = capture_output(Some(&name), cursor)
+                .map_err(|error| format!("capture output {name}: {error}"))?;
+            Ok(CapturedOutput { name, image })
+        })
+        .collect()
+}
+
+pub fn capture_focused_output(cursor: bool) -> Result<CapturedOutput, String> {
+    let name = focused_output_name()
+        .or_else(|| {
+            list_outputs()
+                .ok()?
+                .into_iter()
+                .next()
+                .map(|output| output.name)
+        })
+        .ok_or_else(|| "Wayland compositor exposed no outputs".to_string())?;
+    let image = capture_output(Some(&name), cursor)
+        .map_err(|error| format!("capture output {name}: {error}"))?;
+    Ok(CapturedOutput { name, image })
 }
 
 fn capture_output_with_region(
@@ -462,13 +488,19 @@ pub fn resolve_global_region(requested: Rect) -> Result<(String, Rect), String> 
     ))
 }
 
-pub fn crop_captured_region(
+pub fn crop_captured_local_region(
     image: CapturedImage,
     requested: Rect,
 ) -> Result<CapturedImage, String> {
-    let scale = output_scale_for_region(requested)
-        .unwrap_or(image.scale)
-        .max(1.0);
+    let scale = image.scale.max(1.0);
+    crop_captured_region_with_scale(image, requested, scale)
+}
+
+fn crop_captured_region_with_scale(
+    image: CapturedImage,
+    requested: Rect,
+    scale: f64,
+) -> Result<CapturedImage, String> {
     let requested_x = requested.x as f64 * scale - image.origin_x as f64;
     let requested_y = requested.y as f64 * scale - image.origin_y as f64;
     let requested_right =
@@ -495,25 +527,16 @@ pub fn crop_captured_region(
     })
 }
 
-fn output_scale_for_region(requested: Rect) -> Option<f64> {
-    let (name, _) = resolve_global_region(requested).ok()?;
-    list_outputs()
-        .ok()?
-        .into_iter()
-        .find(|output| output.name == name)
-        .map(|output| output.scale)
-}
-
 fn focused_output_name() -> Option<String> {
-    if std::env::var_os("NIRI_SOCKET").is_some() {
-        if let Some(name) = focused_from_json_command("niri", &["msg", "-j", "workspaces"]) {
-            return Some(name);
-        }
+    if std::env::var_os("NIRI_SOCKET").is_some()
+        && let Some(name) = focused_from_json_command("niri", &["msg", "-j", "workspaces"])
+    {
+        return Some(name);
     }
-    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some() {
-        if let Some(name) = focused_from_json_command("hyprctl", &["-j", "monitors"]) {
-            return Some(name);
-        }
+    if std::env::var_os("HYPRLAND_INSTANCE_SIGNATURE").is_some()
+        && let Some(name) = focused_from_json_command("hyprctl", &["-j", "monitors"])
+    {
+        return Some(name);
     }
     if std::env::var_os("SWAYSOCK").is_some() {
         return focused_from_json_command("swaymsg", &["-t", "get_workspaces"]);

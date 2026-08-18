@@ -36,7 +36,7 @@ use wayland_protocols_wlr::layer_shell::v1::client::zwlr_layer_surface_v1::{
 
 use super::config::Config;
 use super::selection_box::SelectionBox;
-use super::types::BackgroundImage;
+use super::types::{BackgroundImage, BackgroundImages};
 use crate::scroll_session::{ScrollCaptureSession, SessionEvent};
 use crate::selection::Rect as CaptureRect;
 use crate::wayland::CapturedImage;
@@ -272,10 +272,11 @@ struct SelectorState {
     pending_outputs: Vec<bool>,
     resizing_selection: bool,
     result: Option<SelectionBox>,
+    result_output_name: Option<String>,
     cancelled: bool,
     cursor_size: i32,
     cursor_theme: Option<String>,
-    background: Option<BackgroundImage>,
+    background: Option<BackgroundImages>,
     scroll_active: bool,
     scroll_rect: Option<CaptureRect>,
     scroll_session: Option<ScrollCaptureSession>,
@@ -291,12 +292,13 @@ delegate_noop!(SelectorState: ignore WlRegion);
 
 pub struct RunResult {
     pub result: SelectionBox,
+    pub output_name: Option<String>,
     pub captured: Option<CapturedImage>,
 }
 
 pub(crate) fn run(
     config: &Config,
-    background: Option<BackgroundImage>,
+    background: Option<BackgroundImages>,
 ) -> Result<RunResult, String> {
     let conn = Connection::connect_to_env().map_err(|_| "failed to create display".to_string())?;
     let mut event_queue: EventQueue<SelectorState> = conn.new_event_queue();
@@ -320,12 +322,13 @@ pub(crate) fn run(
 
     validate_globals(&state)?;
     populate_xdg_outputs(&mut state, &mut event_queue, &qh)?;
+    validate_backgrounds(&state)?;
     apply_initial_selection(&mut state);
     if state.cursor_shape_manager.is_none() {
         state.cursor_size = cursor_size_from_env()?;
         state.cursor_theme = std::env::var("XCURSOR_THEME")
             .ok()
-            .and_then(|s| if s.is_empty() { None } else { Some(s) });
+            .filter(|s| !s.is_empty());
     }
 
     setup_layer_surfaces(&mut state, &qh)?;
@@ -381,8 +384,31 @@ pub(crate) fn run(
 
     Ok(RunResult {
         result: state.result.expect("checked above"),
+        output_name: state.result_output_name,
         captured: state.scroll_captured,
     })
+}
+
+fn validate_backgrounds(state: &SelectorState) -> Result<(), String> {
+    let Some(backgrounds) = state.background.as_ref() else {
+        return Ok(());
+    };
+    if state.config.scroll {
+        return Ok(());
+    }
+    for output in &state.outputs {
+        let name = output
+            .name
+            .as_deref()
+            .ok_or_else(|| "selector output has no stable name".to_string())?;
+        let background = backgrounds
+            .get(name)
+            .ok_or_else(|| format!("missing frozen capture for output {name}"))?;
+        if background.width == 0 || background.height == 0 {
+            return Err(format!("frozen capture for output {name} is empty"));
+        }
+    }
+    Ok(())
 }
 
 fn scroll_tick(state: &mut SelectorState, qh: &QueueHandle<SelectorState>) {
@@ -507,9 +533,13 @@ fn cancel_scroll(state: &mut SelectorState) {
 fn enter_scroll_phase(
     state: &mut SelectorState,
     selection: SelectionBox,
+    output_idx: Option<usize>,
     qh: &QueueHandle<SelectorState>,
 ) {
     state.result = Some(selection.clone());
+    state.result_output_name = output_idx
+        .and_then(|index| state.outputs.get(index))
+        .and_then(|output| output.name.clone());
     state.scroll_rect = Some(CaptureRect {
         x: selection.x,
         y: selection.y,
@@ -748,6 +778,13 @@ fn output_from_surface(outputs: &[OutputEntry], surface: &WlSurface) -> Option<u
             .as_ref()
             .is_some_and(|output_surface| output_surface == surface)
     })
+}
+
+fn set_result(state: &mut SelectorState, selection: SelectionBox, output_idx: Option<usize>) {
+    state.result = Some(selection);
+    state.result_output_name = output_idx
+        .and_then(|index| state.outputs.get(index))
+        .and_then(|output| output.name.clone());
 }
 
 fn apply_initial_selection(state: &mut SelectorState) {
@@ -1526,7 +1563,7 @@ fn cairo_stroke_selection_rect(
     let height = (sel.height as f64 + if outside { lw } else { 0.0 }).max(1.0);
 
     unsafe {
-        cairo_set_line_width(cr, lw as f64);
+        cairo_set_line_width(cr, lw);
         cairo_rectangle(
             cr,
             sel.x as f64 + offset,
@@ -2163,10 +2200,19 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
     };
     let scroll_rect = state.scroll_rect.as_ref();
 
-    let (logical_geometry, layer_width, layer_height, output_scale, buf_width, buf_height) = {
+    let (
+        output_name,
+        logical_geometry,
+        layer_width,
+        layer_height,
+        output_scale,
+        buf_width,
+        buf_height,
+    ) = {
         let output = &state.outputs[output_idx];
         let buffer = &output.buffers[buffer_idx];
         (
+            output.name.clone(),
             output.logical_geometry.clone(),
             output.layer_width,
             output.layer_height,
@@ -2175,16 +2221,15 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
             buffer.height,
         )
     };
-    let output_background = state.background.as_ref().and_then(|background| {
-        crate::selector::background_for_output(
-            background,
-            logical_geometry.x,
-            logical_geometry.y,
-            output_scale,
-            buf_width,
-            buf_height,
-        )
-    });
+    let output_background = state
+        .background
+        .as_ref()
+        .and_then(|backgrounds| {
+            output_name
+                .as_deref()
+                .and_then(|name| backgrounds.get(name))
+        })
+        .cloned();
     let background = output_background.as_ref();
 
     let output = &mut state.outputs[output_idx];
@@ -2210,17 +2255,16 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
         background_prepared,
         previous_selection,
     };
-    if has_static_background && !background_prepared {
-        if let Some(background) = background {
-            if background.width == buffer.width
-                && background.height == buffer.height
-                && background.stride == buffer.stride
-                && background.pixels.len() == buffer.mmap.len()
-            {
-                buffer.mmap.copy_from_slice(&background.pixels);
-                unsafe { cairo_surface_mark_dirty(buffer.surface) };
-            }
-        }
+    if has_static_background
+        && !background_prepared
+        && let Some(background) = background
+        && background.width == buffer.width
+        && background.height == buffer.height
+        && background.stride == buffer.stride
+        && background.pixels.len() == buffer.mmap.len()
+    {
+        buffer.mmap.copy_from_slice(&background.pixels);
+        unsafe { cairo_surface_mark_dirty(buffer.surface) };
     }
 
     let mut canvas = PixelCanvas {
@@ -2710,7 +2754,8 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                             }
                         };
                         if let Some(result) = action {
-                            state.result = Some(result);
+                            let output_idx = state.seats[seat_idx].pointer_selection.current_output;
+                            set_result(state, result, output_idx);
                             if !state.config.scroll
                                 && state.config.no_confirm
                                 && should_finish_pointer_selection(&state.config, button_state)
@@ -2778,25 +2823,25 @@ impl Dispatch<WlKeyboard, SeatKey> for SelectorState {
                             } else {
                                 &seat.pointer_selection
                             };
-                            current.has_selection.then(|| current.selection.clone())
+                            current
+                                .has_selection
+                                .then(|| (current.selection.clone(), current.current_output))
                         });
-                        if let Some(selection) = selection {
+                        if let Some((selection, output_idx)) = selection {
                             if state.config.scroll {
-                                enter_scroll_phase(state, selection, qh);
+                                enter_scroll_phase(state, selection, output_idx, qh);
                             } else {
-                                state.result = Some(selection);
+                                set_result(state, selection, output_idx);
                                 state.running = false;
                             }
                             repaint = true;
                         }
                     }
-                    KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT => {
-                        if !state.config.fixed_aspect_ratio {
-                            state.config.aspect_ratio = 1.0;
-                            if state.resizing_selection {
-                                recompute_selection(state, seat_idx);
-                                repaint = true;
-                            }
+                    KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT if !state.config.fixed_aspect_ratio => {
+                        state.config.aspect_ratio = 1.0;
+                        if state.resizing_selection {
+                            recompute_selection(state, seat_idx);
+                            repaint = true;
                         }
                     }
                     _ => {}
@@ -2805,13 +2850,11 @@ impl Dispatch<WlKeyboard, SeatKey> for SelectorState {
                     KEY_SPACE => {
                         repaint = true;
                     }
-                    KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT => {
-                        if !state.config.fixed_aspect_ratio {
-                            state.config.aspect_ratio = 0.0;
-                            if state.resizing_selection {
-                                recompute_selection(state, seat_idx);
-                                repaint = true;
-                            }
+                    KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT if !state.config.fixed_aspect_ratio => {
+                        state.config.aspect_ratio = 0.0;
+                        if state.resizing_selection {
+                            recompute_selection(state, seat_idx);
+                            repaint = true;
                         }
                     }
                     _ => {}
@@ -2863,7 +2906,7 @@ impl Dispatch<WlTouch, SeatKey> for SelectorState {
                     handle_selection_start(&state.config, &mut seat.touch_selection)
                 };
                 if let Some(result) = action {
-                    state.result = Some(result);
+                    set_result(state, result, current_output);
                     state.running = false;
                 }
                 repaint = true;
@@ -2873,6 +2916,7 @@ impl Dispatch<WlTouch, SeatKey> for SelectorState {
                     return;
                 }
 
+                let output_idx = state.seats[seat_idx].touch_selection.current_output;
                 let action = {
                     let seat = &mut state.seats[seat_idx];
                     let action = handle_selection_end(
@@ -2885,7 +2929,7 @@ impl Dispatch<WlTouch, SeatKey> for SelectorState {
                     action
                 };
                 if let Some(result) = action {
-                    state.result = Some(result);
+                    set_result(state, result, output_idx);
                     state.running = false;
                 }
                 repaint = true;

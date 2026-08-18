@@ -131,19 +131,52 @@ fn capture_interactive_region(
     } else {
         state::region()
     };
-    let frozen_image = wayland::capture_all(cursor)?;
-    let background = selector::background_from_capture(&frozen_image);
-    let rect = selector::select_region_with_background(background, no_confirm, initial_selection)?;
+    let frozen_outputs = wayland::capture_outputs(cursor)?;
+    let background = selector::backgrounds_from_captures(&frozen_outputs);
+    let selection =
+        selector::select_region_with_background(background, no_confirm, initial_selection)?;
+    let output_name = selection
+        .output_name
+        .ok_or_else(|| "region selector did not identify an output".to_string())?;
+    let rect = Rect {
+        x: selection.rect.x,
+        y: selection.rect.y,
+        width: selection.rect.width as u32,
+        height: selection.rect.height as u32,
+    };
     let _ = state::save_region(rect);
-    wayland::crop_captured_region(frozen_image, rect)
+    let frozen_output = frozen_outputs
+        .into_iter()
+        .find(|output| output.name == output_name)
+        .ok_or_else(|| format!("missing frozen capture for output {output_name}"))?;
+    let output = wayland::list_outputs()?
+        .into_iter()
+        .find(|output| output.name == output_name)
+        .ok_or_else(|| format!("output disappeared during selection: {output_name}"))?;
+    let local = Rect {
+        x: rect.x - output.position.map(|position| position.0).unwrap_or(0),
+        y: rect.y - output.position.map(|position| position.1).unwrap_or(0),
+        width: rect.width,
+        height: rect.height,
+    };
+    let logical_width = (output.width as f64 / output.scale.max(1.0)).round() as i32;
+    let logical_height = (output.height as f64 / output.scale.max(1.0)).round() as i32;
+    if local.x < 0
+        || local.y < 0
+        || local.x.saturating_add(local.width as i32) > logical_width
+        || local.y.saturating_add(local.height as i32) > logical_height
+    {
+        return Err("region crosses output boundaries".to_string());
+    }
+    wayland::crop_captured_local_region(frozen_output.image, local)
 }
 
 fn capture_interactive_scroll(
     interval_ms: u64,
     cursor: bool,
 ) -> Result<wayland::CapturedImage, String> {
-    let frozen_image = wayland::capture_output(None, cursor)?;
-    let background = selector::background_from_capture(&frozen_image);
+    let frozen_output = wayland::capture_focused_output(cursor)?;
+    let background = selector::backgrounds_from_captures(&[frozen_output]);
     let (_, image) = selector::select_scroll_with_background(background, interval_ms, cursor)?;
     Ok(image)
 }

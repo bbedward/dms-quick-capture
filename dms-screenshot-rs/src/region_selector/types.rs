@@ -6,6 +6,8 @@ pub struct Rect {
     pub height: i32,
 }
 
+use std::collections::HashMap;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct BackgroundImage {
     pub width: u32,
@@ -16,9 +18,12 @@ pub struct BackgroundImage {
     pub origin_y: i64,
 }
 
+pub type BackgroundImages = HashMap<String, BackgroundImage>;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Selection {
     pub rect: Rect,
+    pub output_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

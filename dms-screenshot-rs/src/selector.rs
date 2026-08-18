@@ -1,5 +1,6 @@
 use crate::region_selector::{
-    BackgroundImage, SelectOptions, SelectorError, select_region as backend_select_region,
+    BackgroundImages, SelectOptions, Selection, SelectorError,
+    select_region as backend_select_region,
     select_region_with_background as backend_select_region_with_background,
     select_scroll_with_background as backend_select_scroll_with_background,
 };
@@ -14,10 +15,10 @@ pub fn select_region(no_confirm: bool) -> Result<Rect, String> {
 }
 
 pub fn select_region_with_background(
-    background: BackgroundImage,
+    background: BackgroundImages,
     no_confirm: bool,
     initial_selection: Option<Rect>,
-) -> Result<Rect, String> {
+) -> Result<Selection, String> {
     let result = backend_select_region_with_background(
         SelectOptions {
             no_confirm,
@@ -32,11 +33,11 @@ pub fn select_region_with_background(
         background,
     )
     .map_err(map_selection_error)?;
-    rect_from_selection(result.rect)
+    Ok(result)
 }
 
 pub fn select_scroll_with_background(
-    background: BackgroundImage,
+    background: BackgroundImages,
     interval_ms: u64,
     cursor: bool,
 ) -> Result<(Rect, crate::wayland::CapturedImage), String> {
@@ -77,12 +78,26 @@ fn rect_from_selection(rect: crate::region_selector::Rect) -> Result<Rect, Strin
     })
 }
 
-pub fn background_from_capture(image: &crate::wayland::CapturedImage) -> BackgroundImage {
+pub fn backgrounds_from_captures(captures: &[crate::wayland::CapturedOutput]) -> BackgroundImages {
+    captures
+        .iter()
+        .map(|capture| {
+            (
+                capture.name.clone(),
+                background_from_capture(&capture.image),
+            )
+        })
+        .collect()
+}
+
+fn background_from_capture(
+    image: &crate::wayland::CapturedImage,
+) -> crate::region_selector::BackgroundImage {
     let mut pixels = Vec::with_capacity(image.width as usize * image.height as usize * 4);
     for pixel in image.image.pixels() {
         pixels.extend_from_slice(&[pixel[2], pixel[1], pixel[0], 255]);
     }
-    BackgroundImage {
+    crate::region_selector::BackgroundImage {
         width: image.width,
         height: image.height,
         stride: image.width as usize * 4,
@@ -90,44 +105,4 @@ pub fn background_from_capture(image: &crate::wayland::CapturedImage) -> Backgro
         origin_x: image.origin_x,
         origin_y: image.origin_y,
     }
-}
-
-/// Extracts the physical-pixel slice for one output from a global composite.
-pub fn background_for_output(
-    background: &BackgroundImage,
-    logical_x: i32,
-    logical_y: i32,
-    scale: i32,
-    width: u32,
-    height: u32,
-) -> Option<BackgroundImage> {
-    let source_x = (logical_x as f64 * scale as f64).round() as i64 - background.origin_x;
-    let source_y = (logical_y as f64 * scale as f64).round() as i64 - background.origin_y;
-    let source_right = source_x.checked_add(width as i64)?;
-    let source_bottom = source_y.checked_add(height as i64)?;
-    if source_x < 0
-        || source_y < 0
-        || source_right > background.width as i64
-        || source_bottom > background.height as i64
-    {
-        return None;
-    }
-
-    let mut pixels = vec![0u8; width as usize * height as usize * 4];
-    for row in 0..height as usize {
-        let source_start = (source_y as usize + row) * background.stride + source_x as usize * 4;
-        let target_start = row * width as usize * 4;
-        let row_bytes = width as usize * 4;
-        pixels[target_start..target_start + row_bytes]
-            .copy_from_slice(&background.pixels[source_start..source_start + row_bytes]);
-    }
-
-    Some(BackgroundImage {
-        width,
-        height,
-        stride: width as usize * 4,
-        pixels,
-        origin_x: 0,
-        origin_y: 0,
-    })
 }

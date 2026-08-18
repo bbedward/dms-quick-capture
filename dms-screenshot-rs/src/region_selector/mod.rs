@@ -5,7 +5,7 @@ mod selection_box;
 mod types;
 
 pub(crate) use error::SelectorError;
-pub(crate) use types::{BackgroundImage, Rect, SelectOptions, Selection};
+pub(crate) use types::{BackgroundImage, BackgroundImages, Rect, SelectOptions, Selection};
 
 pub(crate) use crate::wayland::CapturedImage;
 
@@ -15,24 +15,26 @@ pub(crate) fn select_region(options: SelectOptions) -> Result<Selection, Selecto
         .map_err(|message| SelectorError::from_backend_message(&message))?;
     Ok(Selection {
         rect: result.result.to_rect(),
+        output_name: result.output_name,
     })
 }
 
 pub(crate) fn select_region_with_background(
     options: SelectOptions,
-    background: BackgroundImage,
+    background: BackgroundImages,
 ) -> Result<Selection, SelectorError> {
     let config = config::from_options(&options)?;
     let result = backend::run(&config, Some(background))
         .map_err(|message| SelectorError::from_backend_message(&message))?;
     Ok(Selection {
         rect: result.result.to_rect(),
+        output_name: result.output_name,
     })
 }
 
 pub(crate) fn select_scroll_with_background(
     options: SelectOptions,
-    background: BackgroundImage,
+    background: BackgroundImages,
 ) -> Result<(Selection, CapturedImage), SelectorError> {
     let config = config::from_options(&options)?;
     let result = backend::run(&config, Some(background))
@@ -43,6 +45,7 @@ pub(crate) fn select_scroll_with_background(
     Ok((
         Selection {
             rect: result.result.to_rect(),
+            output_name: result.output_name,
         },
         image,
     ))

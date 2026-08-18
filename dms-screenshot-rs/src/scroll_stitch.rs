@@ -44,11 +44,10 @@ pub struct ScrollStitcher {
 impl ScrollStitcher {
     pub fn new(width: usize, max_canvas_bytes: usize, max_rows_cap: usize) -> Self {
         let stride = width.saturating_mul(4);
-        let max_rows = if stride == 0 {
-            0
-        } else {
-            (max_canvas_bytes / stride).min(max_rows_cap)
-        };
+        let max_rows = max_canvas_bytes
+            .checked_div(stride)
+            .unwrap_or(0)
+            .min(max_rows_cap);
         Self {
             width,
             stride,
@@ -233,40 +232,51 @@ impl ScrollStitcher {
         }
 
         let mut candidates = Vec::new();
-        let mut consider = |position: i32| {
-            if position < min_position || position > max_position {
-                return;
-            }
-            let (diff, count, active_matches) =
-                self.canvas_diff(frame, active, position, header_rows);
-            if count < MIN_COMPARE || active_matches < MIN_ACTIVE || diff > ACCEPT_DIFF {
-                return;
-            }
-            if !candidates
-                .iter()
-                .any(|(candidate, _, _)| *candidate == position)
-            {
-                candidates.push((position, diff, (position - predicted).abs()));
-            }
-        };
 
         if near_only {
             for position in (predicted - PREDICT_WINDOW)..=(predicted + PREDICT_WINDOW) {
-                consider(position);
+                self.add_candidate(
+                    &mut candidates,
+                    (frame, active),
+                    position,
+                    predicted,
+                    (min_position, max_position),
+                    header_rows,
+                );
             }
             for position in (canvas_len - height)..=max_position {
-                consider(position);
+                self.add_candidate(
+                    &mut candidates,
+                    (frame, active),
+                    position,
+                    predicted,
+                    (min_position, max_position),
+                    header_rows,
+                );
             }
             for position in min_position..=0 {
-                consider(position);
+                self.add_candidate(
+                    &mut candidates,
+                    (frame, active),
+                    position,
+                    predicted,
+                    (min_position, max_position),
+                    header_rows,
+                );
             }
         } else {
             let mut position = min_position;
             while position <= max_position {
-                consider(position);
+                self.add_candidate(
+                    &mut candidates,
+                    (frame, active),
+                    position,
+                    predicted,
+                    (min_position, max_position),
+                    header_rows,
+                );
                 position += COARSE_STEP;
             }
-            drop(consider);
             let winner = candidates
                 .iter()
                 .min_by_key(|(position, _, _)| *position)
@@ -314,6 +324,32 @@ impl ScrollStitcher {
         }
         let confidence = (1.0 - best.1 / ACCEPT_DIFF).clamp(0.0, 1.0);
         Some((best.0, confidence))
+    }
+
+    fn add_candidate(
+        &self,
+        candidates: &mut Vec<(i32, f32, i32)>,
+        frame_and_active: (&[RowSignature], &[bool]),
+        position: i32,
+        predicted: i32,
+        bounds: (i32, i32),
+        header_rows: usize,
+    ) {
+        let (frame, active) = frame_and_active;
+        let (min_position, max_position) = bounds;
+        if position < min_position || position > max_position {
+            return;
+        }
+        let (diff, count, active_matches) = self.canvas_diff(frame, active, position, header_rows);
+        if count < MIN_COMPARE || active_matches < MIN_ACTIVE || diff > ACCEPT_DIFF {
+            return;
+        }
+        if !candidates
+            .iter()
+            .any(|(candidate, _, _)| *candidate == position)
+        {
+            candidates.push((position, diff, (position - predicted).abs()));
+        }
     }
 
     fn canvas_diff(
