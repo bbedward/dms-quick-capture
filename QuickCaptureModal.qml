@@ -32,6 +32,8 @@ Item {
     property real modalWidth
     property real modalHeight
     property var targetScreen
+    property var floatingTargetScreen: null
+    readonly property var presentationScreen: floatingMode && floatingTargetScreen ? floatingTargetScreen : targetScreen
     property real backgroundOpacity
     property color backgroundColor
     property bool allowStacking: false
@@ -46,6 +48,8 @@ Item {
         if (!window.sessionDisplayModeOverride) {
             window.floatingMode = config.modalDisplayMode === "floating";
         }
+        if (window.floatingMode)
+            window.floatingTargetScreen = window.targetScreen;
         window.shouldBeVisible = true;
         if (window.floatingMode) {
             const wasVisible = floatingSurface.visible;
@@ -62,6 +66,7 @@ Item {
         if (window.floatingMode) {
             const wasVisible = floatingSurface.visible;
             floatingSurface.visible = false;
+            window.floatingTargetScreen = null;
             if (wasVisible)
                 window.dialogClosed();
         } else {
@@ -74,6 +79,7 @@ Item {
         if (window.floatingMode) {
             const wasVisible = floatingSurface.visible;
             floatingSurface.visible = false;
+            window.floatingTargetScreen = null;
             if (wasVisible)
                 window.dialogClosed();
         } else {
@@ -109,7 +115,7 @@ Item {
         implicitWidth: window.modalWidth
         implicitHeight: window.modalHeight
         minimumSize: Qt.size(400, 300)
-        screen: window.targetScreen
+        screen: window.presentationScreen
         readonly property real editorAspectRatio: window.modalHeight > 0 ? window.modalWidth / window.modalHeight : 1
         property bool syncingAspectRatio: false
 
@@ -142,6 +148,7 @@ Item {
         onClosed: {
             if (window.presentationSwitching)
                 return;
+            window.floatingTargetScreen = null;
             floatingSurface.visible = false;
             if (window.shouldBeVisible) {
                 window.shouldBeVisible = false;
@@ -1673,8 +1680,8 @@ Item {
 
     // Modal sized to the screenshot (logical px), clamped between the toolbar's
     // footprint and 90% of the screen; falls back to 90% until the image loads
-    readonly property real _screenW: window.targetScreen ? window.targetScreen.width : (Quickshell.screens[0] ? Quickshell.screens[0].width : 1920)
-    readonly property real _screenH: window.targetScreen ? window.targetScreen.height : (Quickshell.screens[0] ? Quickshell.screens[0].height : 1080)
+    readonly property real _screenW: window.presentationScreen ? window.presentationScreen.width : (Quickshell.screens[0] ? Quickshell.screens[0].width : 1920)
+    readonly property real _screenH: window.presentationScreen ? window.presentationScreen.height : (Quickshell.screens[0] ? Quickshell.screens[0].height : 1080)
     readonly property real _maxModalW: Math.round((config.modalAspectRatio === "portrait" ? Math.min(_screenW, _screenH) : Math.max(_screenW, _screenH)) * 0.9)
     readonly property real _maxModalH: Math.round((config.modalAspectRatio === "portrait" ? Math.max(_screenW, _screenH) : Math.min(_screenW, _screenH)) * 0.9)
     readonly property bool _toolbarHorizontal: window.toolbarPosition === "top" || window.toolbarPosition === "bottom"
@@ -1688,7 +1695,7 @@ Item {
                                          && window.bgImageItem.sourceSize.width > 0
                                          && window.bgImageItem.sourceSize.height > 0
     // Compositor scale (not Screen.devicePixelRatio, which reports the integer buffer scale)
-    readonly property real _outputScale: (window.targetScreen && CompositorService.getScreenScale(window.targetScreen)) || 1
+    readonly property real _outputScale: (window.presentationScreen && CompositorService.getScreenScale(window.presentationScreen)) || 1
     readonly property bool _shouldScale: !!(window.parentWidget && window.parentWidget.pluginData && window.parentWidget.pluginData.modalScaleToContent)
     modalWidth: _shouldScale && _bgSizeKnown ? Math.round(Helpers.clamp(window.bgImageItem.sourceSize.width / _outputScale + _chromeW, _minModalW, _maxModalW)) : _maxModalW
     modalHeight: _shouldScale && _bgSizeKnown ? Math.round(Helpers.clamp(window.bgImageItem.sourceSize.height / _outputScale + _chromeH, _minModalH, _maxModalH)) : _maxModalH
