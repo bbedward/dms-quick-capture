@@ -9,6 +9,10 @@ use wayland_client::{
     Connection, Dispatch, QueueHandle, delegate_noop,
     protocol::{wl_buffer, wl_output, wl_registry, wl_shm, wl_shm_pool},
 };
+use wayland_protocols::xdg::xdg_output::zv1::client::{zxdg_output_manager_v1, zxdg_output_v1};
+use wayland_protocols_wlr::output_management::v1::client::{
+    zwlr_output_head_v1, zwlr_output_manager_v1, zwlr_output_mode_v1,
+};
 use wayland_protocols_wlr::screencopy::v1::client::{
     zwlr_screencopy_frame_v1, zwlr_screencopy_manager_v1,
 };
@@ -18,6 +22,7 @@ use crate::selection::{Rect, clamp};
 
 #[derive(Default)]
 struct OutputState {
+    proxy: Option<wl_output::WlOutput>,
     name: String,
     x: i32,
     y: i32,
@@ -29,6 +34,18 @@ struct OutputState {
 struct State {
     outputs: HashMap<usize, OutputState>,
     next_output: usize,
+    xdg_output_manager: Option<zxdg_output_manager_v1::ZxdgOutputManagerV1>,
+    xdg_outputs: Vec<zxdg_output_v1::ZxdgOutputV1>,
+    wlr_output_manager: Option<zwlr_output_manager_v1::ZwlrOutputManagerV1>,
+    wlr_heads: Vec<WlrHeadState>,
+}
+
+struct WlrHeadState {
+    proxy: zwlr_output_head_v1::ZwlrOutputHeadV1,
+    name: String,
+    x: i32,
+    y: i32,
+    scale: f64,
 }
 
 pub fn list_outputs() -> Result<Vec<OutputInfo>, String> {
@@ -42,6 +59,10 @@ pub fn list_outputs() -> Result<Vec<OutputInfo>, String> {
     let mut state = State {
         outputs: HashMap::new(),
         next_output: 0,
+        xdg_output_manager: None,
+        xdg_outputs: Vec::new(),
+        wlr_output_manager: None,
+        wlr_heads: Vec::new(),
     };
     event_queue
         .roundtrip(&mut state)
@@ -49,6 +70,34 @@ pub fn list_outputs() -> Result<Vec<OutputInfo>, String> {
     event_queue
         .roundtrip(&mut state)
         .map_err(|error| format!("read Wayland output metadata: {error}"))?;
+
+    if let Some(manager) = state.xdg_output_manager.as_ref().cloned() {
+        let mut xdg_outputs = Vec::new();
+        for (index, output) in &state.outputs {
+            let Some(proxy) = output.proxy.as_ref() else {
+                continue;
+            };
+            xdg_outputs.push(manager.get_xdg_output(proxy, &event_queue.handle(), *index));
+        }
+        state.xdg_outputs = xdg_outputs;
+        event_queue
+            .roundtrip(&mut state)
+            .map_err(|error| format!("read logical Wayland output metadata: {error}"))?;
+    }
+
+    for head in &state.wlr_heads {
+        if let Some(output) = state
+            .outputs
+            .values_mut()
+            .find(|output| output.name == head.name)
+        {
+            output.x = head.x;
+            output.y = head.y;
+            if head.scale > 0.0 {
+                output.scale = head.scale;
+            }
+        }
+    }
 
     if state.outputs.is_empty() {
         return Err("Wayland compositor exposed no outputs".to_string());
@@ -83,20 +132,132 @@ impl Dispatch<wl_registry::WlRegistry, ()> for State {
         _: &Connection,
         queue_handle: &QueueHandle<Self>,
     ) {
-        if let wl_registry::Event::Global {
+        let wl_registry::Event::Global {
             name,
             interface,
             version,
         } = event
-            && interface == "wl_output"
-        {
-            let index = state.next_output;
-            state.next_output += 1;
-            state.outputs.insert(index, OutputState::default());
-            registry.bind::<wl_output::WlOutput, _, _>(name, version.min(4), queue_handle, index);
+        else {
+            return;
+        };
+        match interface.as_str() {
+            "wl_output" => {
+                let index = state.next_output;
+                state.next_output += 1;
+                state.outputs.insert(index, OutputState::default());
+                let proxy = registry.bind::<wl_output::WlOutput, _, _>(
+                    name,
+                    version.min(4),
+                    queue_handle,
+                    index,
+                );
+                state.outputs.get_mut(&index).unwrap().proxy = Some(proxy);
+            }
+            "zxdg_output_manager_v1" => {
+                state.xdg_output_manager = Some(
+                    registry.bind::<zxdg_output_manager_v1::ZxdgOutputManagerV1, _, _>(
+                        name,
+                        version.min(3),
+                        queue_handle,
+                        (),
+                    ),
+                );
+            }
+            "zwlr_output_manager_v1" => {
+                state.wlr_output_manager = Some(
+                    registry.bind::<zwlr_output_manager_v1::ZwlrOutputManagerV1, _, _>(
+                        name,
+                        version.min(4),
+                        queue_handle,
+                        (),
+                    ),
+                );
+            }
+            _ => {}
         }
     }
 }
+
+impl Dispatch<zwlr_output_manager_v1::ZwlrOutputManagerV1, ()> for State {
+    fn event(
+        state: &mut Self,
+        _: &zwlr_output_manager_v1::ZwlrOutputManagerV1,
+        event: zwlr_output_manager_v1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        if let zwlr_output_manager_v1::Event::Head { head } = event {
+            state.wlr_heads.push(WlrHeadState {
+                proxy: head,
+                name: String::new(),
+                x: 0,
+                y: 0,
+                scale: 1.0,
+            });
+        }
+    }
+
+    wayland_client::event_created_child!(
+        State,
+        zwlr_output_manager_v1::ZwlrOutputManagerV1,
+        [zwlr_output_manager_v1::EVT_HEAD_OPCODE => (zwlr_output_head_v1::ZwlrOutputHeadV1, ())]
+    );
+}
+
+impl Dispatch<zwlr_output_head_v1::ZwlrOutputHeadV1, ()> for State {
+    fn event(
+        state: &mut Self,
+        proxy: &zwlr_output_head_v1::ZwlrOutputHeadV1,
+        event: zwlr_output_head_v1::Event,
+        _: &(),
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        let Some(head) = state.wlr_heads.iter_mut().find(|head| head.proxy == *proxy) else {
+            return;
+        };
+        match event {
+            zwlr_output_head_v1::Event::Name { name } => head.name = name,
+            zwlr_output_head_v1::Event::Position { x, y } => {
+                head.x = x;
+                head.y = y;
+            }
+            zwlr_output_head_v1::Event::Scale { scale } => head.scale = scale,
+            _ => {}
+        }
+    }
+
+    wayland_client::event_created_child!(
+        State,
+        zwlr_output_head_v1::ZwlrOutputHeadV1,
+        [zwlr_output_head_v1::EVT_MODE_OPCODE => (zwlr_output_mode_v1::ZwlrOutputModeV1, ())]
+    );
+}
+
+delegate_noop!(State: ignore zwlr_output_mode_v1::ZwlrOutputModeV1);
+
+impl Dispatch<zxdg_output_v1::ZxdgOutputV1, usize> for State {
+    fn event(
+        state: &mut Self,
+        _: &zxdg_output_v1::ZxdgOutputV1,
+        event: zxdg_output_v1::Event,
+        index: &usize,
+        _: &Connection,
+        _: &QueueHandle<Self>,
+    ) {
+        let Some(output) = state.outputs.get_mut(index) else {
+            return;
+        };
+        if let zxdg_output_v1::Event::LogicalPosition { x, y } = event {
+            output.x = x;
+            output.y = y;
+        }
+    }
+}
+
+delegate_noop!(State: ignore zxdg_output_v1::ZxdgOutputV1);
+delegate_noop!(State: ignore zxdg_output_manager_v1::ZxdgOutputManagerV1);
 
 impl Dispatch<wl_output::WlOutput, usize> for State {
     fn event(
@@ -247,19 +408,22 @@ fn capture_output_with_region(
         .map_err(|error| format!("read screencopy output metadata: {error}"))?;
 
     let focused_name = name.is_none().then(focused_output_name).flatten();
-    let selected = state
-        .outputs
-        .iter()
-        .filter(|(_, output)| {
-            name.map(|wanted| output.info.name == wanted)
-                .or_else(|| {
-                    focused_name
-                        .as_deref()
-                        .map(|wanted| output.info.name == wanted)
-                })
-                .unwrap_or(true)
-        })
-        .min_by_key(|(_, output)| output.info.name.clone());
+    let selected = if let Some(wanted) = name {
+        state
+            .outputs
+            .iter()
+            .find(|(_, output)| output.info.name == wanted)
+    } else if let Some(focused) = focused_name.as_deref() {
+        state
+            .outputs
+            .iter()
+            .find(|(_, output)| output.info.name == focused)
+    } else {
+        state
+            .outputs
+            .iter()
+            .min_by_key(|(_, output)| output.info.name.clone())
+    };
     let output_scale = selected.map(|(_, output)| output.info.scale).unwrap_or(1.0);
     let output_bounds = selected.map(|(_, output)| Rect {
         x: 0,
@@ -383,12 +547,8 @@ pub fn capture_all(cursor: bool) -> Result<CapturedImage, String> {
         return Err("Wayland compositor exposed no outputs".to_string());
     }
 
-    let mut captures = Vec::with_capacity(outputs.len());
-    let mut min_x = i64::MAX;
-    let mut min_y = i64::MAX;
-    let mut max_x = i64::MIN;
-    let mut max_y = i64::MIN;
-    let mut composite_scale: f64 = 1.0;
+    let mut pending = Vec::with_capacity(outputs.len());
+    let mut max_scale: f64 = 1.0;
 
     for output in outputs {
         let name = output.name.clone();
@@ -396,14 +556,38 @@ pub fn capture_all(cursor: bool) -> Result<CapturedImage, String> {
             .position
             .ok_or_else(|| format!("output has no position: {name}"))?;
         let image = capture_output(Some(&name), cursor)?;
-        let x = (position.0 as f64 * image.scale).round() as i64;
-        let y = (position.1 as f64 * image.scale).round() as i64;
+        let scale = output.scale.max(1.0);
+        max_scale = max_scale.max(scale);
+        pending.push((image.image, position.0 as f64, position.1 as f64, scale));
+    }
+
+    if pending.len() == 1 {
+        let (image, _, _, scale) = pending.pop().expect("one pending capture");
+        return Ok(CapturedImage {
+            width: image.width(),
+            height: image.height(),
+            image,
+            scale,
+            origin_x: 0,
+            origin_y: 0,
+        });
+    }
+
+    let mut entries = Vec::with_capacity(pending.len());
+    let mut min_x = i64::MAX;
+    let mut min_y = i64::MAX;
+    let mut max_x = i64::MIN;
+    let mut max_y = i64::MIN;
+    for (image, log_x, log_y, scale) in pending {
+        let x = (log_x * max_scale).round() as i64;
+        let y = (log_y * max_scale).round() as i64;
+        let width = (image.width() as f64 * max_scale / scale).round() as i64;
+        let height = (image.height() as f64 * max_scale / scale).round() as i64;
         min_x = min_x.min(x);
         min_y = min_y.min(y);
-        max_x = max_x.max(x + image.width as i64);
-        max_y = max_y.max(y + image.height as i64);
-        composite_scale = composite_scale.max(image.scale);
-        captures.push((image.image, x, y));
+        max_x = max_x.max(x + width);
+        max_y = max_y.max(y + height);
+        entries.push((image, x, y, width, height));
     }
 
     let width = u32::try_from(max_x - min_x)
@@ -411,15 +595,21 @@ pub fn capture_all(cursor: bool) -> Result<CapturedImage, String> {
     let height = u32::try_from(max_y - min_y)
         .map_err(|_| "combined output height is out of range".to_string())?;
     let mut image = image::RgbaImage::from_pixel(width, height, image::Rgba([0, 0, 0, 255]));
-    for (capture, x, y) in captures {
-        image::imageops::overlay(&mut image, &capture, x - min_x, y - min_y);
+    for (capture, x, y, width, height) in entries {
+        let resized = image::imageops::resize(
+            &capture,
+            u32::try_from(width).map_err(|_| "output width is out of range")?,
+            u32::try_from(height).map_err(|_| "output height is out of range")?,
+            image::imageops::FilterType::Nearest,
+        );
+        image::imageops::overlay(&mut image, &resized, x - min_x, y - min_y);
     }
 
     Ok(CapturedImage {
         width,
         height,
         image,
-        scale: composite_scale,
+        scale: max_scale,
         origin_x: min_x,
         origin_y: min_y,
     })

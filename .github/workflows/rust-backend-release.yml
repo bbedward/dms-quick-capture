@@ -23,6 +23,8 @@ jobs:
         run: |
           cargo fmt --manifest-path dms-screenshot-rs/Cargo.toml -- --check
           cargo test --manifest-path dms-screenshot-rs/Cargo.toml
+      - name: Lint backend
+        run: cargo clippy --manifest-path dms-screenshot-rs/Cargo.toml --all-targets --all-features -- -D warnings
       - name: Build release binary
         run: cargo build --release --manifest-path dms-screenshot-rs/Cargo.toml
       - name: Prepare release assets
