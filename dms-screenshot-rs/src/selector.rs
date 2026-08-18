@@ -87,5 +87,47 @@ pub fn background_from_capture(image: &crate::wayland::CapturedImage) -> Backgro
         height: image.height,
         stride: image.width as usize * 4,
         pixels,
+        origin_x: image.origin_x,
+        origin_y: image.origin_y,
     }
+}
+
+/// Extracts the physical-pixel slice for one output from a global composite.
+pub fn background_for_output(
+    background: &BackgroundImage,
+    logical_x: i32,
+    logical_y: i32,
+    scale: i32,
+    width: u32,
+    height: u32,
+) -> Option<BackgroundImage> {
+    let source_x = (logical_x as f64 * scale as f64).round() as i64 - background.origin_x;
+    let source_y = (logical_y as f64 * scale as f64).round() as i64 - background.origin_y;
+    let source_right = source_x.checked_add(width as i64)?;
+    let source_bottom = source_y.checked_add(height as i64)?;
+    if source_x < 0
+        || source_y < 0
+        || source_right > background.width as i64
+        || source_bottom > background.height as i64
+    {
+        return None;
+    }
+
+    let mut pixels = vec![0u8; width as usize * height as usize * 4];
+    for row in 0..height as usize {
+        let source_start = (source_y as usize + row) * background.stride + source_x as usize * 4;
+        let target_start = row * width as usize * 4;
+        let row_bytes = width as usize * 4;
+        pixels[target_start..target_start + row_bytes]
+            .copy_from_slice(&background.pixels[source_start..source_start + row_bytes]);
+    }
+
+    Some(BackgroundImage {
+        width,
+        height,
+        stride: width as usize * 4,
+        pixels,
+        origin_x: 0,
+        origin_y: 0,
+    })
 }

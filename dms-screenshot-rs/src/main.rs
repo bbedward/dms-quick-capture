@@ -131,7 +131,7 @@ fn capture_interactive_region(
     } else {
         state::region()
     };
-    let frozen_image = wayland::capture_output(None, cursor)?;
+    let frozen_image = wayland::capture_all(cursor)?;
     let background = selector::background_from_capture(&frozen_image);
     let rect = selector::select_region_with_background(background, no_confirm, initial_selection)?;
     let _ = state::save_region(rect);

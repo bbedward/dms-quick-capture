@@ -12,6 +12,8 @@ pub struct BackgroundImage {
     pub height: u32,
     pub stride: usize,
     pub pixels: Vec<u8>,
+    pub origin_x: i64,
+    pub origin_y: i64,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

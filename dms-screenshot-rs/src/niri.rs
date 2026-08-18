@@ -22,6 +22,8 @@ pub fn capture_window(cursor: bool) -> Result<CapturedImage, String> {
                 height: image.height(),
                 image,
                 scale: 1.0,
+                origin_x: 0,
+                origin_y: 0,
             }
         });
     let _ = std::fs::remove_file(&path);

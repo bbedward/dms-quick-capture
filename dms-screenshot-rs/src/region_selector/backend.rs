@@ -481,6 +481,8 @@ fn finish_scroll(state: &mut SelectorState) {
                 height,
                 image,
                 scale: state.scroll_scale.max(1.0),
+                origin_x: 0,
+                origin_y: 0,
             });
             state.running = false;
             return;
@@ -2151,7 +2153,6 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
 
     let seats = collect_seat_snapshots(state);
     let config = &state.config;
-    let background = state.background.as_ref();
     let scroll_preview = if state.scroll_active {
         state
             .scroll_session
@@ -2162,17 +2163,37 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
     };
     let scroll_rect = state.scroll_rect.as_ref();
 
+    let (logical_geometry, layer_width, layer_height, output_scale, buf_width, buf_height) = {
+        let output = &state.outputs[output_idx];
+        let buffer = &output.buffers[buffer_idx];
+        (
+            output.logical_geometry.clone(),
+            output.layer_width,
+            output.layer_height,
+            output.scale.max(1),
+            buffer.width,
+            buffer.height,
+        )
+    };
+    let output_background = state.background.as_ref().and_then(|background| {
+        crate::selector::background_for_output(
+            background,
+            logical_geometry.x,
+            logical_geometry.y,
+            output_scale,
+            buf_width,
+            buf_height,
+        )
+    });
+    let background = output_background.as_ref();
+
     let output = &mut state.outputs[output_idx];
     let Some(surface) = output.surface.as_ref().cloned() else {
         return;
     };
-    let logical_geometry = output.logical_geometry.clone();
-    let layer_width = output.layer_width;
-    let layer_height = output.layer_height;
-    let output_scale = output.scale.max(1);
     let buffer = &mut output.buffers[buffer_idx];
-    let buf_width = buffer.width as i32;
-    let buf_height = buffer.height as i32;
+    let buf_width = buf_width as i32;
+    let buf_height = buf_height as i32;
 
     let has_static_background = background.is_some() && !state.scroll_active;
     let background_prepared = has_static_background && buffer.background_initialized;

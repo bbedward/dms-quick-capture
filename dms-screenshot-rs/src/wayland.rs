@@ -152,6 +152,9 @@ pub struct CapturedImage {
     pub width: u32,
     pub height: u32,
     pub scale: f64,
+    /// Physical-pixel origin of this image in the compositor-global space.
+    pub origin_x: i64,
+    pub origin_y: i64,
 }
 
 struct CaptureOutputState {
@@ -343,6 +346,8 @@ fn capture_output_with_region(
         width,
         height,
         scale: output_scale,
+        origin_x: 0,
+        origin_y: 0,
     })
 }
 
@@ -389,6 +394,8 @@ pub fn capture_all(cursor: bool) -> Result<CapturedImage, String> {
         height,
         image,
         scale: composite_scale,
+        origin_x: min_x,
+        origin_y: min_y,
     })
 }
 
@@ -459,23 +466,42 @@ pub fn crop_captured_region(
     image: CapturedImage,
     requested: Rect,
 ) -> Result<CapturedImage, String> {
-    let scale = image.scale.max(1.0);
-    let x = (requested.x.max(0) as f64 * scale).round() as u32;
-    let y = (requested.y.max(0) as f64 * scale).round() as u32;
-    let width = (requested.width as f64 * scale).round().max(1.0) as u32;
-    let height = (requested.height as f64 * scale).round().max(1.0) as u32;
-    if x >= image.width || y >= image.height {
+    let scale = output_scale_for_region(requested)
+        .unwrap_or(image.scale)
+        .max(1.0);
+    let requested_x = requested.x as f64 * scale - image.origin_x as f64;
+    let requested_y = requested.y as f64 * scale - image.origin_y as f64;
+    let requested_right =
+        (requested.x + requested.width as i32) as f64 * scale - image.origin_x as f64;
+    let requested_bottom =
+        (requested.y + requested.height as i32) as f64 * scale - image.origin_y as f64;
+    let x = requested_x.round().max(0.0) as u32;
+    let y = requested_y.round().max(0.0) as u32;
+    let right = requested_right.round().min(image.width as f64) as u32;
+    let bottom = requested_bottom.round().min(image.height as f64) as u32;
+    if x >= right || y >= bottom || x >= image.width || y >= image.height {
         return Err("region is outside the frozen capture".to_string());
     }
-    let width = width.min(image.width - x);
-    let height = height.min(image.height - y);
+    let width = right - x;
+    let height = bottom - y;
     let cropped = image::imageops::crop_imm(&image.image, x, y, width, height).to_image();
     Ok(CapturedImage {
         width,
         height,
         image: cropped,
         scale,
+        origin_x: 0,
+        origin_y: 0,
     })
+}
+
+fn output_scale_for_region(requested: Rect) -> Option<f64> {
+    let (name, _) = resolve_global_region(requested).ok()?;
+    list_outputs()
+        .ok()?
+        .into_iter()
+        .find(|output| output.name == name)
+        .map(|output| output.scale)
 }
 
 fn focused_output_name() -> Option<String> {
