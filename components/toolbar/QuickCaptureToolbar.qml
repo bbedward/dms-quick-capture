@@ -22,6 +22,7 @@ Rectangle {
     property bool canRedo: false
     property bool isVertical: false
     property bool showAnnotations: true
+    property var floatingWindowControls: null
     readonly property bool showShortcutHints: root.pluginData["show_shortcut_hints"] ?? false
 
     // Background configuration properties
@@ -88,6 +89,17 @@ Rectangle {
     signal floatRequested()
     signal saveRequested()
     signal saveAsRequested()
+
+    // Empty toolbar areas can start a DMS floating-window move without
+    // intercepting clicks handled by the toolbar's child controls.
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        visible: root.floatingWindowControls !== null
+        acceptedButtons: Qt.LeftButton
+        cursorShape: Qt.SizeAllCursor
+        onPressed: root.floatingWindowControls.tryStartMove()
+    }
     signal copyRequested()
     signal anonymousCopyRequested()
     signal copyAndSaveRequested()

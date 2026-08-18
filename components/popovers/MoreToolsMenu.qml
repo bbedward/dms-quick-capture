@@ -16,6 +16,7 @@ Rectangle {
 
     property bool opened: false
     property bool watermarkEnabled: false
+    property bool floatingMode: false
     visible: opacity > 0
     opacity: 0
     scale: 0.9
@@ -31,6 +32,7 @@ Rectangle {
     signal copyColorRequested()
     signal eraserRequested()
     signal watermarkToggled(bool enabled)
+    signal editorPresentationToggled()
 
     states: [
         State {
@@ -276,6 +278,21 @@ Rectangle {
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
                 onClicked: menuRoot.watermarkToggled(!menuRoot.watermarkEnabled)
+            }
+        }
+
+        Rectangle {
+            width: parent.width
+            height: 1
+            color: Theme.withAlpha(Theme.outline, 0.15)
+        }
+
+        MenuActionItem {
+            iconName: menuRoot.floatingMode ? "picture_in_picture_alt" : "open_in_new"
+            text: menuRoot.floatingMode ? I18n.tr("Use Modal Editor") : I18n.tr("Use Floating Editor")
+            onActivated: {
+                menuRoot.close();
+                menuRoot.editorPresentationToggled();
             }
         }
 

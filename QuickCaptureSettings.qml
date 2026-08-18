@@ -1103,11 +1103,12 @@ PluginSettings {
         SectionTitle {
             text: I18n.tr("Editor")
             icon: "aspect_ratio"
-            showReset: overlayOpacity.isDirty || showCanvasBorder.isDirty || editQuality.isDirty || modalDisplayTarget.isDirty || modalAspectRatio.isDirty || scaleToContent.isDirty
+            showReset: overlayOpacity.isDirty || showCanvasBorder.isDirty || editQuality.isDirty || modalDisplayMode.isDirty || modalDisplayTarget.isDirty || modalAspectRatio.isDirty || scaleToContent.isDirty
             onResetClicked: {
                 overlayOpacity.resetToDefault();
                 showCanvasBorder.resetToDefault();
                 editQuality.resetToDefault();
+                modalDisplayMode.resetToDefault();
                 modalDisplayTarget.resetToDefault();
                 modalAspectRatio.resetToDefault();
                 scaleToContent.resetToDefault();
@@ -1117,7 +1118,7 @@ PluginSettings {
         SelectionSettingPlus {
             id: modalDisplayTarget
             settingKey: "modalDisplayTarget"
-            label: I18n.tr("Modal Display Screen")
+            label: I18n.tr("Editor Display Screen")
             options: {
                 const list = [
                     { label: I18n.tr("Focused Screen"), value: "focused" }
@@ -1139,10 +1140,22 @@ PluginSettings {
         }
 
         ButtonGroupSettingPlus {
+            id: modalDisplayMode
+            settingKey: "modalDisplayMode"
+            label: I18n.tr("Editor Display Mode")
+            description: I18n.tr("Choose whether the editor opens as a modal overlay or a movable floating window.")
+            options: [
+                { label: I18n.tr("Modal"), value: "modal" },
+                { label: I18n.tr("Floating"), value: "floating" }
+            ]
+            defaultValue: "modal"
+        }
+
+        ButtonGroupSettingPlus {
             id: modalAspectRatio
             settingKey: "modalAspectRatio"
-            label: I18n.tr("Modal Aspect Ratio")
-            description: I18n.tr("Choose modal shape for portrait or landscape screens.")
+            label: I18n.tr("Editor Aspect Ratio")
+            description: I18n.tr("Choose the editor shape for portrait or landscape screens.")
             options: [
                 { label: I18n.tr("Landscape"), value: "landscape" },
                 { label: I18n.tr("Portrait"), value: "portrait" }
@@ -3397,6 +3410,7 @@ PluginSettings {
             "toolbar_color_4": c4.value,
             "toolbar_color_5": c5.value,
             "toolbar_color_6": c6.value,
+            "modalDisplayMode": modalDisplayMode.value,
             "modalScaleToContent": scaleToContent.value
         }
     }

@@ -18,10 +18,146 @@ import "components/core/Helpers.js" as Helpers
 import "components/core/DrawingRenderer.js" as DrawingRenderer
 import "components/core/Constants.js" as Constants
 
-DankModal {
+Item {
     id: window
 
     readonly property var rootWindow: window
+
+    property bool floatingMode: false
+    property bool sessionDisplayModeOverride: false
+    property bool presentationSwitching: false
+    property bool shouldBeVisible: false
+    property bool shouldHaveFocus: shouldBeVisible
+    property real modalWidth
+    property real modalHeight
+    property var targetScreen
+    property real backgroundOpacity
+    property color backgroundColor
+    property bool allowStacking: false
+    property bool useOverlayLayer: true
+    readonly property alias modalFocusScope: modalSurface.modalFocusScope
+
+    signal opened
+    signal dialogClosed
+    signal backgroundClicked
+
+    function open() {
+        if (!window.sessionDisplayModeOverride) {
+            window.floatingMode = config.modalDisplayMode === "floating";
+        }
+        window.shouldBeVisible = true;
+        if (window.floatingMode) {
+            floatingSurface.visible = true;
+        } else {
+            modalSurface.open();
+        }
+    }
+
+    function close() {
+        window.shouldBeVisible = false;
+        if (window.floatingMode) {
+            const wasVisible = floatingSurface.visible;
+            floatingSurface.visible = false;
+            if (wasVisible)
+                window.dialogClosed();
+        } else {
+            modalSurface.close();
+        }
+    }
+
+    function instantClose() {
+        window.shouldBeVisible = false;
+        if (window.floatingMode) {
+            const wasVisible = floatingSurface.visible;
+            floatingSurface.visible = false;
+            if (wasVisible)
+                window.dialogClosed();
+        } else {
+            modalSurface.instantClose();
+        }
+    }
+
+    DankModal {
+        id: modalSurface
+        shouldBeVisible: window.shouldBeVisible && !window.floatingMode
+        shouldHaveFocus: window.shouldHaveFocus && !window.floatingMode
+        modalWidth: window.modalWidth
+        modalHeight: window.modalHeight
+        targetScreen: window.targetScreen
+        backgroundOpacity: window.backgroundOpacity
+        backgroundColor: window.backgroundColor
+        allowStacking: window.allowStacking
+        useOverlayLayer: window.useOverlayLayer
+        layerNamespace: "dms:plugins:quickCapture"
+        keepPopoutsOpen: true
+        content: window.editorContent
+
+        onOpened: window.opened()
+        onDialogClosed: window.dialogClosed()
+        onBackgroundClicked: window.backgroundClicked()
+    }
+
+    DankFloatingWindow {
+        id: floatingSurface
+        title: I18n.tr("Quick Capture")
+        objectName: "quickCaptureEditor"
+        visible: false
+        implicitWidth: window.modalWidth
+        implicitHeight: window.modalHeight
+        minimumSize: Qt.size(400, 300)
+        screen: window.targetScreen
+        readonly property real editorAspectRatio: window.modalHeight > 0 ? window.modalWidth / window.modalHeight : 1
+        property bool syncingAspectRatio: false
+
+        onWidthChanged: {
+            if (!visible || syncingAspectRatio || editorAspectRatio <= 0 || width <= 0)
+                return;
+            syncingAspectRatio = true;
+            height = Math.max(minimumSize.height, Math.round(width / editorAspectRatio));
+            syncingAspectRatio = false;
+        }
+
+        onHeightChanged: {
+            if (!visible || syncingAspectRatio || editorAspectRatio <= 0 || height <= 0)
+                return;
+            syncingAspectRatio = true;
+            width = Math.max(minimumSize.width, Math.round(height * editorAspectRatio));
+            syncingAspectRatio = false;
+        }
+
+        onVisibleChanged: {
+            if (visible) {
+                window.opened();
+                Qt.callLater(() => {
+                    if (typeof floatingSurface.requestActivate === "function")
+                        floatingSurface.requestActivate();
+                    if (floatingEditorLoader.item)
+                        floatingEditorLoader.item.forceActiveFocus();
+                });
+            } else if (window.shouldBeVisible && !window.presentationSwitching) {
+                window.shouldBeVisible = false;
+                window.dialogClosed();
+            }
+        }
+        onClosed: floatingSurface.visible = false
+
+        Item {
+            anchors.fill: parent
+
+            Loader {
+                id: floatingEditorLoader
+                anchors.fill: parent
+                active: floatingSurface.visible
+                sourceComponent: window.editorContent
+            }
+        }
+
+        FloatingWindowControls {
+            id: floatingWindowControls
+            targetWindow: floatingSurface
+        }
+
+    }
 
     CaptureConfig { 
         id: config 
@@ -57,10 +193,6 @@ DankModal {
         asynchronous: true
         onStatusChanged: window.requestPaintAll()
     }
-
-    layerNamespace: "dms:plugins:quickCapture"
-    keepPopoutsOpen: true
-    useOverlayLayer: true
 
     // Parent communication reference
     property var parentWidget: null
@@ -1546,8 +1678,6 @@ DankModal {
         window.runRegionScan("qr", crop);
     }
 
-    shouldBeVisible: false
-    
     // Modal sized to the screenshot (logical px), clamped between the toolbar's
     // footprint and 90% of the screen; falls back to 90% until the image loads
     readonly property real _screenW: window.targetScreen ? window.targetScreen.width : (Quickshell.screens[0] ? Quickshell.screens[0].width : 1920)
@@ -1569,9 +1699,6 @@ DankModal {
     readonly property bool _shouldScale: !!(window.parentWidget && window.parentWidget.pluginData && window.parentWidget.pluginData.modalScaleToContent)
     modalWidth: _shouldScale && _bgSizeKnown ? Math.round(Helpers.clamp(window.bgImageItem.sourceSize.width / _outputScale + _chromeW, _minModalW, _maxModalW)) : _maxModalW
     modalHeight: _shouldScale && _bgSizeKnown ? Math.round(Helpers.clamp(window.bgImageItem.sourceSize.height / _outputScale + _chromeH, _minModalH, _maxModalH)) : _maxModalH
-    enableShadow: true
-    positioning: "center"
-
     targetScreen: {
         const mode = config.modalDisplayTarget;
         const fallback = (Quickshell.screens && Quickshell.screens.length > 0) ? Quickshell.screens[0] : null;
@@ -2294,6 +2421,8 @@ DankModal {
         function onDialogClosed() {
             if (target) target.useOverlayLayer = false;
             window.shouldHaveFocus = Qt.binding(() => window.shouldBeVisible);
+            if (window.floatingMode)
+                Qt.callLater(() => window.focusModalAfterToolbarAction());
         }
     }
 
@@ -2320,6 +2449,8 @@ DankModal {
         target: saveAsDialog
         function onDialogClosed() {
             window.shouldHaveFocus = Qt.binding(() => window.shouldBeVisible);
+            if (window.floatingMode)
+                Qt.callLater(() => window.focusModalAfterToolbarAction());
         }
     }
 
@@ -3152,6 +3283,11 @@ DankModal {
     }
 
     onOpened: {
+        if (window.presentationSwitching) {
+            window.presentationSwitching = false;
+            window.focusModalAfterToolbarAction();
+            return;
+        }
         if (window.floatService) {
             window.floatService.hideAllWindows();
         }
@@ -3462,9 +3598,31 @@ DankModal {
     }
 
     function focusModalAfterToolbarAction() {
-        if (window.modalFocusScope) {
+        if (window.floatingMode && floatingEditorLoader.item) {
+            floatingEditorLoader.item.forceActiveFocus();
+        } else if (window.modalFocusScope) {
             window.modalFocusScope.forceActiveFocus();
         }
+    }
+
+    function togglePresentationMode() {
+        window.sessionDisplayModeOverride = true;
+        if (!window.shouldBeVisible) {
+            window.floatingMode = !window.floatingMode;
+            return;
+        }
+
+        const nextMode = !window.floatingMode;
+        window.presentationSwitching = true;
+        if (window.floatingMode) {
+            floatingSurface.visible = false;
+        } else {
+            modalSurface.instantClose();
+        }
+        window.floatingMode = nextMode;
+        Qt.callLater(() => {
+            window.open();
+        });
     }
 
     function closeMoreToolsMenu(menu) {
@@ -3652,12 +3810,21 @@ DankModal {
         window.requestActiveCanvasPaint();
     }
 
-    content: Component {
+    property Component editorContent: Component {
         FocusScope {
             id: contentRoot
             focus: true
             implicitWidth: window.modalWidth
             implicitHeight: window.modalHeight
+
+            Keys.onPressed: (event) => {
+                if (window.floatingMode)
+                    window.handleModalKeyPressed(event);
+            }
+            Keys.onReleased: (event) => {
+                if (window.floatingMode)
+                    window.handleModalKeyReleased(event);
+            }
 
             Image {
                 id: bgImage
@@ -3701,6 +3868,7 @@ DankModal {
                 QuickCaptureToolbar {
                     id: toolbarCard
                     Component.onCompleted: window.toolbarItem = toolbarCard
+                    floatingWindowControls: window.floatingMode ? floatingWindowControls : null
                     z: 100
                     visible: window.toolbarVisible
                     pluginData: (window.parentWidget && window.parentWidget.pluginData) ? window.parentWidget.pluginData : ({})
@@ -4262,6 +4430,7 @@ DankModal {
                 MoreToolsMenu {
                     id: moreToolsMenu
                     watermarkEnabled: window.watermarkEnabled
+                    floatingMode: window.floatingMode
                     onRotateLeftRequested: window.rotateScreenshot("left")
                     onRotateRightRequested: window.rotateScreenshot("right")
                     onFlipHorizontalRequested: window.mirrorScreenshot("horizontal")
@@ -4272,6 +4441,7 @@ DankModal {
                     onQrScanRequested: window.runQrScan()
                     onEraserRequested: window.currentTool = "eraser"
                     onWatermarkToggled: (enabled) => window.setWatermarkEnabled(enabled)
+                    onEditorPresentationToggled: window.togglePresentationMode()
                     onCopyColorRequested: {
                         window.colorPickerMode = "copy";
                         window.currentTool = "colorpicker";
@@ -4706,6 +4876,9 @@ DankModal {
     }
 
     onDialogClosed: {
+        if (window.presentationSwitching) {
+            return;
+        }
         if (window.floatService) {
             window.floatService.showAllWindows();
         }
@@ -4717,6 +4890,7 @@ DankModal {
         window.scanResultPopoverRef = null;
         window.exportCallback = null;
         window.cancelBackgroundBlurPreparation();
+        window.sessionDisplayModeOverride = false;
     }
 
     Component.onCompleted: {
