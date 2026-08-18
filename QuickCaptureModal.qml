@@ -1381,30 +1381,15 @@ Item {
 
     // Text Input Management
     property bool isTyping: false
-    onIsTypingChanged: {
-        if (isTyping) {
-            typingCursorVisible = true;
-        }
-    }
     property point typingCoords: Qt.point(0,0)
     property string currentTypingText: ""
     property int typingCursorIndex: 0
-    property bool typingCursorVisible: true
     property var editingStroke: null
     property bool typingIsSpeechBubble: false
     property bool typingHasTargetCoords: false
     property point typingTargetCoords: Qt.point(0,0)
-
-    Timer {
-        id: typingCursorTimer
-        interval: 500
-        repeat: true
-        running: window.isTyping
-        onTriggered: {
-            window.typingCursorVisible = !window.typingCursorVisible;
-            window.repaintActiveCanvas();
-        }
-    }
+    readonly property bool inlineTextEditorActive: window.isTyping && window.textInputMode === "inline"
+    property var inlineTextEditorItem: null
 
     backgroundOpacity: {
         const data = window.parentWidget && window.parentWidget.pluginData;
@@ -1808,7 +1793,7 @@ Item {
         };
     }
 
-    function drawStroke(ctx, stroke) {
+    function drawStroke(ctx, stroke, extraConfig) {
         DrawingRenderer.drawStroke(ctx, stroke, Helpers, Qt, Theme, {
             roundRect: window.roundRect,
             roundHighlighter: window.roundHighlighter,
@@ -1826,7 +1811,8 @@ Item {
             screenshotXOffset: window.screenshotXOffset,
             screenshotYOffset: window.screenshotYOffset,
             cropOffsetX: window.hasActiveCropSelection ? window.cropRect.x : 0,
-            cropOffsetY: window.hasActiveCropSelection ? window.cropRect.y : 0
+            cropOffsetY: window.hasActiveCropSelection ? window.cropRect.y : 0,
+            skipText: extraConfig && extraConfig.skipText === true
         });
     }
 
@@ -1928,6 +1914,25 @@ Item {
     function drawTypingPreview(ctx) {
         if (!window.isTyping) return;
 
+        const rawText = window.currentTypingText || "";
+        if (window.inlineTextEditorActive) {
+            const previewStroke = window.getTypingStrokeStyle(rawText);
+            previewStroke.isSpeechBubble = window.typingIsSpeechBubble;
+            if (previewStroke.isSpeechBubble) {
+                const targetCoords = window.typingHasTargetCoords
+                    ? window.typingTargetCoords
+                    : window.defaultTypingSpeechBubbleTarget();
+                previewStroke.points = [
+                    Qt.point(targetCoords.x, targetCoords.y),
+                    Qt.point(window.typingCoords.x, window.typingCoords.y)
+                ];
+            } else {
+                previewStroke.points = [Qt.point(window.typingCoords.x, window.typingCoords.y)];
+            }
+            window.drawStroke(ctx, previewStroke, { skipText: true });
+            return;
+        }
+
         ctx.fillStyle = window.currentColor;
 
         let styleStr = "";
@@ -1938,7 +1943,6 @@ Item {
         ctx.textAlign = "left";
         ctx.textBaseline = "middle";
 
-        const rawText = window.currentTypingText || "";
         const previewLines = rawText.split("\n");
         const lineH = window.textFontSize * 1.35;
 
@@ -2011,34 +2015,6 @@ Item {
             }
         }
 
-        if (window.typingCursorVisible) {
-            let cursorLine = 0;
-            let charAcc = 0;
-            let cursorCol = 0;
-            const targetIdx = Helpers.clamp(window.typingCursorIndex, 0, rawText.length);
-
-            for (let i = 0; i < previewLines.length; i++) {
-                const lineLen = previewLines[i].length;
-                if (targetIdx <= charAcc + lineLen) {
-                    cursorLine = i;
-                    cursorCol = targetIdx - charAcc;
-                    break;
-                }
-                charAcc += lineLen + 1;
-            }
-
-            const subText = (previewLines[cursorLine] || "").substring(0, cursorCol);
-            const subW = ctx.measureText(subText).width;
-            const curX = window.typingCoords.x + subW;
-            const curY = window.typingCoords.y + cursorLine * lineH;
-
-            ctx.strokeStyle = window.currentColor;
-            ctx.lineWidth = Math.max(2, Math.round(window.textFontSize * 0.07));
-            ctx.beginPath();
-            ctx.moveTo(curX, curY);
-            ctx.lineTo(curX, curY + window.textFontSize);
-            ctx.stroke();
-        }
     }
 
     function drawExportAnnotationLayer(ctx, isBackgroundActive) {
@@ -2736,103 +2712,13 @@ Item {
         return window._lastSampledColor;
     }
 
-    function restartTypingCursor() {
-        window.typingCursorVisible = true;
-        typingCursorTimer.restart();
-    }
-
-    function clampedTypingCursorIndex() {
-        const txt = window.currentTypingText || "";
-        return Helpers.clamp(window.typingCursorIndex, 0, txt.length);
-    }
-
-    function setTypingText(text, cursorIndex) {
-        window.currentTypingText = text;
-        window.typingCursorIndex = Helpers.clamp(cursorIndex, 0, text.length);
-        window.repaintActiveCanvas();
-    }
-
-    function insertTypingText(insertStr) {
-        const txt = window.currentTypingText;
-        const idx = window.clampedTypingCursorIndex();
-        window.setTypingText(txt.slice(0, idx) + insertStr + txt.slice(idx), idx + insertStr.length);
-    }
-
-    function moveTypingCursor(delta) {
-        const len = window.currentTypingText.length;
-        window.typingCursorIndex = Helpers.clamp(window.typingCursorIndex + delta, 0, len);
-        window.repaintActiveCanvas();
-    }
-
-    function deleteTypingTextBeforeCursor() {
-        const txt = window.currentTypingText;
-        const idx = window.clampedTypingCursorIndex();
-        if (idx > 0) {
-            window.setTypingText(txt.slice(0, idx - 1) + txt.slice(idx), idx - 1);
-        }
-    }
-
-    function deleteTypingTextAfterCursor() {
-        const txt = window.currentTypingText;
-        const idx = window.clampedTypingCursorIndex();
-        if (idx < txt.length) {
-            window.setTypingText(txt.slice(0, idx) + txt.slice(idx + 1), idx);
-        }
-    }
-
     function cancelTypingText() {
         window.editingStroke = null;
         window.isTyping = false;
         window.currentTypingText = "";
         window.typingCursorIndex = 0;
         window.requestAnnotationPaintAll();
-    }
-
-    function handleTypingKey(event) {
-        window.restartTypingCursor();
-
-        if (event.key === Qt.Key_Escape) {
-            window.cancelTypingText();
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            if (event.modifiers & Qt.ShiftModifier) {
-                window.insertTypingText("\n");
-                return window.acceptKeyEvent(event);
-            }
-            window.commitTypingText();
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_Left) {
-            window.moveTypingCursor(-1);
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_Right) {
-            window.moveTypingCursor(1);
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_Home) {
-            window.typingCursorIndex = 0;
-            window.repaintActiveCanvas();
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_End) {
-            window.typingCursorIndex = window.currentTypingText.length;
-            window.repaintActiveCanvas();
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_Backspace) {
-            window.deleteTypingTextBeforeCursor();
-            return window.acceptKeyEvent(event);
-        }
-        if (event.key === Qt.Key_Delete) {
-            window.deleteTypingTextAfterCursor();
-            return window.acceptKeyEvent(event);
-        }
-        if (event.text && event.text.length > 0 && !(event.modifiers & Qt.ControlModifier) && !(event.modifiers & Qt.AltModifier)) {
-            window.insertTypingText(event.text);
-            window.acceptKeyEvent(event);
-        }
+        Qt.callLater(() => window.focusModalAfterToolbarAction());
     }
 
     function acceptKeyEvent(event) {
@@ -3183,6 +3069,36 @@ Item {
 
     function handleTypingKeyPressed(event) {
         if (!window.isTyping) return false;
+        if (window.textInputMode === "inline" && window.isTyping) {
+            if (event.key === Qt.Key_Escape) {
+                window.cancelTypingText();
+                return window.acceptKeyEvent(event);
+            }
+            const isEnter = event.key === Qt.Key_Return || event.key === Qt.Key_Enter;
+            if (isEnter) {
+                if (event.modifiers & Qt.ControlModifier) {
+                    Qt.inputMethod.commit();
+                    Qt.callLater(() => window.commitTypingText());
+                    return window.acceptKeyEvent(event);
+                }
+                if (window.inlineTextEditorItem)
+                    window.inlineTextEditorItem.handleEnterKey(event);
+                else
+                    event.accepted = true;
+                return true;
+            }
+            if (event.modifiers & Qt.ControlModifier) {
+                const token = Helpers.shortcutToken(event.key, Qt);
+                if (window.handleColorShortcut(event, token)) return true;
+                if ((event.modifiers & Qt.ShiftModifier) && token === "S") {
+                    window.openSaveAsDialog();
+                    return window.acceptKeyEvent(event);
+                }
+            }
+            event.accepted = true;
+            return true;
+        }
+
         if (event.modifiers & Qt.ControlModifier) {
             const token = Helpers.shortcutToken(event.key, Qt);
             if (window.handleColorShortcut(event, token)) return true;
@@ -3191,9 +3107,7 @@ Item {
                 return window.acceptKeyEvent(event);
             }
         }
-        if (window.textInputMode === "inline") {
-            window.handleTypingKey(event);
-        } else if (event.key !== Qt.Key_Escape) {
+        if (window.textInputMode === "popup" && event.key !== Qt.Key_Escape) {
             event.accepted = true;
         }
         return true;
@@ -3242,7 +3156,6 @@ Item {
         window.isTyping = false;
         window.currentTypingText = "";
         window.typingCursorIndex = 0;
-        window.typingCursorVisible = true;
         window.editingStroke = null;
         window.typingIsSpeechBubble = false;
         window.typingHasTargetCoords = false;
@@ -4268,6 +4181,12 @@ Item {
                             calloutOptionsToolbar: calloutOptionsToolbar
                         }
 
+                        InlineTextEditor {
+                            id: inlineTextEditor
+                            window: rootWindow
+                            drawingCanvas: drawingCanvas
+                        }
+
                         SizePreviewCard {
                             id: sizePreviewItem
                             window: rootWindow
@@ -4821,6 +4740,7 @@ Item {
         window.typingHasTargetCoords = false;
         window.typingTargetCoords = Qt.point(0, 0);
         window.repaintActiveCanvas();
+        Qt.callLater(() => window.focusModalAfterToolbarAction());
     }
 
     function commitTypingText() {

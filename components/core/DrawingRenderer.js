@@ -1230,11 +1230,13 @@ function drawStroke(ctx, stroke, Helpers, Qt, Theme, config) {
             ctx.fillStyle = stroke.color;
         }
 
-        for (let li = 0; li < lines.length; li++) {
-            ctx.fillText(lines[li], pt.x, pt.y + li * lineHeight + stroke.width / 2);
+        if (!config.skipText) {
+            for (let li = 0; li < lines.length; li++) {
+                ctx.fillText(lines[li], pt.x, pt.y + li * lineHeight + stroke.width / 2);
+            }
         }
 
-        if (stroke.isUnderline) {
+        if (stroke.isUnderline && !config.skipText) {
             ctx.strokeStyle = stroke.color;
             ctx.lineWidth = Math.max(1.5, Math.round(stroke.width * 0.08));
             for (let li = 0; li < lines.length; li++) {
