@@ -1627,11 +1627,6 @@ PluginSettings {
             defaultValue: "inline"
         }
 
-        InfoText {
-            text: I18n.tr("Inline mode does not support IME. Switch to Popup Input for CJK or Vietnamese.")
-            visible: textInputMode.value === "inline"
-            opacity: 0.85
-        }
     }
         }
     }
