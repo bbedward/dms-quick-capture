@@ -43,7 +43,19 @@ curl --fail --location --silent --show-error \
 curl --fail --location --silent --show-error \
     "$base_url/SHA256SUMS" --output "$tmp_dir/SHA256SUMS"
 
-(cd "$tmp_dir" && grep "  $asset\$" SHA256SUMS | sha256sum --check --status -)
+checksum=$(awk -v asset="$asset" '
+    $2 == asset || $2 == "release-assets/" asset {
+        print $1 "  " asset
+        exit
+    }
+' "$tmp_dir/SHA256SUMS")
+
+[ -n "$checksum" ] || {
+    echo "Checksum not found for $asset" >&2
+    exit 1
+}
+
+(cd "$tmp_dir" && printf '%s\n' "$checksum" | sha256sum --check --status -)
 
 mkdir -p "$repo_dir/backend/$asset_arch"
 install -m 0755 "$tmp_dir/$asset" "$repo_dir/backend/$asset_arch/dms-screenshot-rs"
