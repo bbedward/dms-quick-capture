@@ -140,6 +140,8 @@ const KEY_SPACE: u32 = 57;
 const KEY_KP_ENTER: u32 = 96;
 const KEY_SHIFT_LEFT: u32 = 42;
 const KEY_SHIFT_RIGHT: u32 = 54;
+const KEY_CTRL_LEFT: u32 = 29;
+const KEY_CTRL_RIGHT: u32 = 97;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct OutputKey(usize);
@@ -236,6 +238,10 @@ struct SeatEntry {
     touch_id: i32,
     cursor_serial: u32,
     cursor_over_scroll_preview: Option<bool>,
+    ctrl_pressed: bool,
+    moving_selection: bool,
+    move_offset_x: i32,
+    move_offset_y: i32,
 }
 
 impl Default for SeatEntry {
@@ -252,6 +258,10 @@ impl Default for SeatEntry {
             touch_id: TOUCH_ID_EMPTY,
             cursor_serial: 0,
             cursor_over_scroll_preview: None,
+            ctrl_pressed: false,
+            moving_selection: false,
+            move_offset_x: 0,
+            move_offset_y: 0,
         }
     }
 }
@@ -871,6 +881,43 @@ fn handle_active_selection_motion(
     selection.selection.height = height;
 }
 
+fn translated_selection(
+    selection: &SelectionBox,
+    pointer_x: i32,
+    pointer_y: i32,
+    offset_x: i32,
+    offset_y: i32,
+) -> SelectionBox {
+    SelectionBox {
+        x: pointer_x.saturating_sub(offset_x),
+        y: pointer_y.saturating_sub(offset_y),
+        width: selection.width,
+        height: selection.height,
+        label: selection.label.clone(),
+    }
+}
+
+fn move_active_selection(selection: &mut Selection, offset_x: i32, offset_y: i32) {
+    selection.selection = translated_selection(
+        &selection.selection,
+        selection.x,
+        selection.y,
+        offset_x,
+        offset_y,
+    );
+}
+
+fn begin_selection_move(seat: &mut SeatEntry) -> bool {
+    if !seat.pointer_selection.has_selection {
+        return false;
+    }
+
+    seat.moving_selection = true;
+    seat.move_offset_x = seat.pointer_selection.x - seat.pointer_selection.selection.x;
+    seat.move_offset_y = seat.pointer_selection.y - seat.pointer_selection.selection.y;
+    true
+}
+
 fn handle_selection_start(config: &Config, selection: &mut Selection) -> Option<SelectionBox> {
     if config.single_point {
         return Some(SelectionBox {
@@ -926,6 +973,9 @@ fn handle_selection_cancelled(state: &mut SelectorState, seat_idx: usize) {
     if let Some(seat) = state.seats.get_mut(seat_idx) {
         seat.pointer_selection.has_selection = false;
         seat.touch_selection.has_selection = false;
+        seat.moving_selection = false;
+        seat.move_offset_x = 0;
+        seat.move_offset_y = 0;
     }
     state.cancelled = true;
     state.running = false;
@@ -2395,11 +2445,24 @@ fn set_pointer_cursor(
         return;
     };
 
+    let ctrl_pressed = state
+        .seats
+        .get(seat_idx)
+        .is_some_and(|seat| seat.ctrl_pressed);
+    let grabbing_selection = state
+        .seats
+        .get(seat_idx)
+        .is_some_and(|seat| seat.moving_selection && seat.button_state == WlButtonState::Pressed);
+
     if let Some(manager) = state.cursor_shape_manager.as_ref().cloned() {
         let device = manager.get_pointer(&pointer, qh, ());
         device.set_shape(
             serial,
-            if over_scroll_preview {
+            if grabbing_selection {
+                CursorShape::Grabbing
+            } else if ctrl_pressed {
+                CursorShape::Grab
+            } else if over_scroll_preview {
                 CursorShape::Pointer
             } else {
                 CursorShape::Crosshair
@@ -2441,6 +2504,26 @@ fn set_pointer_cursor(
         cursor_buffer.hotspot_y / scale,
     );
     cursor_surface.commit();
+}
+
+fn refresh_pointer_cursor(
+    state: &mut SelectorState,
+    qh: &QueueHandle<SelectorState>,
+    seat_idx: usize,
+) {
+    let Some((output_idx, serial)) = state
+        .seats
+        .get(seat_idx)
+        .and_then(|seat| Some((seat.pointer_selection.current_output?, seat.cursor_serial)))
+    else {
+        return;
+    };
+    if serial == 0 {
+        return;
+    }
+    let over_scroll_preview =
+        state.scroll_active && pointer_is_over_scroll_preview(state, seat_idx);
+    set_pointer_cursor(state, qh, seat_idx, output_idx, serial, over_scroll_preview);
 }
 
 impl Dispatch<WlRegistry, ()> for SelectorState {
@@ -2650,6 +2733,11 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
 
                 match seat.button_state {
                     WlButtonState::Released => {}
+                    WlButtonState::Pressed if seat.moving_selection => move_active_selection(
+                        &mut seat.pointer_selection,
+                        seat.move_offset_x,
+                        seat.move_offset_y,
+                    ),
                     WlButtonState::Pressed => handle_active_selection_motion(
                         config,
                         resizing,
@@ -2685,6 +2773,11 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                 move_selection(outputs, &mut seat.pointer_selection, surface_x, surface_y);
                 match seat.button_state {
                     WlButtonState::Released => {}
+                    WlButtonState::Pressed if seat.moving_selection => move_active_selection(
+                        &mut seat.pointer_selection,
+                        seat.move_offset_x,
+                        seat.move_offset_y,
+                    ),
                     WlButtonState::Pressed => handle_active_selection_motion(
                         config,
                         resizing,
@@ -2741,10 +2834,21 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                         let action = {
                             let seat = &mut state.seats[seat_idx];
                             match button_state {
+                                WlButtonState::Pressed
+                                    if seat.ctrl_pressed && begin_selection_move(seat) =>
+                                {
+                                    state.resizing_selection = false;
+                                    None
+                                }
                                 WlButtonState::Pressed => handle_selection_start(
                                     &state.config,
                                     &mut seat.pointer_selection,
                                 ),
+                                WlButtonState::Released if seat.moving_selection => {
+                                    seat.moving_selection = false;
+                                    state.resizing_selection = false;
+                                    Some(seat.pointer_selection.selection.clone())
+                                }
                                 WlButtonState::Released => handle_selection_end(
                                     &state.config,
                                     &mut state.resizing_selection,
@@ -2767,6 +2871,7 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                 } else {
                     handle_selection_cancelled(state, seat_idx);
                 }
+                refresh_pointer_cursor(state, qh, seat_idx);
                 repaint = true;
             }
             _ => {}
@@ -2791,76 +2896,91 @@ impl Dispatch<WlKeyboard, SeatKey> for SelectorState {
         let seat_idx = data.0;
         mark_outputs_for_seat(state, seat_idx);
         let mut repaint = false;
-        if let wayland_client::protocol::wl_keyboard::Event::Key {
-            key,
-            state: key_state,
-            ..
-        } = event
-        {
-            let key_state = match key_state {
-                WEnum::Value(v) => v,
-                WEnum::Unknown(_) => return,
-            };
+        match event {
+            wayland_client::protocol::wl_keyboard::Event::Leave { .. } => {
+                if let Some(seat) = state.seats.get_mut(seat_idx) {
+                    seat.ctrl_pressed = false;
+                }
+            }
+            wayland_client::protocol::wl_keyboard::Event::Key {
+                key,
+                state: key_state,
+                ..
+            } => {
+                let key_state = match key_state {
+                    WEnum::Value(v) => v,
+                    WEnum::Unknown(_) => return,
+                };
 
-            match key_state {
-                WlKeyState::Pressed => match key {
-                    KEY_ESCAPE => {
-                        if state.scroll_active {
-                            cancel_scroll(state);
-                        } else {
-                            handle_selection_cancelled(state, seat_idx);
+                match key_state {
+                    WlKeyState::Pressed => match key {
+                        KEY_CTRL_LEFT | KEY_CTRL_RIGHT => {
+                            state.seats[seat_idx].ctrl_pressed = true;
+                            refresh_pointer_cursor(state, qh, seat_idx);
                         }
-                        repaint = true;
-                    }
-                    KEY_ENTER | KEY_SPACE | KEY_KP_ENTER => {
-                        if state.scroll_active {
-                            finish_scroll(state);
-                            return;
-                        }
-                        let selection = state.seats.get(seat_idx).and_then(|seat| {
-                            let current = if seat.touch_selection.has_selection {
-                                &seat.touch_selection
+                        KEY_ESCAPE => {
+                            if state.scroll_active {
+                                cancel_scroll(state);
                             } else {
-                                &seat.pointer_selection
-                            };
-                            current
-                                .has_selection
-                                .then(|| (current.selection.clone(), current.current_output))
-                        });
-                        if let Some((selection, output_idx)) = selection {
-                            if state.config.scroll {
-                                enter_scroll_phase(state, selection, output_idx, qh);
-                            } else {
-                                set_result(state, selection, output_idx);
-                                state.running = false;
+                                handle_selection_cancelled(state, seat_idx);
                             }
                             repaint = true;
                         }
-                    }
-                    KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT if !state.config.fixed_aspect_ratio => {
-                        state.config.aspect_ratio = 1.0;
-                        if state.resizing_selection {
-                            recompute_selection(state, seat_idx);
+                        KEY_ENTER | KEY_SPACE | KEY_KP_ENTER => {
+                            if state.scroll_active {
+                                finish_scroll(state);
+                                return;
+                            }
+                            let selection = state.seats.get(seat_idx).and_then(|seat| {
+                                let current = if seat.touch_selection.has_selection {
+                                    &seat.touch_selection
+                                } else {
+                                    &seat.pointer_selection
+                                };
+                                current
+                                    .has_selection
+                                    .then(|| (current.selection.clone(), current.current_output))
+                            });
+                            if let Some((selection, output_idx)) = selection {
+                                if state.config.scroll {
+                                    enter_scroll_phase(state, selection, output_idx, qh);
+                                } else {
+                                    set_result(state, selection, output_idx);
+                                    state.running = false;
+                                }
+                                repaint = true;
+                            }
+                        }
+                        KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT if !state.config.fixed_aspect_ratio => {
+                            state.config.aspect_ratio = 1.0;
+                            if state.resizing_selection {
+                                recompute_selection(state, seat_idx);
+                                repaint = true;
+                            }
+                        }
+                        _ => {}
+                    },
+                    WlKeyState::Released => match key {
+                        KEY_CTRL_LEFT | KEY_CTRL_RIGHT => {
+                            state.seats[seat_idx].ctrl_pressed = false;
+                            refresh_pointer_cursor(state, qh, seat_idx);
+                        }
+                        KEY_SPACE => {
                             repaint = true;
                         }
-                    }
-                    _ => {}
-                },
-                WlKeyState::Released => match key {
-                    KEY_SPACE => {
-                        repaint = true;
-                    }
-                    KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT if !state.config.fixed_aspect_ratio => {
-                        state.config.aspect_ratio = 0.0;
-                        if state.resizing_selection {
-                            recompute_selection(state, seat_idx);
-                            repaint = true;
+                        KEY_SHIFT_LEFT | KEY_SHIFT_RIGHT if !state.config.fixed_aspect_ratio => {
+                            state.config.aspect_ratio = 0.0;
+                            if state.resizing_selection {
+                                recompute_selection(state, seat_idx);
+                                repaint = true;
+                            }
                         }
-                    }
+                        _ => {}
+                    },
                     _ => {}
-                },
-                _ => {}
+                }
             }
+            _ => {}
         }
         mark_outputs_for_seat(state, seat_idx);
         if repaint && has_pending_outputs(state) {
@@ -3132,5 +3252,46 @@ impl Dispatch<WpCursorShapeDeviceV1, ()> for SelectorState {
         _: &Connection,
         _: &QueueHandle<Self>,
     ) {
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{SelectionBox, translated_selection};
+
+    #[test]
+    fn translated_selection_preserves_size_and_grab_offset() {
+        let selection = SelectionBox {
+            x: 100,
+            y: 200,
+            width: 300,
+            height: 150,
+            label: Some("selection".to_string()),
+        };
+
+        let moved = translated_selection(&selection, 250, 300, 50, 25);
+
+        assert_eq!(moved.x, 200);
+        assert_eq!(moved.y, 275);
+        assert_eq!(moved.width, selection.width);
+        assert_eq!(moved.height, selection.height);
+        assert_eq!(moved.label, selection.label);
+    }
+
+    #[test]
+    fn translated_selection_supports_negative_coordinates() {
+        let selection = SelectionBox {
+            x: 100,
+            y: 100,
+            width: 40,
+            height: 30,
+            label: None,
+        };
+
+        let moved = translated_selection(&selection, -20, -30, 10, 15);
+
+        assert_eq!(moved.x, -30);
+        assert_eq!(moved.y, -45);
+        assert_eq!((moved.width, moved.height), (40, 30));
     }
 }

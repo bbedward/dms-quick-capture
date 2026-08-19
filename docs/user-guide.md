@@ -12,6 +12,7 @@
 
 1. Trigger a capture from the bar icon, Control Center, or <kbd>Print</kbd>.
 2. Drag to select an area.
+   Hold <kbd>Ctrl</kbd> and drag with the left mouse button to move the current selection without resizing it.
 3. Annotate with the toolbar, shortcuts, or radial menus.
 4. Press <kbd>Enter</kbd> to finish or <kbd>Esc</kbd> to discard.
 
