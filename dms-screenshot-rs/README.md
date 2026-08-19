@@ -98,7 +98,7 @@ dms-screenshot-rs region --x 100 --y 100 --width 800 --height 600 --no-clipboard
 dms-screenshot-rs scroll --no-clipboard --interval 45 --json
 ```
 
-Interactive region capture confirms with `Enter` or `Space` and cancels with `Esc`. Hold `Ctrl` and drag with the left mouse button to move an existing selection without changing its size; the drag can start anywhere on the selector surface. Scroll capture confirms the initial region, leaves the screen live while the user scrolls, then finishes stitching with `Enter` or cancels with `Esc`.
+Interactive region capture confirms with `Enter` or `Space` and cancels with `Esc`. Drag one of the four quarter-handles at the selection corners to resize it. Hold `Ctrl` and drag with the left mouse button elsewhere to move an existing selection without changing its size; the drag can start anywhere on the selector surface. Scroll capture confirms the initial region, leaves the screen live while the user scrolls, then finishes stitching with `Enter` or cancels with `Esc`.
 
 ### Selector Performance
 

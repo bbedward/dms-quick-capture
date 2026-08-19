@@ -82,6 +82,15 @@ unsafe extern "C" {
         width: c_double,
         height: c_double,
     );
+    fn cairo_arc(
+        cr: *mut CairoContext,
+        xc: c_double,
+        yc: c_double,
+        radius: c_double,
+        angle1: c_double,
+        angle2: c_double,
+    );
+    fn cairo_close_path(cr: *mut CairoContext);
     fn cairo_fill(cr: *mut CairoContext);
     fn cairo_set_line_width(cr: *mut CairoContext, width: c_double);
     fn cairo_stroke(cr: *mut CairoContext);
@@ -142,6 +151,7 @@ const KEY_SHIFT_LEFT: u32 = 42;
 const KEY_SHIFT_RIGHT: u32 = 54;
 const KEY_CTRL_LEFT: u32 = 29;
 const KEY_CTRL_RIGHT: u32 = 97;
+const RESIZE_HANDLE_RADIUS: i32 = 12;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct OutputKey(usize);
@@ -164,6 +174,14 @@ struct Selection {
     anchor_y: i32,
     selection: SelectionBox,
     has_selection: bool,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ResizeHandle {
+    TopLeft,
+    TopRight,
+    BottomLeft,
+    BottomRight,
 }
 
 #[derive(Default)]
@@ -238,10 +256,12 @@ struct SeatEntry {
     touch_id: i32,
     cursor_serial: u32,
     cursor_over_scroll_preview: Option<bool>,
+    cursor_over_resize_handle: Option<ResizeHandle>,
     ctrl_pressed: bool,
     moving_selection: bool,
     move_offset_x: i32,
     move_offset_y: i32,
+    resizing_handle: Option<ResizeHandle>,
 }
 
 impl Default for SeatEntry {
@@ -258,10 +278,12 @@ impl Default for SeatEntry {
             touch_id: TOUCH_ID_EMPTY,
             cursor_serial: 0,
             cursor_over_scroll_preview: None,
+            cursor_over_resize_handle: None,
             ctrl_pressed: false,
             moving_selection: false,
             move_offset_x: 0,
             move_offset_y: 0,
+            resizing_handle: None,
         }
     }
 }
@@ -946,6 +968,54 @@ fn move_active_selection(
     selection.selection = clamp_selection_to_outputs(&translated, outputs);
 }
 
+fn resize_handle_center(selection: &SelectionBox, handle: ResizeHandle) -> (i32, i32) {
+    match handle {
+        ResizeHandle::TopLeft => (selection.x, selection.y),
+        ResizeHandle::TopRight => (selection.x + selection.width, selection.y),
+        ResizeHandle::BottomLeft => (selection.x, selection.y + selection.height),
+        ResizeHandle::BottomRight => (
+            selection.x + selection.width,
+            selection.y + selection.height,
+        ),
+    }
+}
+
+fn resize_handle_at(selection: &SelectionBox, x: i32, y: i32) -> Option<ResizeHandle> {
+    let radius = RESIZE_HANDLE_RADIUS + 4;
+    [
+        ResizeHandle::TopLeft,
+        ResizeHandle::TopRight,
+        ResizeHandle::BottomLeft,
+        ResizeHandle::BottomRight,
+    ]
+    .into_iter()
+    .find(|handle| {
+        let (center_x, center_y) = resize_handle_center(selection, *handle);
+        (x - center_x).pow(2) + (y - center_y).pow(2) <= radius.pow(2)
+    })
+}
+
+fn begin_selection_resize(seat: &mut SeatEntry, handle: ResizeHandle) -> bool {
+    if !seat.pointer_selection.has_selection {
+        return false;
+    }
+
+    let selection = &seat.pointer_selection.selection;
+    let (anchor_x, anchor_y) = match handle {
+        ResizeHandle::TopLeft => (
+            selection.x + selection.width,
+            selection.y + selection.height,
+        ),
+        ResizeHandle::TopRight => (selection.x, selection.y + selection.height),
+        ResizeHandle::BottomLeft => (selection.x + selection.width, selection.y),
+        ResizeHandle::BottomRight => (selection.x, selection.y),
+    };
+    seat.pointer_selection.anchor_x = anchor_x;
+    seat.pointer_selection.anchor_y = anchor_y;
+    seat.resizing_handle = Some(handle);
+    true
+}
+
 fn begin_selection_move(seat: &mut SeatEntry) -> bool {
     if !seat.pointer_selection.has_selection {
         return false;
@@ -1015,6 +1085,7 @@ fn handle_selection_cancelled(state: &mut SelectorState, seat_idx: usize) {
         seat.moving_selection = false;
         seat.move_offset_x = 0;
         seat.move_offset_y = 0;
+        seat.resizing_handle = None;
     }
     state.cancelled = true;
     state.running = false;
@@ -1046,6 +1117,7 @@ struct SeatSnapshot {
     selection: SelectionBox,
     x: i32,
     y: i32,
+    ctrl_pressed: bool,
 }
 
 fn collect_seat_snapshots(state: &SelectorState) -> Vec<SeatSnapshot> {
@@ -1063,6 +1135,7 @@ fn collect_seat_snapshots(state: &SelectorState) -> Vec<SeatSnapshot> {
                 selection: current.selection.clone(),
                 x: current.x,
                 y: current.y,
+                ctrl_pressed: seat.ctrl_pressed,
             }
         })
         .collect()
@@ -1537,7 +1610,10 @@ fn render_overlay_cairo(
             && let (Some(background), Some(previous)) =
                 (params.background, params.previous_selection)
         {
-            let expanded = expand_selection(previous, params.config.border_weight + 2);
+            let expanded = expand_selection(
+                previous,
+                params.config.border_weight + RESIZE_HANDLE_RADIUS + 2,
+            );
             dim_background_region(cr, canvas, background, params, &expanded);
             cairo_surface_mark_dirty(surface);
         }
@@ -1610,6 +1686,9 @@ fn render_overlay_cairo(
                 params.output_scale,
                 params.transparent_overlay,
             );
+            if !params.config.scroll && seat.ctrl_pressed {
+                cairo_draw_resize_handles(cr, sel);
+            }
 
             if params.config.display_dimensions {
                 cairo_set_source_u32(cr, params.config.colors.border);
@@ -1661,6 +1740,99 @@ fn cairo_stroke_selection_rect(
             height,
         );
         cairo_stroke(cr);
+    }
+}
+
+fn cairo_draw_resize_handle(cr: *mut CairoContext, selection: &SelectionBox, handle: ResizeHandle) {
+    let (center_x, center_y) = resize_handle_center(selection, handle);
+    let (start_angle, end_angle) = match handle {
+        ResizeHandle::TopLeft => (std::f64::consts::FRAC_PI_2, std::f64::consts::TAU),
+        ResizeHandle::TopRight => (std::f64::consts::PI, std::f64::consts::PI * 2.5),
+        ResizeHandle::BottomLeft => (0.0, std::f64::consts::FRAC_PI_2 * 3.0),
+        ResizeHandle::BottomRight => (
+            std::f64::consts::FRAC_PI_2 * 3.0,
+            std::f64::consts::PI * 3.0,
+        ),
+    };
+    unsafe {
+        cairo_move_to(cr, center_x as f64, center_y as f64);
+        cairo_arc(
+            cr,
+            center_x as f64,
+            center_y as f64,
+            RESIZE_HANDLE_RADIUS as f64,
+            start_angle,
+            end_angle,
+        );
+        cairo_close_path(cr);
+        cairo_fill(cr);
+    }
+}
+
+fn cairo_draw_resize_handles(cr: *mut CairoContext, selection: &SelectionBox) {
+    for handle in [
+        ResizeHandle::TopLeft,
+        ResizeHandle::TopRight,
+        ResizeHandle::BottomLeft,
+        ResizeHandle::BottomRight,
+    ] {
+        cairo_draw_resize_handle(cr, selection, handle);
+    }
+}
+
+fn handle_quadrant_contains(handle: ResizeHandle, dx: i32, dy: i32) -> bool {
+    match handle {
+        ResizeHandle::TopLeft => !(dx >= 0 && dy >= 0),
+        ResizeHandle::TopRight => !(dx <= 0 && dy >= 0),
+        ResizeHandle::BottomLeft => !(dx >= 0 && dy <= 0),
+        ResizeHandle::BottomRight => !(dx <= 0 && dy <= 0),
+    }
+}
+
+fn draw_resize_handle_px(
+    canvas: &mut PixelCanvas<'_>,
+    geometry: &SelectionBox,
+    scale: i32,
+    selection: &SelectionBox,
+    handle: ResizeHandle,
+    color: u32,
+) {
+    let (logical_x, logical_y) = resize_handle_center(selection, handle);
+    let center_x = (logical_x - geometry.x) * scale;
+    let center_y = (logical_y - geometry.y) * scale;
+    let radius = RESIZE_HANDLE_RADIUS * scale;
+    let radius_squared = radius * radius;
+    for y in center_y - radius..=center_y + radius {
+        for x in center_x - radius..=center_x + radius {
+            let dx = x - center_x;
+            let dy = y - center_y;
+            if dx * dx + dy * dy > radius_squared || !handle_quadrant_contains(handle, dx, dy) {
+                continue;
+            }
+            if x < 0 || y < 0 || x >= canvas.width || y >= canvas.height {
+                continue;
+            }
+            let idx = y as usize * canvas.stride + x as usize * 4;
+            let (r, g, b, a) = color_rgba(color);
+            write_pixel_source(canvas.data, idx, r, g, b, a);
+        }
+    }
+}
+
+fn draw_resize_handles_px(
+    canvas: &mut PixelCanvas<'_>,
+    geometry: &SelectionBox,
+    scale: i32,
+    selection: &SelectionBox,
+    color: u32,
+) {
+    for handle in [
+        ResizeHandle::TopLeft,
+        ResizeHandle::TopRight,
+        ResizeHandle::BottomLeft,
+        ResizeHandle::BottomRight,
+    ] {
+        draw_resize_handle_px(canvas, geometry, scale, selection, handle, color);
     }
 }
 
@@ -1757,6 +1929,15 @@ fn render_overlay_software(canvas: &mut PixelCanvas<'_>, params: &RenderParams<'
                 params.config.border_weight,
                 params.config.colors.border,
             );
+            if !params.config.scroll && seat.ctrl_pressed {
+                draw_resize_handles_px(
+                    canvas,
+                    params.logical_geometry,
+                    params.output_scale,
+                    &seat.selection,
+                    params.config.colors.border,
+                );
+            }
             if params.config.display_dimensions {
                 let text = format!("{}x{}", seat.selection.width, seat.selection.height);
                 let tx = rect.x + rect.width + 10 * params.output_scale;
@@ -2492,6 +2673,16 @@ fn set_pointer_cursor(
         .seats
         .get(seat_idx)
         .is_some_and(|seat| seat.moving_selection && seat.button_state == WlButtonState::Pressed);
+    let resize_handle = state.seats.get(seat_idx).and_then(|seat| {
+        if !seat.ctrl_pressed || state.config.scroll || !seat.pointer_selection.has_selection {
+            return None;
+        }
+        resize_handle_at(
+            &seat.pointer_selection.selection,
+            seat.pointer_selection.x,
+            seat.pointer_selection.y,
+        )
+    });
 
     if let Some(manager) = state.cursor_shape_manager.as_ref().cloned() {
         let device = manager.get_pointer(&pointer, qh, ());
@@ -2499,6 +2690,11 @@ fn set_pointer_cursor(
             serial,
             if grabbing_selection {
                 CursorShape::Grabbing
+            } else if let Some(handle) = resize_handle {
+                match handle {
+                    ResizeHandle::TopLeft | ResizeHandle::BottomRight => CursorShape::NwseResize,
+                    ResizeHandle::TopRight | ResizeHandle::BottomLeft => CursorShape::NeswResize,
+                }
             } else if ctrl_pressed {
                 CursorShape::Grab
             } else if over_scroll_preview {
@@ -2772,6 +2968,13 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
 
                 match seat.button_state {
                     WlButtonState::Released => {}
+                    WlButtonState::Pressed if seat.resizing_handle.is_some() => {
+                        handle_active_selection_motion(
+                            config,
+                            resizing,
+                            &mut seat.pointer_selection,
+                        )
+                    }
                     WlButtonState::Pressed if seat.moving_selection => move_active_selection(
                         outputs,
                         &mut seat.pointer_selection,
@@ -2788,7 +2991,17 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
 
                 let over_scroll_preview =
                     state.scroll_active && pointer_is_over_scroll_preview(state, seat_idx);
+                let resize_handle = if state.config.scroll || !state.seats[seat_idx].ctrl_pressed {
+                    None
+                } else {
+                    resize_handle_at(
+                        &state.seats[seat_idx].pointer_selection.selection,
+                        state.seats[seat_idx].pointer_selection.x,
+                        state.seats[seat_idx].pointer_selection.y,
+                    )
+                };
                 state.seats[seat_idx].cursor_over_scroll_preview = Some(over_scroll_preview);
+                state.seats[seat_idx].cursor_over_resize_handle = resize_handle;
                 set_pointer_cursor(state, qh, seat_idx, output_idx, serial, over_scroll_preview);
                 repaint = true;
             }
@@ -2796,6 +3009,7 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                 let seat = &mut state.seats[seat_idx];
                 seat.pointer_selection.current_output = None;
                 seat.cursor_over_scroll_preview = None;
+                seat.cursor_over_resize_handle = None;
                 repaint = true;
             }
             wayland_client::protocol::wl_pointer::Event::Motion {
@@ -2806,34 +3020,56 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                 let outputs = &state.outputs;
                 let config = &state.config;
                 let resizing = &mut state.resizing_selection;
-                let seat = &mut state.seats[seat_idx];
-                if seat.pointer_selection.current_output.is_none() {
-                    return;
-                }
-                move_selection(outputs, &mut seat.pointer_selection, surface_x, surface_y);
-                match seat.button_state {
-                    WlButtonState::Released => {}
-                    WlButtonState::Pressed if seat.moving_selection => move_active_selection(
-                        outputs,
-                        &mut seat.pointer_selection,
-                        seat.move_offset_x,
-                        seat.move_offset_y,
-                    ),
-                    WlButtonState::Pressed => handle_active_selection_motion(
-                        config,
-                        resizing,
-                        &mut seat.pointer_selection,
-                    ),
-                    _ => {}
-                }
-                let output_idx = seat.pointer_selection.current_output;
-                let dragging = seat.button_state == WlButtonState::Pressed;
+                let (output_idx, dragging) = {
+                    let seat = &mut state.seats[seat_idx];
+                    if seat.pointer_selection.current_output.is_none() {
+                        return;
+                    }
+                    move_selection(outputs, &mut seat.pointer_selection, surface_x, surface_y);
+                    match seat.button_state {
+                        WlButtonState::Released => {}
+                        WlButtonState::Pressed if seat.resizing_handle.is_some() => {
+                            handle_active_selection_motion(
+                                config,
+                                resizing,
+                                &mut seat.pointer_selection,
+                            )
+                        }
+                        WlButtonState::Pressed if seat.moving_selection => move_active_selection(
+                            outputs,
+                            &mut seat.pointer_selection,
+                            seat.move_offset_x,
+                            seat.move_offset_y,
+                        ),
+                        WlButtonState::Pressed => handle_active_selection_motion(
+                            config,
+                            resizing,
+                            &mut seat.pointer_selection,
+                        ),
+                        _ => {}
+                    }
+                    (
+                        seat.pointer_selection.current_output,
+                        seat.button_state == WlButtonState::Pressed,
+                    )
+                };
                 let over_scroll_preview =
                     state.scroll_active && pointer_is_over_scroll_preview(state, seat_idx);
-                let cursor_changed =
-                    state.seats[seat_idx].cursor_over_scroll_preview != Some(over_scroll_preview);
+                let resize_handle = if state.config.scroll || !state.seats[seat_idx].ctrl_pressed {
+                    None
+                } else {
+                    resize_handle_at(
+                        &state.seats[seat_idx].pointer_selection.selection,
+                        state.seats[seat_idx].pointer_selection.x,
+                        state.seats[seat_idx].pointer_selection.y,
+                    )
+                };
+                let cursor_changed = state.seats[seat_idx].cursor_over_scroll_preview
+                    != Some(over_scroll_preview)
+                    || state.seats[seat_idx].cursor_over_resize_handle != resize_handle;
                 if cursor_changed {
                     state.seats[seat_idx].cursor_over_scroll_preview = Some(over_scroll_preview);
+                    state.seats[seat_idx].cursor_over_resize_handle = resize_handle;
                 }
                 if cursor_changed && let Some(output_idx) = output_idx {
                     let serial = state.seats[seat_idx].cursor_serial;
@@ -2875,16 +3111,37 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                         let action = {
                             let seat = &mut state.seats[seat_idx];
                             match button_state {
-                                WlButtonState::Pressed
-                                    if seat.ctrl_pressed && begin_selection_move(seat) =>
+                                WlButtonState::Pressed => {
+                                    let handle = if seat.ctrl_pressed && !state.config.scroll {
+                                        resize_handle_at(
+                                            &seat.pointer_selection.selection,
+                                            seat.pointer_selection.x,
+                                            seat.pointer_selection.y,
+                                        )
+                                    } else {
+                                        None
+                                    };
+                                    if let Some(handle) = handle
+                                        && begin_selection_resize(seat, handle)
+                                    {
+                                        state.resizing_selection = true;
+                                        None
+                                    } else if seat.ctrl_pressed && begin_selection_move(seat) {
+                                        state.resizing_selection = false;
+                                        None
+                                    } else {
+                                        handle_selection_start(
+                                            &state.config,
+                                            &mut seat.pointer_selection,
+                                        )
+                                    }
+                                }
+                                WlButtonState::Released
+                                    if seat.resizing_handle.take().is_some() =>
                                 {
                                     state.resizing_selection = false;
-                                    None
+                                    Some(seat.pointer_selection.selection.clone())
                                 }
-                                WlButtonState::Pressed => handle_selection_start(
-                                    &state.config,
-                                    &mut seat.pointer_selection,
-                                ),
                                 WlButtonState::Released if seat.moving_selection => {
                                     seat.moving_selection = false;
                                     state.resizing_selection = false;
@@ -2958,6 +3215,7 @@ impl Dispatch<WlKeyboard, SeatKey> for SelectorState {
                         KEY_CTRL_LEFT | KEY_CTRL_RIGHT => {
                             state.seats[seat_idx].ctrl_pressed = true;
                             refresh_pointer_cursor(state, qh, seat_idx);
+                            repaint = true;
                         }
                         KEY_ESCAPE => {
                             if state.scroll_active {
@@ -3005,6 +3263,7 @@ impl Dispatch<WlKeyboard, SeatKey> for SelectorState {
                         KEY_CTRL_LEFT | KEY_CTRL_RIGHT => {
                             state.seats[seat_idx].ctrl_pressed = false;
                             refresh_pointer_cursor(state, qh, seat_idx);
+                            repaint = true;
                         }
                         KEY_SPACE => {
                             repaint = true;
@@ -3360,5 +3619,26 @@ mod tests {
 
         assert_eq!((clamped.x, clamped.y), (1620, 1960));
         assert_eq!((clamped.width, clamped.height), (300, 200));
+    }
+
+    #[test]
+    fn resize_handle_hit_test_uses_selection_corners() {
+        let selection = SelectionBox {
+            x: 100,
+            y: 200,
+            width: 300,
+            height: 150,
+            label: None,
+        };
+
+        assert_eq!(
+            super::resize_handle_at(&selection, 100, 200),
+            Some(super::ResizeHandle::TopLeft)
+        );
+        assert_eq!(
+            super::resize_handle_at(&selection, 400, 350),
+            Some(super::ResizeHandle::BottomRight)
+        );
+        assert_eq!(super::resize_handle_at(&selection, 250, 275), None);
     }
 }
