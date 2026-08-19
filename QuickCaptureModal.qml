@@ -1688,6 +1688,7 @@ Item {
     // Chrome = boardContainer margins plus the edge the toolbar occupies (56px rail + its margin)
     readonly property real _chromeW: Theme.spacingM * 2 + (window.toolbarVisible && !_toolbarHorizontal ? 56 + Theme.spacingM : 0)
     readonly property real _chromeH: Theme.spacingM * 2 + (window.toolbarVisible && _toolbarHorizontal ? 56 + Theme.spacingM : 0)
+    readonly property real _floatingTooltipPadding: 10
     readonly property real _minModalW: _toolbarHorizontal && window.toolbarItem && window.toolbarItem.width ? window.toolbarItem.width + Theme.spacingM * 2 : 400
     readonly property real _minModalH: !_toolbarHorizontal && window.toolbarItem && window.toolbarItem.height ? window.toolbarItem.height + Theme.spacingM * 2 : 300
     readonly property bool _bgSizeKnown: window.bgImageItem
@@ -3810,6 +3811,10 @@ Item {
                     anchors.verticalCenter: (window.toolbarPosition === "left" || window.toolbarPosition === "right") ? parent.verticalCenter : undefined
 
                     anchors.margins: Theme.spacingM
+                    anchors.topMargin: Theme.spacingM + (window.floatingMode && window.toolbarPosition === "top" ? window._floatingTooltipPadding : 0)
+                    anchors.bottomMargin: Theme.spacingM + (window.floatingMode && window.toolbarPosition === "bottom" ? window._floatingTooltipPadding : 0)
+                    anchors.leftMargin: Theme.spacingM + (window.floatingMode && window.toolbarPosition === "left" ? window._floatingTooltipPadding : 0)
+                    anchors.rightMargin: Theme.spacingM + (window.floatingMode && window.toolbarPosition === "right" ? window._floatingTooltipPadding : 0)
                     isVertical: (window.toolbarPosition === "left" || window.toolbarPosition === "right")
 
                     showAnnotations: window.showAnnotations

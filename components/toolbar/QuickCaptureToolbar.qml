@@ -273,7 +273,7 @@ Rectangle {
                         iconName: "save"
                         buttonSize: Constants.btnSize
                         iconSize: Constants.iconSize
-                        tooltipText: I18n.tr("Save (Ctrl+S) | Right-Click for Save As (Ctrl+Shift+S)")
+                        tooltipText: I18n.tr("Save (Ctrl+S) | Save As (Ctrl+Shift+S)")
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -298,7 +298,7 @@ Rectangle {
                         iconName: "content_copy"
                         buttonSize: Constants.btnSize
                         iconSize: Constants.iconSize
-                        tooltipText: I18n.tr("Copy (Ctrl+C) | Right-Click for Anonymous Copy (Ctrl+Shift+C)")
+                        tooltipText: I18n.tr("Copy (Ctrl+C) | Anonymous Copy (Ctrl+Shift+C)")
                     }
                     MouseArea {
                         anchors.fill: parent
