@@ -897,14 +897,53 @@ fn translated_selection(
     }
 }
 
-fn move_active_selection(selection: &mut Selection, offset_x: i32, offset_y: i32) {
-    selection.selection = translated_selection(
+fn clamp_selection_to_outputs(selection: &SelectionBox, outputs: &[OutputEntry]) -> SelectionBox {
+    let Some((min_x, min_y, max_x, max_y)) = outputs
+        .iter()
+        .filter_map(|output| {
+            let geometry = &output.logical_geometry;
+            (geometry.width > 0 && geometry.height > 0).then_some((
+                geometry.x,
+                geometry.y,
+                geometry.x.saturating_add(geometry.width),
+                geometry.y.saturating_add(geometry.height),
+            ))
+        })
+        .reduce(|bounds, geometry| {
+            (
+                bounds.0.min(geometry.0),
+                bounds.1.min(geometry.1),
+                bounds.2.max(geometry.2),
+                bounds.3.max(geometry.3),
+            )
+        })
+    else {
+        return selection.clone();
+    };
+
+    let max_selection_x = max_x.saturating_sub(selection.width);
+    let max_selection_y = max_y.saturating_sub(selection.height);
+    SelectionBox {
+        x: selection.x.clamp(min_x, max_selection_x.max(min_x)),
+        y: selection.y.clamp(min_y, max_selection_y.max(min_y)),
+        ..selection.clone()
+    }
+}
+
+fn move_active_selection(
+    outputs: &[OutputEntry],
+    selection: &mut Selection,
+    offset_x: i32,
+    offset_y: i32,
+) {
+    let translated = translated_selection(
         &selection.selection,
         selection.x,
         selection.y,
         offset_x,
         offset_y,
     );
+    selection.selection = clamp_selection_to_outputs(&translated, outputs);
 }
 
 fn begin_selection_move(seat: &mut SeatEntry) -> bool {
@@ -2734,6 +2773,7 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                 match seat.button_state {
                     WlButtonState::Released => {}
                     WlButtonState::Pressed if seat.moving_selection => move_active_selection(
+                        outputs,
                         &mut seat.pointer_selection,
                         seat.move_offset_x,
                         seat.move_offset_y,
@@ -2774,6 +2814,7 @@ impl Dispatch<WlPointer, SeatKey> for SelectorState {
                 match seat.button_state {
                     WlButtonState::Released => {}
                     WlButtonState::Pressed if seat.moving_selection => move_active_selection(
+                        outputs,
                         &mut seat.pointer_selection,
                         seat.move_offset_x,
                         seat.move_offset_y,
@@ -3257,7 +3298,7 @@ impl Dispatch<WpCursorShapeDeviceV1, ()> for SelectorState {
 
 #[cfg(test)]
 mod tests {
-    use super::{SelectionBox, translated_selection};
+    use super::{OutputEntry, SelectionBox, clamp_selection_to_outputs, translated_selection};
 
     #[test]
     fn translated_selection_preserves_size_and_grab_offset() {
@@ -3293,5 +3334,31 @@ mod tests {
         assert_eq!(moved.x, -30);
         assert_eq!(moved.y, -45);
         assert_eq!((moved.width, moved.height), (40, 30));
+    }
+
+    #[test]
+    fn clamp_selection_keeps_moved_region_inside_virtual_desktop() {
+        let outputs = vec![OutputEntry {
+            logical_geometry: SelectionBox {
+                x: -1920,
+                y: 0,
+                width: 3840,
+                height: 2160,
+                ..SelectionBox::default()
+            },
+            ..OutputEntry::default()
+        }];
+        let selection = SelectionBox {
+            x: 1800,
+            y: 2100,
+            width: 300,
+            height: 200,
+            label: None,
+        };
+
+        let clamped = clamp_selection_to_outputs(&selection, &outputs);
+
+        assert_eq!((clamped.x, clamped.y), (1620, 1960));
+        assert_eq!((clamped.width, clamped.height), (300, 200));
     }
 }
