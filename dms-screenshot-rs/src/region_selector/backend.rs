@@ -1499,6 +1499,41 @@ fn cairo_set_source_u32(cr: *mut CairoContext, color: u32) {
     }
 }
 
+fn background_matches_buffer(
+    background: &BackgroundImage,
+    width: u32,
+    height: u32,
+    stride: usize,
+    pixel_len: usize,
+) -> bool {
+    background.width == width
+        && background.height == height
+        && background.stride == stride
+        && background.pixels.len() == pixel_len
+}
+
+fn resize_background(
+    background: &BackgroundImage,
+    width: u32,
+    height: u32,
+) -> Option<BackgroundImage> {
+    let image = image::RgbaImage::from_raw(
+        background.width,
+        background.height,
+        background.pixels.clone(),
+    )?;
+    let image =
+        image::imageops::resize(&image, width, height, image::imageops::FilterType::Triangle);
+    Some(BackgroundImage {
+        width,
+        height,
+        stride: width as usize * 4,
+        pixels: image.into_raw(),
+        origin_x: background.origin_x,
+        origin_y: background.origin_y,
+    })
+}
+
 fn restore_background_region(
     canvas: &mut PixelCanvas<'_>,
     background: &BackgroundImage,
@@ -2491,16 +2526,24 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
             buffer.height,
         )
     };
-    let output_background = state
-        .background
-        .as_ref()
-        .and_then(|backgrounds| {
-            output_name
-                .as_deref()
-                .and_then(|name| backgrounds.get(name))
-        })
-        .cloned();
-    let background = output_background.as_ref();
+    if let Some(name) = output_name.as_deref()
+        && let Some(background) = state
+            .background
+            .as_ref()
+            .and_then(|backgrounds| backgrounds.get(name))
+        && (background.width != buf_width
+            || background.height != buf_height
+            || background.stride != buf_width as usize * 4)
+        && let Some(resized) = resize_background(background, buf_width, buf_height)
+        && let Some(backgrounds) = state.background.as_mut()
+    {
+        backgrounds.insert(name.to_string(), resized);
+    }
+    let background = state.background.as_ref().and_then(|backgrounds| {
+        output_name
+            .as_deref()
+            .and_then(|name| backgrounds.get(name))
+    });
 
     let output = &mut state.outputs[output_idx];
     let Some(surface) = output.surface.as_ref().cloned() else {
@@ -2511,7 +2554,36 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
     let buf_height = buf_height as i32;
 
     let has_static_background = background.is_some() && !state.scroll_active;
-    let background_prepared = has_static_background && buffer.background_initialized;
+    let background_matches = background.is_some_and(|background| {
+        background_matches_buffer(
+            background,
+            buffer.width,
+            buffer.height,
+            buffer.stride,
+            buffer.mmap.len(),
+        )
+    });
+    let background_prepared =
+        has_static_background && background_matches && buffer.background_initialized;
+    let mut background_copied = background_prepared;
+    if has_static_background
+        && background_matches
+        && !background_prepared
+        && let Some(background) = background
+    {
+        buffer.mmap.copy_from_slice(&background.pixels);
+        background_copied = true;
+        unsafe { cairo_surface_mark_dirty(buffer.surface) };
+    }
+    if !background_copied {
+        buffer.background_initialized = false;
+        buffer.rendered_selection = None;
+    }
+    let render_background = if has_static_background && background_matches {
+        background
+    } else {
+        None
+    };
     let previous_selection = buffer.rendered_selection.as_ref();
     let params = RenderParams {
         logical_geometry: &logical_geometry,
@@ -2520,23 +2592,11 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
         output_scale,
         seats: &seats,
         config,
-        background,
+        background: render_background,
         transparent_overlay: state.scroll_active,
         background_prepared,
         previous_selection,
     };
-    if has_static_background
-        && !background_prepared
-        && let Some(background) = background
-        && background.width == buffer.width
-        && background.height == buffer.height
-        && background.stride == buffer.stride
-        && background.pixels.len() == buffer.mmap.len()
-    {
-        buffer.mmap.copy_from_slice(&background.pixels);
-        unsafe { cairo_surface_mark_dirty(buffer.surface) };
-    }
-
     let mut canvas = PixelCanvas {
         data: &mut buffer.mmap,
         stride: buffer.stride,
@@ -2559,11 +2619,15 @@ fn render_output(state: &mut SelectorState, qh: &QueueHandle<SelectorState>, out
         );
     }
 
-    buffer.background_initialized = has_static_background;
-    buffer.rendered_selection = seats
-        .iter()
-        .find(|seat| seat.has_selection)
-        .map(|seat| seat.selection.clone());
+    buffer.background_initialized = has_static_background && background_copied;
+    buffer.rendered_selection = if buffer.background_initialized {
+        seats
+            .iter()
+            .find(|seat| seat.has_selection)
+            .map(|seat| seat.selection.clone())
+    } else {
+        None
+    };
 
     buffer.busy = true;
     surface.attach(Some(&buffer.buffer), 0, 0);

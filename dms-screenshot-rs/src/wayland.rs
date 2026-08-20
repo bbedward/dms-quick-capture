@@ -20,6 +20,14 @@ use wayland_protocols_wlr::screencopy::v1::client::{
 use crate::contract::OutputInfo;
 use crate::selection::{Rect, clamp};
 
+pub(crate) fn normalize_scale(scale: f64) -> f64 {
+    if scale.is_finite() && scale > 0.0 {
+        scale
+    } else {
+        1.0
+    }
+}
+
 #[derive(Default)]
 struct OutputState {
     proxy: Option<wl_output::WlOutput>,
@@ -115,7 +123,7 @@ pub fn list_outputs() -> Result<Vec<OutputInfo>, String> {
             },
             width: output.width,
             height: output.height,
-            scale: output.scale.max(1.0),
+            scale: normalize_scale(output.scale),
             position: Some((output.x, output.y)),
         })
         .collect();
@@ -446,44 +454,51 @@ fn capture_output_with_region(
     }
 
     let region = requested_region.map(|region| {
-        clamp(
-            region,
-            output_bounds.unwrap_or(Rect {
-                x: 0,
-                y: 0,
-                width: u32::MAX,
-                height: u32::MAX,
-            }),
-        )
+        let bounds = output_bounds.unwrap_or(Rect {
+            x: 0,
+            y: 0,
+            width: u32::MAX,
+            height: u32::MAX,
+        });
+        let bounds = if region_is_logical {
+            Rect {
+                width: (bounds.width as f64 / output_scale).round().max(1.0) as u32,
+                height: (bounds.height as f64 / output_scale).round().max(1.0) as u32,
+                ..bounds
+            }
+        } else {
+            bounds
+        };
+        clamp(region, bounds)
     });
     if let Some(region) = region {
-        let logical_x = if region_is_logical {
-            region.x
+        let capture_x = if region_is_logical {
+            (region.x as f64 * output_scale).round() as i32
         } else {
             (region.x as f64 / output_scale).round() as i32
         };
-        let logical_y = if region_is_logical {
-            region.y
+        let capture_y = if region_is_logical {
+            (region.y as f64 * output_scale).round() as i32
         } else {
             (region.y as f64 / output_scale).round() as i32
         };
-        let logical_width = if region_is_logical {
-            region.width as i32
+        let capture_width = if region_is_logical {
+            (region.width as f64 * output_scale).round().max(1.0) as i32
         } else {
             (region.width as f64 / output_scale).round().max(1.0) as i32
         };
-        let logical_height = if region_is_logical {
-            region.height as i32
+        let capture_height = if region_is_logical {
+            (region.height as f64 * output_scale).round().max(1.0) as i32
         } else {
             (region.height as f64 / output_scale).round().max(1.0) as i32
         };
         state.frame = Some(manager.capture_output_region(
             i32::from(cursor),
             &output,
-            logical_x,
-            logical_y,
-            logical_width,
-            logical_height,
+            capture_x,
+            capture_y,
+            capture_width,
+            capture_height,
             &queue_handle,
             (),
         ));
@@ -556,7 +571,7 @@ pub fn capture_all(cursor: bool) -> Result<CapturedImage, String> {
             .position
             .ok_or_else(|| format!("output has no position: {name}"))?;
         let image = capture_output(Some(&name), cursor)?;
-        let scale = output.scale.max(1.0);
+        let scale = normalize_scale(output.scale);
         max_scale = max_scale.max(scale);
         pending.push((image.image, position.0 as f64, position.1 as f64, scale));
     }
@@ -684,7 +699,7 @@ fn resolve_global_region_in(
             let Some((x, y)) = output.position else {
                 return false;
             };
-            let scale = output.scale.max(1.0);
+            let scale = normalize_scale(output.scale);
             let width = (output.width as f64 / scale).round() as i32;
             let height = (output.height as f64 / scale).round() as i32;
             center_x >= x && center_y >= y && center_x < x + width && center_y < y + height
@@ -706,7 +721,7 @@ fn resolve_global_region_in(
 
 /// Whether an output-local region lies entirely within the output.
 pub fn region_fits_output(output: &OutputInfo, local: &Rect) -> bool {
-    let scale = output.scale.max(1.0);
+    let scale = normalize_scale(output.scale);
     let logical_width = (output.width as f64 / scale).round() as i32;
     let logical_height = (output.height as f64 / scale).round() as i32;
     local.x >= 0
@@ -718,7 +733,7 @@ pub fn region_fits_output(output: &OutputInfo, local: &Rect) -> bool {
 /// The output's bounds in the compositor's global logical coordinates.
 fn output_logical_bounds(output: &OutputInfo) -> Option<Rect> {
     let (x, y) = output.position?;
-    let scale = output.scale.max(1.0);
+    let scale = normalize_scale(output.scale);
     Some(Rect {
         x,
         y,
@@ -793,7 +808,7 @@ pub fn crop_frozen_global_region(
     else {
         return Err("region does not intersect a Wayland output".to_string());
     };
-    let scale = captured[primary].image.scale.max(1.0);
+    let scale = normalize_scale(captured[primary].image.scale);
 
     let width = (requested.width as f64 * scale).round().max(1.0) as u32;
     let height = (requested.height as f64 * scale).round().max(1.0) as u32;
@@ -807,7 +822,7 @@ pub fn crop_frozen_global_region(
         let (output_x, output_y) = info
             .position
             .ok_or_else(|| format!("output has no position: {}", info.name))?;
-        let out_scale = capture.image.scale.max(1.0);
+        let out_scale = normalize_scale(capture.image.scale);
         let x = ((global.x - output_x) as f64 * out_scale).round() as u32;
         let y = ((global.y - output_y) as f64 * out_scale).round() as u32;
         let x = x.min(capture.image.width.saturating_sub(1));
@@ -847,12 +862,12 @@ pub fn crop_frozen_global_region(
     })
 }
 
-pub fn crop_captured_local_region(
+pub fn crop_captured_local_region_with_scale(
     image: CapturedImage,
     requested: Rect,
+    scale: f64,
 ) -> Result<CapturedImage, String> {
-    let scale = image.scale.max(1.0);
-    crop_captured_region_with_scale(image, requested, scale)
+    crop_captured_region_with_scale(image, requested, normalize_scale(scale))
 }
 
 fn crop_captured_region_with_scale(

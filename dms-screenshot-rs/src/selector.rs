@@ -91,18 +91,59 @@ pub fn backgrounds_from_captures(captures: &[crate::wayland::CapturedOutput]) ->
 }
 
 fn background_from_capture(
-    image: &crate::wayland::CapturedImage,
+    capture: &crate::wayland::CapturedImage,
 ) -> crate::region_selector::BackgroundImage {
-    let mut pixels = Vec::with_capacity(image.width as usize * image.height as usize * 4);
-    for pixel in image.image.pixels() {
+    let scale = crate::wayland::normalize_scale(capture.scale);
+    // Fractional scales below one capture fewer physical pixels than the
+    // logical selector surface. Integer scales already match the SHM buffer.
+    let logical_scale = if scale < 1.0 { scale } else { 1.0 };
+    let width = (capture.width as f64 / logical_scale).round().max(1.0) as u32;
+    let height = (capture.height as f64 / logical_scale).round().max(1.0) as u32;
+    let image = if (capture.width, capture.height) == (width, height) {
+        capture.image.clone()
+    } else {
+        image::imageops::resize(
+            &capture.image,
+            width,
+            height,
+            image::imageops::FilterType::Triangle,
+        )
+    };
+    let mut pixels = Vec::with_capacity(width as usize * height as usize * 4);
+    for pixel in image.pixels() {
         pixels.extend_from_slice(&[pixel[2], pixel[1], pixel[0], 255]);
     }
     crate::region_selector::BackgroundImage {
-        width: image.width,
-        height: image.height,
-        stride: image.width as usize * 4,
+        width,
+        height,
+        stride: image.width() as usize * 4,
         pixels,
-        origin_x: image.origin_x,
-        origin_y: image.origin_y,
+        origin_x: capture.origin_x,
+        origin_y: capture.origin_y,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::background_from_capture;
+    use crate::wayland::CapturedImage;
+
+    #[test]
+    fn background_is_resampled_to_logical_dimensions() {
+        let capture = CapturedImage {
+            image: image::RgbaImage::from_pixel(3, 2, image::Rgba([1, 2, 3, 255])),
+            width: 3,
+            height: 2,
+            scale: 0.75,
+            origin_x: 10,
+            origin_y: 20,
+        };
+
+        let background = background_from_capture(&capture);
+
+        assert_eq!((background.width, background.height), (4, 3));
+        assert_eq!(background.stride, 16);
+        assert_eq!(background.pixels.len(), 4 * 3 * 4);
+        assert_eq!((background.origin_x, background.origin_y), (10, 20));
     }
 }

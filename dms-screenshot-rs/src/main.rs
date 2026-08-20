@@ -164,7 +164,13 @@ fn capture_interactive_region(
             .into_iter()
             .find(|output| output.name == output_name)
             .ok_or_else(|| format!("missing frozen capture for output {output_name}"))?;
-        return wayland::crop_captured_local_region(frozen_output.image, local);
+        let logical_width = (output.width as f64 / output.scale).round().max(1.0);
+        let effective_scale = frozen_output.image.width as f64 / logical_width;
+        return wayland::crop_captured_local_region_with_scale(
+            frozen_output.image,
+            local,
+            effective_scale,
+        );
     }
     // The region spans several outputs: composite the frozen captures.
     wayland::crop_frozen_global_region(&frozen_outputs, &outputs, rect)
